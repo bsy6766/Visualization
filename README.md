@@ -14,7 +14,10 @@ Linux(Planned)
 ## Features
 ### QuadTree
 Visualizes 2D space collisions with quad tree. Optimizes number of collision comparison significantly than a bruteforce method (O(N^2)).<br>
-![QuadTree Preview](https://github.com/bsy6766/Visualization/blob/master/gifs/QuadTree.gif)
+<details> 
+  <summary>QuadTree preview gif</summary>
+   ![QuadTree Preview](https://github.com/bsy6766/Visualization/blob/master/gifs/QuadTree.gif)
+</details>
 
 **In Progress**
 ### Flocking
