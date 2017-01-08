@@ -3,13 +3,15 @@ Visualizes simple game techniques for 2D.<br>
 Although everything is made for 2D, some techniques can be expanded to 3D (i.e. QuadTree to OcTree or 3D flocking with additional axis)
 
 ## Engine & Language
-Cocos2d-X 3.13
+Cocos2d-X 3.13<br>
+> Why Cocos2d-X? Because Cocos2d-X is the engine that I'm most used to it compared to other, works great for 2D, cross-platform and opensource. Also it's free!<br>
+
 C++
 
 ## Platform
-Win32
-OSX(Planned)
-Linux(Planned)
+Win32<br>
+OSX(Planned)<br>
+Linux(Planned)<br>
 
 ## Features (Press traingle to expand/collapse)
 <details>
