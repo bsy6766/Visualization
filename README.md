@@ -13,13 +13,29 @@ Win32<br>
 OSX(Planned)<br>
 Linux(Planned)<br>
 
+## How to run on your machine
+Executable are available [here](https://drive.google.com/open?id=0BxL3wp7rb67tNmNvdXZ1emJXMTg). Download the zip file and open it with your archieve tool. <br>
+**Note: For Windows, you need Visual c++ Redistributable to run the program. Error message will tell you which DLL you are missing. Google the name of DLL for solution. Also, program might won't open if anti-virus blocks it.**
+
+## How to build on your machine
+<details>
+<summary><b>Steps</b></summary>
+**Note: I didn't upload entire Cocos2d-X project due to huge size (<200mb initial, <4Gb after building). If you know how Cocos2d-X works, then skip below steps and do it your way. Sources and resources can be found easily in repo folder.**<br>
+- 1. Create new Cocos2d-X project. Version 3.13 version is preferred but any version after that will work (I hope).
+- 2. Copy Classes folder and Releases folder in repo folder.
+- 3. Paste to new Cocos2d-X project folder (where default Classes and Resources folder exists).
+- 4. Overwrite if needed.
+- 5. Open up the project and build.
+</details>
+
+
 ## Features (Press traingle to expand/collapse)
 <details>
 <summary><b>QuadTree</b></summary>
 #### Note
 Visualizes 2D space collisions with quad tree. Optimizes number of collision comparison significantly than a bruteforce method (O(n^2)).<br>
 Worst query time is O(n)<br>
-#### Preview
+#### Preview (Expand/Collapse)
 <details> 
   <summary>QuadTree preview gif</summary>
    ![QuadTree Preview](https://github.com/bsy6766/Visualization/blob/master/gifs/QuadTree.gif)
@@ -43,6 +59,7 @@ Toggle this option by pressing D.
 
 #### Collision Resolution
 If collision resolution is enabled, entity will kind of 'bounce off' from collided entity instead of passing by.<br>
+Collidided/Colliding entities are shown as red on the screen.<br>
 Toggle this option by pressing R.
 
 #### Grid
