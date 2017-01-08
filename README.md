@@ -14,8 +14,11 @@ OSX(Planned)<br>
 Linux(Planned)<br>
 
 ## How to run on your machine
-Executable are available [here](https://drive.google.com/open?id=0BxL3wp7rb67tNmNvdXZ1emJXMTg). Download the zip file and open it with your archieve tool. <br>
+<details>
+<summary><b>Download Link</b></summary>
+Executable are available [**here**](https://drive.google.com/open?id=0BxL3wp7rb67tNmNvdXZ1emJXMTg). Download the zip file and open it with your archieve tool. <br>
 **Note: For Windows, you need Visual c++ Redistributable to run the program. Error message will tell you which DLL you are missing. Google the name of DLL for solution. Also, program might won't open if anti-virus blocks it.**
+</details>
 
 ## How to build on your machine
 <details>
