@@ -14,7 +14,9 @@ Linux(Planned)
 ## Features (Press traingle to expand/collapse)
 <details>
 <summary><b>QuadTree</b></summary>
-Visualizes 2D space collisions with quad tree. Optimizes number of collision comparison significantly than a bruteforce method (O(N^2)).<br>
+#### Note
+Visualizes 2D space collisions with quad tree. Optimizes number of collision comparison significantly than a bruteforce method (O(n^2)).<br>
+Worst query time is O(n)<br>
 #### Preview
 <details> 
   <summary>QuadTree preview gif</summary>
