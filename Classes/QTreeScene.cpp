@@ -17,6 +17,8 @@ bool QTreeScene::init()
 	{
 		return false;
 	}
+
+	ECS::Entity::idCounter = 0;
 	
 	//init node
 	this->areaNode = cocos2d::Node::create();
