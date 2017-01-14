@@ -4,18 +4,33 @@
     <dict>
         <key>frames</key>
         <dict>
-            <key>boidNormal.png</key>
+            <key>boidEntity.png</key>
             <dict>
                 <key>aliases</key>
                 <array/>
                 <key>spriteOffset</key>
                 <string>{0,0}</string>
                 <key>spriteSize</key>
-                <string>{10,15}</string>
+                <string>{15,10}</string>
                 <key>spriteSourceSize</key>
-                <string>{10,15}</string>
+                <string>{15,10}</string>
                 <key>textureRect</key>
-                <string>{{1,1},{10,15}}</string>
+                <string>{{103,1},{15,10}}</string>
+                <key>textureRotated</key>
+                <false/>
+            </dict>
+            <key>boidRangeChecker.png</key>
+            <dict>
+                <key>aliases</key>
+                <array/>
+                <key>spriteOffset</key>
+                <string>{0,0}</string>
+                <key>spriteSize</key>
+                <string>{100,100}</string>
+                <key>spriteSourceSize</key>
+                <string>{100,100}</string>
+                <key>textureRect</key>
+                <string>{{1,1},{100,100}}</string>
                 <key>textureRotated</key>
                 <false/>
             </dict>
@@ -30,7 +45,7 @@
                 <key>spriteSourceSize</key>
                 <string>{1,1}</string>
                 <key>textureRect</key>
-                <string>{{13,1},{1,1}}</string>
+                <string>{{120,1},{1,1}}</string>
                 <key>textureRotated</key>
                 <false/>
             </dict>
@@ -45,7 +60,7 @@
                 <key>spriteSourceSize</key>
                 <string>{10,10}</string>
                 <key>textureRect</key>
-                <string>{{1,18},{10,10}}</string>
+                <string>{{103,13},{10,10}}</string>
                 <key>textureRotated</key>
                 <false/>
             </dict>
@@ -61,9 +76,9 @@
             <key>realTextureFileName</key>
             <string>spritesheet.png</string>
             <key>size</key>
-            <string>{16,32}</string>
+            <string>{128,128}</string>
             <key>smartupdate</key>
-            <string>$TexturePacker:SmartUpdate:6b8ae6e248fe603fc0e282640da6c326:62e33cfc361f0b56b28ed0b0ebb91643:1de88c2a7237d4cdf78de8d8ad4f4c7e$</string>
+            <string>$TexturePacker:SmartUpdate:60a04e70412ba7a8a086be66ef5dc077:76f9309e15bced1d83ff4be973dc3057:1de88c2a7237d4cdf78de8d8ad4f4c7e$</string>
             <key>textureFileName</key>
             <string>spritesheet.png</string>
         </dict>
