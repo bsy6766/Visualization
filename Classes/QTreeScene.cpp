@@ -36,7 +36,7 @@ bool QTreeScene::init()
 	collisionResolve = false;
 
 	// init index
-	lastInspectedEntityID = -1;
+	lastTrackingEntityID = -1;
 	
 	// Get window size
 	auto winSize = cocos2d::Director::getInstance()->getVisibleSize();
@@ -653,14 +653,17 @@ void QTreeScene::onMouseDown(cocos2d::Event* event)
 
 	if (mouseButton == 0)
 	{
+		// Left click
 		if (this->displayBoundary.containsPoint(point))
 		{
+			// In display boundary
 			auto bb = cocos2d::Rect();
 			bb.origin = cocos2d::Vec2(point.x - 5.0f, point.y - 5.0f);
 			bb.size = cocos2d::Vec2(10.0f, 10.0f);
 
 			std::list<Entity*> nearEntities;
 
+			// Query near entities
 			this->quadTree->queryAllEntities(bb, nearEntities);
 
 			if (!nearEntities.empty())
@@ -673,25 +676,30 @@ void QTreeScene::onMouseDown(cocos2d::Event* event)
 
 					if (entitySpriteComp->sprite->getBoundingBox().containsPoint(point))
 					{
+						// Clicked on entitiy sprite
 						this->usageLabels.at(static_cast<int>(USAGE_KEY::TRACK))->stopAllActions();
 						this->usageLabels.at(static_cast<int>(USAGE_KEY::TRACK))->setScale(1.0f);
 						this->usageLabels.at(static_cast<int>(USAGE_KEY::TRACK))->runAction(this->clickAnimation);
 
-						if (this->lastInspectedEntityID == entity->id)
+						if (this->lastTrackingEntityID == entity->id)
 						{
+							// Already tracking same entity. Disable tracking.
 							entityQTreeObjectComp->tracking = false;
-							this->lastInspectedEntityID = -1;
+							this->lastTrackingEntityID = -1;
 							return;
 						}
 
+						// New entity to track
 						entityQTreeObjectComp->tracking = true;
 
-						if (this->lastInspectedEntityID >= 0)
+						if (this->lastTrackingEntityID >= 0)
 						{
+							// Already has other entity tracking.
 							for (auto lastEntity : this->entities)
 							{
-								if (lastEntity->id == this->lastInspectedEntityID)
+								if (lastEntity->id == this->lastTrackingEntityID)
 								{
+									// Disable tracking on last tracking entitiy
 									auto comp = lastEntity->getComponent<ECS::QTreeObject*>(QTREE_OBJECT);
 									comp->tracking = false;
 									break;
@@ -699,7 +707,8 @@ void QTreeScene::onMouseDown(cocos2d::Event* event)
 							}
 						}
 
-						this->lastInspectedEntityID = entity->id;
+						// Set this entity to new tracking entity
+						this->lastTrackingEntityID = entity->id;
 
 						return;
 					}

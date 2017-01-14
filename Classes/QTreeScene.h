@@ -84,7 +84,7 @@ private:
 	bool collisionResolve;
 
 	// Tracking entity
-	int lastInspectedEntityID;
+	int lastTrackingEntityID;
 	
 	// UI animation
 	cocos2d::ActionInterval* clickAnimation;
