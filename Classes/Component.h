@@ -17,9 +17,8 @@ namespace ECS
 	{
 		DIRECTION_VECTOR = 0,
 		SPRITE,
-		BOUNDING_BOX,
-		BOUNDARY,
 		QTREE_OBJECT,
+		FLOCKING_OBJECT,
 		MAX_COMPONENT
 	};
 
@@ -46,8 +45,16 @@ namespace ECS
 		DirectionVector(DirectionVector const&) = delete;
 		void operator=(DirectionVector const&) = delete;
 
+		// Direction vector
 		cocos2d::Vec2 dirVec;
+		// Target dierection vector
+		cocos2d::Vec2 targetDirVec;
+		// Smooth steer
+		bool smoothSteer;
+		// Sets new direction vector
 		void setNewDirVec();
+		// Get angle from direction vector. 0 starts from right side (1, 0).
+		const float getAngle();
 	};
 
 	class Sprite : public Component
@@ -59,17 +66,13 @@ namespace ECS
 		void operator=(Sprite const&) = delete;
 
 		cocos2d::Sprite* sprite;
-	};
 
-	class Boundary : public Component
-	{
-	public:
-		Boundary(const cocos2d::Rect& boundary);
-		~Boundary() = default;
-		Boundary(Boundary const&) = delete;
-		void operator=(Boundary const&) = delete;
-
-		cocos2d::Rect boundary;
+		// Rotate sprite. Wrap angle if it's less than 0 or greater than 360
+		void rotateToDirVec(float angle);
+		// Set position to random place in boundary
+		void setRandomPosInBoundary(const cocos2d::Rect& boundary);
+		// Wrap sprite's position to boundary
+		void wrapPositionWithInBoundary(const cocos2d::Rect& boundary);
 	};
 
 	class QTreeObject : public Component
@@ -80,10 +83,35 @@ namespace ECS
 		QTreeObject(QTreeObject const&) = delete;
 		void operator=(QTreeObject const&) = delete;
 
-		//std::list<int> visitied;
 		std::vector<int> visitied;
 		float speed;
 		bool tracking;
+	};
+
+	class FlockingObject : public Component
+	{
+	public:
+		enum class TYPE
+		{
+			BOID,
+			OBSTACLE
+		};
+
+	public:
+		FlockingObject(const TYPE type);
+		~FlockingObject() = default;
+		FlockingObject(FlockingObject const&) = delete;
+		void operator=(FlockingObject const&) = delete;
+		
+		static float speed;
+		bool tracking;
+
+		static float SIGHT_RADIUS;
+		static float COHENSION_WEIGHT;
+		static float ALIGNMENT_WEIGHT;
+		static float SEPARATION_WEIGHT;
+
+		TYPE type;
 	};
 }
 
