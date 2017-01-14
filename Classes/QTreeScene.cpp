@@ -206,7 +206,10 @@ Entity* QTreeScene::createNewEntity()
 
 	// attach component and return
 	newEntity->components[DIRECTION_VECTOR] = new ECS::DirectionVector();
-	newEntity->components[SPRITE] = new ECS::Sprite(*this->areaNode, "quadTreeEntityBox.png");
+	auto spriteComp = new ECS::Sprite(*this->areaNode, "quadTreeEntityBox.png");
+	spriteComp->sprite->setScaleX(Utility::Random::randomReal<float>(0.25f, 1.0f));
+	spriteComp->sprite->setScaleY(Utility::Random::randomReal<float>(0.25f, 1.0f));
+	newEntity->components[SPRITE] = spriteComp;
 	newEntity->components[QTREE_OBJECT] = new QTreeObject();
 	return newEntity;
 }
@@ -670,9 +673,14 @@ void QTreeScene::onMouseDown(cocos2d::Event* event)
 
 					if (entitySpriteComp->sprite->getBoundingBox().containsPoint(point))
 					{
+						this->usageLabels.at(static_cast<int>(USAGE_KEY::TRACK))->stopAllActions();
+						this->usageLabels.at(static_cast<int>(USAGE_KEY::TRACK))->setScale(1.0f);
+						this->usageLabels.at(static_cast<int>(USAGE_KEY::TRACK))->runAction(this->clickAnimation);
+
 						if (this->lastInspectedEntityID == entity->id)
 						{
 							entityQTreeObjectComp->tracking = false;
+							this->lastInspectedEntityID = -1;
 							return;
 						}
 
@@ -680,20 +688,18 @@ void QTreeScene::onMouseDown(cocos2d::Event* event)
 
 						if (this->lastInspectedEntityID >= 0)
 						{
-							for (auto entity : this->entities)
+							for (auto lastEntity : this->entities)
 							{
-								if (entity->id == this->lastInspectedEntityID)
+								if (lastEntity->id == this->lastInspectedEntityID)
 								{
-									entityQTreeObjectComp->tracking = false;
+									auto comp = lastEntity->getComponent<ECS::QTreeObject*>(QTREE_OBJECT);
+									comp->tracking = false;
 									break;
 								}
 							}
 						}
 
 						this->lastInspectedEntityID = entity->id;
-						this->usageLabels.at(static_cast<int>(USAGE_KEY::TRACK))->stopAllActions();
-						this->usageLabels.at(static_cast<int>(USAGE_KEY::TRACK))->setScale(1.0f);
-						this->usageLabels.at(static_cast<int>(USAGE_KEY::TRACK))->runAction(this->clickAnimation);
 
 						return;
 					}
@@ -813,7 +819,7 @@ void QTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
 			{
 				this->entities.push_back(newEntity);
 				auto spriteComp = this->entities.back()->getComponent<ECS::Sprite*>(SPRITE);
-				spriteComp->sprite->setPosition(cocos2d::Vec2(Utility::Random::randomReal<float>(this->displayBoundary.getMinX(), this->displayBoundary.getMaxX()), Utility::Random::randomReal<float>(this->displayBoundary.getMinY(), this->displayBoundary.getMaxY())));
+				spriteComp->setRandomPosInBoundary(this->displayBoundary);
 			}
 		}
 		this->usageLabels.at(static_cast<int>(USAGE_KEY::ADD_TEN))->stopAllActions();
