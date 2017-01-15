@@ -13,7 +13,7 @@ const int Component::getId()
 
 
 
-DirectionVector::DirectionVector() : Component(DIRECTION_VECTOR), dirVec(cocos2d::Vec2::ZERO), targetDirVec(cocos2d::Vec2::ZERO), smoothSteer(false)
+DirectionVector::DirectionVector() : Component(DIRECTION_VECTOR), dirVec(cocos2d::Vec2::ZERO),  smoothSteer(false)
 {
 	setNewDirVec();
 }
@@ -117,10 +117,13 @@ QTreeObject::~QTreeObject()
 
 
 
-float FlockingObject::speed = 1.0f;
-float FlockingObject::SIGHT_RADIUS = 40.0f;
+float FlockingObject::movementSpeed = 1.0f;
+float FlockingObject::steerSpeed = 2.0f;
+float FlockingObject::SIGHT_RADIUS = 30.0f;
 float FlockingObject::COHENSION_WEIGHT = 1.0f;
 float FlockingObject::ALIGNMENT_WEIGHT = 1.0f;
 float FlockingObject::SEPARATION_WEIGHT = 1.0f;
+float FlockingObject::AVOID_RADIUS = 50.0f;
+float FlockingObject::AVOID_WEIGHT = 2.0f;
 
 FlockingObject::FlockingObject(const TYPE type) : Component(FLOCKING_OBJECT), tracking(false), type(type) {}

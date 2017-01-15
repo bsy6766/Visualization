@@ -47,8 +47,6 @@ namespace ECS
 
 		// Direction vector
 		cocos2d::Vec2 dirVec;
-		// Target dierection vector
-		cocos2d::Vec2 targetDirVec;
 		// Smooth steer
 		bool smoothSteer;
 		// Sets new direction vector
@@ -103,13 +101,16 @@ namespace ECS
 		FlockingObject(FlockingObject const&) = delete;
 		void operator=(FlockingObject const&) = delete;
 		
-		static float speed;
+		static float movementSpeed;
+		static float steerSpeed;
 		bool tracking;
 
 		static float SIGHT_RADIUS;
 		static float COHENSION_WEIGHT;
 		static float ALIGNMENT_WEIGHT;
 		static float SEPARATION_WEIGHT;
+		static float AVOID_RADIUS;
+		static float AVOID_WEIGHT;
 
 		TYPE type;
 	};
