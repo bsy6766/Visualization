@@ -779,6 +779,11 @@ void FlockingScene::onMouseDown(cocos2d::Event* event)
 				if (spriteComp->sprite->getBoundingBox().containsPoint(point))
 				{
 					entity->alive = false;
+					auto flockingObjComp = entity->getComponent<ECS::FlockingObject*>(FLOCKING_OBJECT);
+					if (flockingObjComp->tracking)
+					{
+						this->rangeChecker->setVisible(false);
+					}
 					this->playUIAnimation(USAGE_KEY::REMOVE_ONE);
 					return;
 				}
@@ -836,6 +841,14 @@ void FlockingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 		// Terminate 
 		this->pause = !this->pause;
 		this->playUIAnimation(USAGE_KEY::SPACE);
+		if (this->pause)
+		{
+			this->usageLabels.at(USAGE_KEY::SPACE)->setColor(cocos2d::Color3B::GREEN);
+		}
+		else
+		{
+			this->usageLabels.at(USAGE_KEY::SPACE)->setColor(cocos2d::Color3B::WHITE);
+		}
 	}
 
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_C)
@@ -845,6 +858,7 @@ void FlockingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 		{
 			entity->alive = false;
 			this->playUIAnimation(USAGE_KEY::CLEAR);
+			this->rangeChecker->setVisible(false);
 		}
 	}
 
@@ -868,6 +882,11 @@ void FlockingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 			if (count < 10)
 			{
 				entity->alive = false;
+				auto flockingObjComp = entity->getComponent<ECS::FlockingObject*>(FLOCKING_OBJECT);
+				if (flockingObjComp->tracking)
+				{
+					this->rangeChecker->setVisible(false);
+				}
 			}
 		}
 		this->playUIAnimation(USAGE_KEY::REMOVE_TEN);
