@@ -81,7 +81,7 @@ Numbers are displayed on right top of window.
 </details>
 
 <details>
-<summary><b>Flocking (In progress)</b></summary>
+<summary><b>Flocking</b></summary>
 #### Note
 Visualizes 2D space boids flocking. 
 
@@ -134,6 +134,7 @@ This program uses Quad Tree like the QuadTree project in this repo to optimize c
 </details>
 
 ----
-### Circle Filling
+##In Progress
+### Animated Circle Packing
 ### Vector Math
 Visualizes dot and cross product
