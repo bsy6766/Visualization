@@ -86,7 +86,8 @@ Numbers are displayed on right top of window.
 Visualizes 2D space boids flocking. 
 
 #### Boids
-Boids are entity that has direction and move on constant speed. Every frame(tick) it updates direction vector based on flocking algorithm.
+Boids are entity that has direction and move on constant speed. Every frame(tick) it updates direction vector based on flocking algorithm.<br>
+Maximum boids are limited to 400.
 
 ##### Modification
 To add boid, LEFT CLICK any area in the orange box to add single entity on clicked position or press A to add 10 entities on random position.<br>
