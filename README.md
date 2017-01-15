@@ -85,6 +85,12 @@ Numbers are displayed on right top of window.
 #### Note
 Visualizes 2D space boids flocking. 
 
+#### Preview (Expand/Collapse)
+<details> 
+  <summary>Flocking preview gif</summary>
+   ![Flocking Preview](https://github.com/bsy6766/Visualization/blob/master/gifs/Flocking.gif)
+</details>
+
 #### Boids
 Boids are entity that has direction and move on constant speed. Every frame(tick) it updates direction vector based on flocking algorithm.<br>
 Maximum boids are limited to 400.
