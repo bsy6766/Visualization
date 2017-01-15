@@ -40,6 +40,7 @@ private:
 	cocos2d::Rect displayBoundary;
 	cocos2d::Node* areaNode;
 	cocos2d::Node* qTreeLineNode;
+	cocos2d::Node* blackArea;
 
 	// Labels
 	cocos2d::Label* weightLabel;
@@ -48,8 +49,16 @@ private:
 	cocos2d::ui::Button* rightAlignmentButton;
 
 	cocos2d::Label* cohesionWeightLabel;
+	cocos2d::ui::Button* leftCohesionButton;
+	cocos2d::ui::Button* rightCohesionButton;
+
 	cocos2d::Label* separationWeightLabel;
+	cocos2d::ui::Button* leftSeparationButton;
+	cocos2d::ui::Button* rightSeparationButton;
+
 	cocos2d::Label* avoidWeightLabel;
+	cocos2d::ui::Button* leftAvoidButton;
+	cocos2d::ui::Button* rightAvoidButton;
 
 	enum ACTION_TAG
 	{
