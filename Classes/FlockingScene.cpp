@@ -727,6 +727,8 @@ void FlockingScene::onMouseDown(cocos2d::Event* event)
 						entityFlockingObjComp->tracking = false;
 						this->lastTrackingBoidId = -1;
 						this->rangeChecker->setVisible(false);
+						this->playUIAnimation(USAGE_KEY::TRACK);
+						this->usageLabels.at(static_cast<int>(USAGE_KEY::TRACK))->setColor(cocos2d::Color3B::WHITE);
 						return;
 					}
 					
@@ -742,6 +744,8 @@ void FlockingScene::onMouseDown(cocos2d::Event* event)
 							{
 								// Disable tracking on last tracking entitiy
 								auto comp = lastEntity->getComponent<ECS::FlockingObject*>(FLOCKING_OBJECT);
+								this->playUIAnimation(USAGE_KEY::TRACK);
+								this->usageLabels.at(static_cast<int>(USAGE_KEY::TRACK))->setColor(cocos2d::Color3B::GREEN);
 								comp->tracking = false;
 								break;
 							}
@@ -761,6 +765,7 @@ void FlockingScene::onMouseDown(cocos2d::Event* event)
 			if (this->entities.size() < ECS::Entity::maxEntitySize)
 			{
 				this->entities.push_back(createNewEntity(point));
+				this->playUIAnimation(USAGE_KEY::ADD_ONE);
 			}
 		}
 	}
@@ -774,6 +779,7 @@ void FlockingScene::onMouseDown(cocos2d::Event* event)
 				if (spriteComp->sprite->getBoundingBox().containsPoint(point))
 				{
 					entity->alive = false;
+					this->playUIAnimation(USAGE_KEY::REMOVE_ONE);
 					return;
 				}
 			}
@@ -790,11 +796,13 @@ void FlockingScene::onMouseDown(cocos2d::Event* event)
 				if (spriteComp->sprite->getPosition().distance(point) < 8.0f)
 				{
 					entity->alive = false;
+					this->playUIAnimation(USAGE_KEY::REMOVE_OBSTACLE);
 					return;
 				}
 			}
 
 			this->entities.push_back(createNewObstacleEntity(point));
+			this->playUIAnimation(USAGE_KEY::ADD_OBSTACLE);
 		}
 	}
 }
@@ -827,6 +835,7 @@ void FlockingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 	{
 		// Terminate 
 		this->pause = !this->pause;
+		this->playUIAnimation(USAGE_KEY::SPACE);
 	}
 
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_C)
@@ -835,6 +844,7 @@ void FlockingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 		for (auto entity : this->entities)
 		{
 			entity->alive = false;
+			this->playUIAnimation(USAGE_KEY::CLEAR);
 		}
 	}
 
@@ -847,6 +857,7 @@ void FlockingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 			this->entities.push_back(createNewEntity());
 			count++;
 		}
+		this->playUIAnimation(USAGE_KEY::ADD_TEN);
 	}
 
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_E)
@@ -859,6 +870,7 @@ void FlockingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 				entity->alive = false;
 			}
 		}
+		this->playUIAnimation(USAGE_KEY::REMOVE_TEN);
 	}
 }
 
