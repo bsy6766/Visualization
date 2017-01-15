@@ -75,8 +75,12 @@ private:
 		TRACK,
 		REMOVE_ONE,
 		ADD_OBSTACLE,
+		REMOVE_OBSTACLE,
 		MAX_MOUSE_USAGE
 	};
+
+	// UI animation
+	cocos2d::ActionInterval* clickAnimation;
 
 	enum ACTION_TAG
 	{
@@ -159,6 +163,8 @@ private:
 
 	// UI callbacks
 	void onButtonPressed(cocos2d::Ref* sender);
+	// Play UI animation
+	void playUIAnimation(const USAGE_KEY usageKey);
 public:
 	//simple creator func
 	static FlockingScene* createScene();
