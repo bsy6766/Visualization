@@ -48,10 +48,10 @@ bool FlockingScene::init()
 
 	entityCountLabel = cocos2d::Label::createWithTTF("Entities: " + std::to_string(this->entities.size()), "fonts/Marker Felt.ttf", 25);
 	entityCountLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	entityCountLabel->setPosition(cocos2d::Vec2(winSize.height + 20.0f, winSize.height - 5.0f));
+	entityCountLabel->setPosition(cocos2d::Vec2(winSize.height + 20.0f, winSize.height - 20.0f));
 	this->addChild(entityCountLabel);
 
-	float weightLabelY = winSize.height - 30.0f;
+	float weightLabelY = winSize.height - 35.0f;
 	float leftButtonX = winSize.height + 140.0f;
 	float weightLabelX = leftButtonX + 30.0f;
 	float rightButtonX = leftButtonX + 60.0f;
