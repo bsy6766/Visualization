@@ -122,6 +122,8 @@ private:
 	void resolveCollisions(ECS::Sprite& entitySpriteComp, ECS::Sprite& nearEntitySpriteComp, ECS::DirectionVector& entityDirVecComp, ECS::DirectionVector& nearEntityDirVecComp);
 	// Reassigns entitiy id to keep id less than 1000 (because of duplication check).
 	void reassignEntityIds();
+	// Play UI animation
+	void playUIAnimation(const USAGE_KEY usageKey);
 public:
 	//simple creator func
 	static QTreeScene* createScene();

@@ -605,6 +605,13 @@ void QTreeScene::reassignEntityIds()
 	}
 }
 
+void QTreeScene::playUIAnimation(const USAGE_KEY usageKey)
+{
+	this->usageLabels.at(static_cast<int>(usageKey))->stopAllActions();
+	this->usageLabels.at(static_cast<int>(usageKey))->setScale(1.0f);
+	this->usageLabels.at(static_cast<int>(usageKey))->runAction(this->clickAnimation);
+}
+
 void QTreeScene::initInputListeners()
 {
 	this->mouseInputListener = EventListenerMouse::create();
@@ -679,9 +686,7 @@ void QTreeScene::onMouseDown(cocos2d::Event* event)
 					if (entitySpriteComp->sprite->getBoundingBox().containsPoint(point))
 					{
 						// Clicked on entitiy sprite
-						this->usageLabels.at(static_cast<int>(USAGE_KEY::TRACK))->stopAllActions();
-						this->usageLabels.at(static_cast<int>(USAGE_KEY::TRACK))->setScale(1.0f);
-						this->usageLabels.at(static_cast<int>(USAGE_KEY::TRACK))->runAction(this->clickAnimation);
+						this->playUIAnimation(USAGE_KEY::TRACK);
 
 						if (this->lastTrackingEntityID == entity->id)
 						{
@@ -725,9 +730,7 @@ void QTreeScene::onMouseDown(cocos2d::Event* event)
 				auto newEntitySpriteComp = this->entities.back()->getComponent<ECS::Sprite*>(SPRITE);
 				newEntitySpriteComp->sprite->setPosition(point);
 
-				this->usageLabels.at(static_cast<int>(USAGE_KEY::ADD_ONE))->stopAllActions();
-				this->usageLabels.at(static_cast<int>(USAGE_KEY::ADD_ONE))->setScale(1.0f);
-				this->usageLabels.at(static_cast<int>(USAGE_KEY::ADD_ONE))->runAction(this->clickAnimation);
+				this->playUIAnimation(USAGE_KEY::ADD_ONE);
 			}
 
 
@@ -741,9 +744,7 @@ void QTreeScene::onMouseDown(cocos2d::Event* event)
 			if (entitySpriteComp->sprite->getBoundingBox().containsPoint(point))
 			{
 				entity->alive = false;
-				this->usageLabels.at(static_cast<int>(USAGE_KEY::REMOVE_ONE))->stopAllActions();
-				this->usageLabels.at(static_cast<int>(USAGE_KEY::REMOVE_ONE))->setScale(1.0f);
-				this->usageLabels.at(static_cast<int>(USAGE_KEY::REMOVE_ONE))->runAction(this->clickAnimation);
+				this->playUIAnimation(USAGE_KEY::REMOVE_ONE);
 			}
 		}
 	}
@@ -761,17 +762,13 @@ void QTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
 	{
 		// Increase quadtree level
 		this->quadTree->increaseLevel();
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::INC_QTREE_LEVEL))->stopAllActions();
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::INC_QTREE_LEVEL))->setScale(1.0f);
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::INC_QTREE_LEVEL))->runAction(this->clickAnimation);
+		this->playUIAnimation(USAGE_KEY::INC_QTREE_LEVEL);
 	}
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_2)
 	{
 		// Decrease quadtree level
 		this->quadTree->decreaseLevel();
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::DEC_QTREE_LEVEL))->stopAllActions();
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::DEC_QTREE_LEVEL))->setScale(1.0f);
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::DEC_QTREE_LEVEL))->runAction(this->clickAnimation);
+		this->playUIAnimation(USAGE_KEY::DEC_QTREE_LEVEL);
 	}
 
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_SPACE)
@@ -786,9 +783,7 @@ void QTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
 		{
 			this->usageLabels.at(static_cast<int>(USAGE_KEY::SPACE))->setColor(cocos2d::Color3B::WHITE);
 		}
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::SPACE))->stopAllActions();
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::SPACE))->setScale(1.0f);
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::SPACE))->runAction(this->clickAnimation);
+		this->playUIAnimation(USAGE_KEY::SPACE);
 	}
 
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_R)
@@ -803,9 +798,7 @@ void QTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
 		{
 			this->usageLabels.at(static_cast<int>(USAGE_KEY::COL_RESOLVE))->setColor(cocos2d::Color3B::WHITE);
 		}
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::COL_RESOLVE))->stopAllActions();
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::COL_RESOLVE))->setScale(1.0f);
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::COL_RESOLVE))->runAction(this->clickAnimation);
+		this->playUIAnimation(USAGE_KEY::COL_RESOLVE);
 	}
 
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_C)
@@ -815,9 +808,7 @@ void QTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
 		{
 			entity->alive = false;
 		}
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::CLEAR))->stopAllActions();
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::CLEAR))->setScale(1.0f);
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::CLEAR))->runAction(this->clickAnimation);
+		this->playUIAnimation(USAGE_KEY::CLEAR);
 	}
 
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_A)
@@ -833,9 +824,7 @@ void QTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
 				spriteComp->setRandomPosInBoundary(this->displayBoundary);
 			}
 		}
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::ADD_TEN))->stopAllActions();
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::ADD_TEN))->setScale(1.0f);
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::ADD_TEN))->runAction(this->clickAnimation);
+		this->playUIAnimation(USAGE_KEY::ADD_TEN);
 	}
 
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_E)
@@ -851,9 +840,7 @@ void QTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
 			entity->alive = false;
 			count++;
 		}
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::REMOVE_TEN))->stopAllActions();
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::REMOVE_TEN))->setScale(1.0f);
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::REMOVE_TEN))->runAction(this->clickAnimation);
+		this->playUIAnimation(USAGE_KEY::REMOVE_TEN);
 	}
 
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_G)
@@ -868,9 +855,7 @@ void QTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
 		{
 			this->usageLabels.at(static_cast<int>(USAGE_KEY::GRID))->setColor(cocos2d::Color3B::WHITE);
 		}
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::GRID))->stopAllActions();
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::GRID))->setScale(1.0f);
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::GRID))->runAction(this->clickAnimation);
+		this->playUIAnimation(USAGE_KEY::GRID);
 	}
 
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_D)
@@ -889,9 +874,7 @@ void QTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
 			collisionCheckWithOutRepeatCountLabel->setColor(cocos2d::Color3B::GRAY);
 			this->usageLabels.at(static_cast<int>(USAGE_KEY::DUPL_CHECK))->setColor(cocos2d::Color3B::WHITE);
 		}
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::DUPL_CHECK))->stopAllActions();
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::DUPL_CHECK))->setScale(1.0f);
-		this->usageLabels.at(static_cast<int>(USAGE_KEY::DUPL_CHECK))->runAction(this->clickAnimation);
+		this->playUIAnimation(USAGE_KEY::DUPL_CHECK);
 	}
 }
 
