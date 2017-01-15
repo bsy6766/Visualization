@@ -46,7 +46,7 @@ private:
 	int collisionCheckWithOutRepeatCount;
 	int bruteforceChecksCount;
 	int fps;
-	float fpsElpasedTime;
+	float fpsElapsedTime;
 
 	// Cocos2d labels
 	cocos2d::Label* entityCountLabel;

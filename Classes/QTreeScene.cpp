@@ -62,7 +62,7 @@ bool QTreeScene::init()
 	bruteforceChecksCount = 0;
 	collisionCheckWithOutRepeatCount = 0;
 	fps = 0;
-	fpsElpasedTime = 0;
+	fpsElapsedTime = 0;
 
 	// init more labels
 	entityCountLabel = cocos2d::Label::createWithTTF("Entities: " + std::to_string(entityCount) , "fonts/Marker Felt.ttf", 25);
@@ -247,10 +247,10 @@ void QTreeScene::update(float delta)
 
 void QTreeScene::updateFPS(float delta)
 {
-	this->fpsElpasedTime += delta;
-	if (this->fpsElpasedTime > 1.0f)
+	this->fpsElapsedTime += delta;
+	if (this->fpsElapsedTime > 1.0f)
 	{
-		this->fpsElpasedTime -= 1.0f;
+		this->fpsElapsedTime -= 1.0f;
 		fps++;
 		fpsLabel->setString("FPS: " + std::to_string(fps) + " (" + std::to_string(delta).substr(0, 5) + "ms)");
 		fps = 0;
