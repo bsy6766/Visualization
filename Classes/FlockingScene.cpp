@@ -276,14 +276,17 @@ void FlockingScene::resetQTreeAndPurge()
 
 void FlockingScene::updateFlockingAlgorithm(const float delta)
 {
+	// iterate entities
 	for (auto entity : entities)
 	{
 		auto entityFlockingObjComp = entity->getComponent<ECS::FlockingObject*>(FLOCKING_OBJECT);
 		if (entityFlockingObjComp->type == ECS::FlockingObject::TYPE::BOID)
 		{
+			// If entity is boid, update flocking algorithm
 			auto entitySpriteComp = entity->getComponent<ECS::Sprite*>(SPRITE);
 			std::list<Entity*> nearEntities;
 
+			// Create query rect and query near entities
 			cocos2d::Rect queryingArea = cocos2d::Rect::ZERO;
 			float pad = ECS::FlockingObject::SIGHT_RADIUS;
 			queryingArea.origin = (entitySpriteComp->sprite->getPosition() - cocos2d::Vec2(pad, pad));
@@ -294,6 +297,7 @@ void FlockingScene::updateFlockingAlgorithm(const float delta)
 			std::list<Entity*> nearBoids;
 			std::list<Entity*> nearAvoids;
 
+			// Iterate near entieis
 			for (auto nearEntity : nearEntities)
 			{
 				auto nearEntityFlockingObjComp = nearEntity->getComponent<ECS::FlockingObject*>(FLOCKING_OBJECT);
@@ -303,8 +307,10 @@ void FlockingScene::updateFlockingAlgorithm(const float delta)
 				float distance = nearBoidPos.distance(entityPos);
 				if (nearEntityFlockingObjComp->type == ECS::FlockingObject::TYPE::BOID)
 				{
+					// If near entity is boid, check distance
 					if (distance <= ECS::FlockingObject::SIGHT_RADIUS)
 					{
+						// Add near entity as near boid
 						nearBoids.push_back(nearEntity);
 						if (entityFlockingObjComp->tracking)
 						{
@@ -314,50 +320,54 @@ void FlockingScene::updateFlockingAlgorithm(const float delta)
 				}
 				else if (nearEntityFlockingObjComp->type == ECS::FlockingObject::TYPE::OBSTACLE)
 				{
+					// If near entity is obstacle, check distance
 					if (distance <= ECS::FlockingObject::AVOID_RADIUS)
 					{
+						// Add near entity as near obstacle
 						nearAvoids.push_back(nearEntity);
 					}
 				}
 			}
 
+			// Update direction vector
 			auto entityDirVecComp = entity->getComponent<ECS::DirectionVector*>(DIRECTION_VECTOR);
-
-			cocos2d::Vec2 targetDirVec = entityDirVecComp->dirVec;
-
+			
 			cocos2d::Vec2 finalVec = cocos2d::Vec2::ZERO;
 			cocos2d::Vec2 avoidVec = cocos2d::Vec2::ZERO;
 			if (!nearAvoids.empty())
 			{
+				// Apply avoid direction
 				avoidVec = this->getAvoid(entity, nearAvoids);
 				finalVec += (avoidVec * ECS::FlockingObject::AVOID_WEIGHT);
 			}
 
 			if (!nearBoids.empty())
 			{
+				// Apply core 3 steer behavior.
 				cocos2d::Vec2 alignmentVec = this->getAlignment(entity, nearBoids) * ECS::FlockingObject::ALIGNMENT_WEIGHT;
 				cocos2d::Vec2 cohesionVec = this->getCohesion(entity, nearBoids) * ECS::FlockingObject::COHENSION_WEIGHT;
 				cocos2d::Vec2 separationVec = this->getSeparation(entity, nearBoids) * ECS::FlockingObject::SEPARATION_WEIGHT;
 				finalVec += (alignmentVec + cohesionVec + separationVec);
 			}
 
+			// normalize and save
 			finalVec.normalize();
-			targetDirVec = finalVec;
 
 			if (entityDirVecComp->smoothSteer)
 			{
 				// Steer boid's direction smooothly
 				auto newDirVec = entityDirVecComp->dirVec;
-				auto diffVec = targetDirVec - newDirVec;
+				auto diffVec = finalVec - newDirVec;
 				diffVec *= (delta * ECS::FlockingObject::steerSpeed);
 				entityDirVecComp->dirVec += diffVec;
 			}
 			else
 			{
 				// Steer instantly
-				entityDirVecComp->dirVec = targetDirVec;
+				entityDirVecComp->dirVec = finalVec;
 			}
 
+			// update position
 			auto movedDir = entityDirVecComp->dirVec * ECS::FlockingObject::movementSpeed;
 			auto newPos = entitySpriteComp->sprite->getPosition() + movedDir;
 			entitySpriteComp->sprite->setPosition(newPos);
@@ -367,6 +377,7 @@ void FlockingScene::updateFlockingAlgorithm(const float delta)
 
 			if (!this->displayBoundary.containsPoint(newPos))
 			{
+				// wrap position if boid is out of boundary
 				entitySpriteComp->wrapPositionWithInBoundary(this->displayBoundary);
 			}
 

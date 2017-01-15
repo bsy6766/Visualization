@@ -36,6 +36,7 @@ private:
 	void initInputListeners();
 	void releaseInputListeners();
 
+	// cocos2d
 	cocos2d::Label* backLabel;
 	cocos2d::Rect displayBoundary;
 	cocos2d::Node* areaNode;
