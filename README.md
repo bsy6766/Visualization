@@ -1,6 +1,7 @@
 # Visualization
-Visualizes simple game techniques for 2D.<br>
-Although everything is made for 2D, some techniques can be expanded to 3D (i.e. QuadTree to OcTree or 3D flocking with additional axis)
+Visualizes simple game techniques for 2D or anything I found interesting.<br>
+Although these are made for 2D, some techniques can be expanded to 3D (i.e. QuadTree to OcTree or 3D flocking with additional axis)<br>
+Project is in progress.
 
 ## Engine & Language
 Cocos2d-X 3.13<br>
@@ -79,9 +80,53 @@ This program will count how many collision check was performed on every frame. Y
 Numbers are displayed on right top of window.
 </details>
 
+<details>
+<summary><b>Flocking (In progress)</b></summary>
+#### Note
+Visualizes 2D space boids flocking. 
+
+#### Boids
+Boids are entity that has direction and move on constant speed. Every frame(tick) it updates direction vector based on flocking algorithm.
+
+##### Modification
+To add boid, LEFT CLICK any area in the orange box to add single entity on clicked position or press A to add 10 entities on random position.<br>
+To remove entity, RIGHT CLICK on the entity to remove single entity or press E to remove first 10 entities on the entity list (FIFO).<br>
+To remove all entities, press C.
+
+#### Obstacle (See Avoid)
+Obstacle is a circle object that can be placed in simulation world. Boids will try to avoid the obstacle in all cases.
+##### Modification
+To add obstacle, MIDDLE CLICK any area in the orange box to add single obstacle.<br>
+To remove obstacle, MIDDLE CLICK on the obstacle.
+
+#### Algorithm
+Every boid follows these simple three steering behavior. <br>[Reference](http://www.red3d.com/cwr/boids/)
+
+#### Alignment
+Each boid steer towards the average heading of local boidmates.
+
+#### Cohesion
+Each boid steer to move toward the average position of local boidmates.
+
+#### Separation
+Each boid steer to void crowding local boidmates.
+
+#### Avoid
+This isn't one of the three steering behavior. I added this to make boids to avoid obstacle in the world.
+
+#### Weights
+Each steering behavior, including Avoid, has weight. Weight determines how much each behavior affects the final direction of each boid.
+
+#### Tracking
+To track single boid, LEFT CLICK the boid you want to track. Blue boid will be the one you track and green entity will be the near boids that are in tracking boid's sight range. Yellow sight range checker will be appear on tracking boid.<br>
+To stop tracking, LEFT CLICK the boid you are tracking. 
+
+#### QuadTree
+This program uses Quad Tree like the QuadTree project in this repo to optimize comparison.
+
+</details>
+
 ----
-**In Progress
-### Flocking
-Visualizes 2D space boids flocking with flocking algorithm
+### Circle Filling
 ### Vector Math
 Visualizes dot and cross product
