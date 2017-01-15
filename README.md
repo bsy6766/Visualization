@@ -5,7 +5,7 @@ Project is in progress.
 
 ## Engine & Language
 Cocos2d-X 3.13<br>
-> Why Cocos2d-X? Because Cocos2d-X is the engine that I'm most used to it compared to other, works great for 2D, cross-platform and opensource. Also it's free!<br>
+> Why Cocos2d-X? Because Cocos2d-X is the engine that I'm most used to it compared to others, works great for 2D, cross-platform and opensource. Also it's free!<br>
 
 C++
 
@@ -141,6 +141,6 @@ Visualizes dot and cross product
 
 ----
 ## ChangeLog
-v0.2 Added Flocking Algorithm visualization
-v0.1 Added QuadTree visualization
-v0.0 Project started.
+v0.2 Added Flocking Algorithm visualization.<br>
+v0.1 Added QuadTree visualization.<br>
+v0.0 Project started.<br>
