@@ -15,7 +15,7 @@
                 <key>spriteSourceSize</key>
                 <string>{15,10}</string>
                 <key>textureRect</key>
-                <string>{{103,1},{15,10}}</string>
+                <string>{{103,18},{15,10}}</string>
                 <key>textureRotated</key>
                 <false/>
             </dict>
@@ -34,6 +34,21 @@
                 <key>textureRotated</key>
                 <false/>
             </dict>
+            <key>circle.png</key>
+            <dict>
+                <key>aliases</key>
+                <array/>
+                <key>spriteOffset</key>
+                <string>{0,0}</string>
+                <key>spriteSize</key>
+                <string>{15,15}</string>
+                <key>spriteSourceSize</key>
+                <string>{15,15}</string>
+                <key>textureRect</key>
+                <string>{{103,1},{15,15}}</string>
+                <key>textureRotated</key>
+                <false/>
+            </dict>
             <key>dot.png</key>
             <dict>
                 <key>aliases</key>
@@ -45,7 +60,52 @@
                 <key>spriteSourceSize</key>
                 <string>{1,1}</string>
                 <key>textureRect</key>
-                <string>{{120,1},{1,1}}</string>
+                <string>{{1,123},{1,1}}</string>
+                <key>textureRotated</key>
+                <false/>
+            </dict>
+            <key>leftButton.png</key>
+            <dict>
+                <key>aliases</key>
+                <array/>
+                <key>spriteOffset</key>
+                <string>{0,0}</string>
+                <key>spriteSize</key>
+                <string>{15,18}</string>
+                <key>spriteSourceSize</key>
+                <string>{15,18}</string>
+                <key>textureRect</key>
+                <string>{{1,103},{15,18}}</string>
+                <key>textureRotated</key>
+                <false/>
+            </dict>
+            <key>leftDisabledButton.png</key>
+            <dict>
+                <key>aliases</key>
+                <array/>
+                <key>spriteOffset</key>
+                <string>{0,0}</string>
+                <key>spriteSize</key>
+                <string>{15,18}</string>
+                <key>spriteSourceSize</key>
+                <string>{15,18}</string>
+                <key>textureRect</key>
+                <string>{{18,103},{15,18}}</string>
+                <key>textureRotated</key>
+                <false/>
+            </dict>
+            <key>leftSelectedButton.png</key>
+            <dict>
+                <key>aliases</key>
+                <array/>
+                <key>spriteOffset</key>
+                <string>{0,0}</string>
+                <key>spriteSize</key>
+                <string>{15,16}</string>
+                <key>spriteSourceSize</key>
+                <string>{15,18}</string>
+                <key>textureRect</key>
+                <string>{{69,103},{15,16}}</string>
                 <key>textureRotated</key>
                 <false/>
             </dict>
@@ -60,7 +120,52 @@
                 <key>spriteSourceSize</key>
                 <string>{10,10}</string>
                 <key>textureRect</key>
-                <string>{{103,13},{10,10}}</string>
+                <string>{{103,30},{10,10}}</string>
+                <key>textureRotated</key>
+                <false/>
+            </dict>
+            <key>rightButton.png</key>
+            <dict>
+                <key>aliases</key>
+                <array/>
+                <key>spriteOffset</key>
+                <string>{0,0}</string>
+                <key>spriteSize</key>
+                <string>{15,18}</string>
+                <key>spriteSourceSize</key>
+                <string>{15,18}</string>
+                <key>textureRect</key>
+                <string>{{35,103},{15,18}}</string>
+                <key>textureRotated</key>
+                <false/>
+            </dict>
+            <key>rightDisabledButton.png</key>
+            <dict>
+                <key>aliases</key>
+                <array/>
+                <key>spriteOffset</key>
+                <string>{0,0}</string>
+                <key>spriteSize</key>
+                <string>{15,18}</string>
+                <key>spriteSourceSize</key>
+                <string>{15,18}</string>
+                <key>textureRect</key>
+                <string>{{52,103},{15,18}}</string>
+                <key>textureRotated</key>
+                <false/>
+            </dict>
+            <key>rightSelectedButton.png</key>
+            <dict>
+                <key>aliases</key>
+                <array/>
+                <key>spriteOffset</key>
+                <string>{0,0}</string>
+                <key>spriteSize</key>
+                <string>{15,16}</string>
+                <key>spriteSourceSize</key>
+                <string>{15,18}</string>
+                <key>textureRect</key>
+                <string>{{86,103},{15,16}}</string>
                 <key>textureRotated</key>
                 <false/>
             </dict>
@@ -78,7 +183,7 @@
             <key>size</key>
             <string>{128,128}</string>
             <key>smartupdate</key>
-            <string>$TexturePacker:SmartUpdate:60a04e70412ba7a8a086be66ef5dc077:76f9309e15bced1d83ff4be973dc3057:1de88c2a7237d4cdf78de8d8ad4f4c7e$</string>
+            <string>$TexturePacker:SmartUpdate:23ea7b8cdf23d9b9fbfc0c0d3a4d953d:e35d49829250bb597ab7b4b7eb407c45:1de88c2a7237d4cdf78de8d8ad4f4c7e$</string>
             <key>textureFileName</key>
             <string>spritesheet.png</string>
         </dict>
