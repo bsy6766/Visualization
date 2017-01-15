@@ -521,8 +521,14 @@ const cocos2d::Vec2 FlockingScene::getSeparation(Entity* boid, std::list<Entity*
 		auto nearBoidPos = nearBoidSpriteComp->sprite->getPosition();
 		auto distVec = nearBoidPos - boidPos;
 		float distance = nearBoidPos.distance(boidPos);
-		float distanceFlip = ECS::FlockingObject::SIGHT_RADIUS - distance;
-		sumDistVec += distVec;
+		if (distance <= 0)
+		{
+			sumDistVec += distVec;
+		}
+		else
+		{
+			sumDistVec += (distVec * (1.0f / distance));
+		}
 	}
 
 	const float countF = static_cast<float>(nearBoids.size());
