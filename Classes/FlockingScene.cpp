@@ -46,7 +46,12 @@ bool FlockingScene::init()
 	this->blackArea->setPosition(cocos2d::Vec2(winSize.height, winSize.height * 0.5f));
 	this->addChild(this->blackArea);
 
-	float weightLabelY = winSize.height  -5.0f;
+	entityCountLabel = cocos2d::Label::createWithTTF("Entities: " + std::to_string(this->entities.size()), "fonts/Marker Felt.ttf", 25);
+	entityCountLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
+	entityCountLabel->setPosition(cocos2d::Vec2(winSize.height + 20.0f, winSize.height - 5.0f));
+	this->addChild(entityCountLabel);
+
+	float weightLabelY = winSize.height - 30.0f;
 	float leftButtonX = winSize.height + 140.0f;
 	float weightLabelX = leftButtonX + 30.0f;
 	float rightButtonX = leftButtonX + 60.0f;
@@ -227,8 +232,10 @@ void FlockingScene::update(float delta)
 	{
 		resetQTreeAndPurge();
 		updateFlockingAlgorithm(delta);
-		updateFPS(delta);
 	}
+
+	updateFPS(delta);
+	entityCountLabel->setString("Entities: " + std::to_string(this->entities.size()) + " / " + std::to_string(ECS::Entity::maxEntitySize));
 }
 
 void FlockingScene::resetQTreeAndPurge()
@@ -304,15 +311,6 @@ void FlockingScene::updateFlockingAlgorithm(const float delta)
 							nearBoidSpriteComp->sprite->setColor(cocos2d::Color3B::GREEN);
 						}
 					}
-					/*
-					else
-					{
-						if (entityFlockingObjComp->tracking)
-						{
-							nearBoidSpriteComp->sprite->setColor(cocos2d::Color3B::RED);
-						}
-					}
-					*/
 				}
 				else if (nearEntityFlockingObjComp->type == ECS::FlockingObject::TYPE::OBSTACLE)
 				{

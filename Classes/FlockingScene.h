@@ -60,7 +60,7 @@ private:
 	cocos2d::ui::Button* leftAvoidButton;
 	cocos2d::ui::Button* rightAvoidButton;
 
-	cocos2d::Label* entityLabel;
+	cocos2d::Label* entityCountLabel;
 	cocos2d::Label* fpsLabel;
 	std::vector<cocos2d::Label*> usageLabels;	
 	
