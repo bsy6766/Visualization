@@ -1,16 +1,8 @@
 #include "Component.h"
 #include "Utility.h"
-#include "Entity.h"
+#include "ECS.h"
 
 using namespace ECS;
-
-Component::Component(const int id) : id(id) {}
-
-const int Component::getId()
-{
-	return this->id;
-}
-
 
 
 DirectionVector::DirectionVector() : Component(DIRECTION_VECTOR), dirVec(cocos2d::Vec2::ZERO),  smoothSteer(false)

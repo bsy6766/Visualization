@@ -3,7 +3,7 @@
 
 #include "cocos2d.h"
 #include <list>
-#include "Entity.h"
+#include "ECS.h"
 
 using namespace ECS;
 

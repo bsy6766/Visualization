@@ -2,6 +2,7 @@
 #define COMPONENT_H
 
 #include "cocos2d.h"
+#include "ECS.h"
 
 /**
 *	Note
@@ -18,24 +19,9 @@ namespace ECS
 		DIRECTION_VECTOR = 0,
 		SPRITE,
 		QTREE_OBJECT,
-		FLOCKING_OBJECT,
-		MAX_COMPONENT
+		FLOCKING_OBJECT
 	};
 
-
-	class Component
-	{
-	private:
-	public:
-		Component(const int id);
-		virtual ~Component() = default;
-		Component(Component const&) = delete;
-		void operator=(Component const&) = delete;
-
-		int id;
-
-		const int getId();
-	};
 
 	class DirectionVector : public Component
 	{

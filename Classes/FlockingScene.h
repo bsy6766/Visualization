@@ -4,7 +4,8 @@
 #include "cocos2d.h"
 #include "ui/CocosGUI.h"
 #include "QTree.h"
-#include "Entity.h"
+#include "ECS.h"
+#include "Component.h"
 #include "QTreeLineNode.h"
 
 class FlockingScene : public cocos2d::CCScene

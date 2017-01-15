@@ -4,7 +4,8 @@
 #include "cocos2d.h"
 #include "QTree.h"
 #include "Component.h"
-#include "Entity.h"
+#include "ECS.h"
+#include "Component.h"
 #include "QTreeLineNode.h"
 #include <vector>
 #include <list>
