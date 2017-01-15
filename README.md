@@ -17,7 +17,7 @@ Linux(Planned)<br>
 ## How to run on your machine
 <details>
 <summary><b>Download Link</b></summary>
-Executable are available [**here**](https://drive.google.com/open?id=0BxL3wp7rb67tNmNvdXZ1emJXMTg). Download the zip file and open it with your archieve tool. <br>
+Executable are available [**here**](https://drive.google.com/open?id=0BxL3wp7rb67tNmNvdXZ1emJXMTg). Download the zip file and open it with your archieve tool. Then run Visualization.exe.<br>
 **Note: For Windows, you need Visual c++ Redistributable to run the program. Error message will tell you which DLL you are missing. Google the name of DLL for solution. Also, program might won't open if anti-virus blocks it.**
 </details>
 
@@ -138,3 +138,9 @@ This program uses Quad Tree like the QuadTree project in this repo to optimize c
 ### Animated Circle Packing
 ### Vector Math
 Visualizes dot and cross product
+
+----
+## ChangeLog
+v0.2 Added Flocking Algorithm visualization
+v0.1 Added QuadTree visualization
+v0.0 Project started.
