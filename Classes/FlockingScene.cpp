@@ -42,81 +42,83 @@ bool FlockingScene::init()
 	this->blackArea->setPosition(cocos2d::Vec2(winSize.height, winSize.height * 0.5f));
 	this->addChild(this->blackArea);
 
+	float weightLabelY = winSize.height * 0.7f;
+
 	this->weightLabel = cocos2d::Label::createWithTTF("WEIGHTS (Click buttons to modify)\nALIGNMENT\nCOHESION\nSEPARATION\nAVOID", "fonts/Marker Felt.ttf", 20);
 	this->weightLabel->setLineSpacing(2.0f);
 	this->weightLabel->setAnchorPoint(cocos2d::Vec2(0, 1.0f));
-	this->weightLabel->setPosition(cocos2d::Vec2(winSize.height + 10.0f, winSize.height - 5.0f));
+	this->weightLabel->setPosition(cocos2d::Vec2(winSize.height + 10.0f, weightLabelY -  5.0f));
 	this->addChild(this->weightLabel);
 
 	this->alignmentWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingObject::ALIGNMENT_WEIGHT).substr(0, 3), "fonts/Marker Felt.ttf", 20);
 	//this->alignmentWeightLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->alignmentWeightLabel->setPosition(cocos2d::Vec2(winSize.height + 170.0f, winSize.height - 39.0f));
+	this->alignmentWeightLabel->setPosition(cocos2d::Vec2(winSize.height + 170.0f, weightLabelY - 39.0f));
 	this->addChild(this->alignmentWeightLabel);
 
 	this->leftAlignmentButton = cocos2d::ui::Button::create("leftButton.png", "leftSelectedButton.png", "leftDisabledButton.png", cocos2d::ui::TextureResType::PLIST);
 	this->leftAlignmentButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
 	this->leftAlignmentButton->setActionTag(ACTION_TAG::ALIGNMENT_LEFT);
-	this->leftAlignmentButton->setPosition(cocos2d::Vec2(winSize.height + 140.0f, winSize.height - 39.0f));
+	this->leftAlignmentButton->setPosition(cocos2d::Vec2(winSize.height + 140.0f, weightLabelY - 39.0f));
 	this->addChild(this->leftAlignmentButton);
 
 	this->rightAlignmentButton = cocos2d::ui::Button::create("rightButton.png", "rightSelectedButton.png", "rightDisabledButton.png", cocos2d::ui::TextureResType::PLIST);
 	this->rightAlignmentButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
 	this->rightAlignmentButton->setActionTag(ACTION_TAG::ALIGNMENT_RIGHT);
-	this->rightAlignmentButton->setPosition(cocos2d::Vec2(winSize.height + 200.0f, winSize.height - 39.0f));
+	this->rightAlignmentButton->setPosition(cocos2d::Vec2(winSize.height + 200.0f, weightLabelY - 39.0f));
 	this->addChild(this->rightAlignmentButton);
 
 
 	this->cohesionWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingObject::COHENSION_WEIGHT).substr(0, 3), "fonts/Marker Felt.ttf", 20);
 	//this->alignmentWeightLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->cohesionWeightLabel->setPosition(cocos2d::Vec2(winSize.height + 170.0f, winSize.height - 60.0f));
+	this->cohesionWeightLabel->setPosition(cocos2d::Vec2(winSize.height + 170.0f, weightLabelY - 60.0f));
 	this->addChild(this->cohesionWeightLabel);
 
 	this->leftCohesionButton = cocos2d::ui::Button::create("leftButton.png", "leftSelectedButton.png", "leftDisabledButton.png", cocos2d::ui::TextureResType::PLIST);
 	this->leftCohesionButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
 	this->leftCohesionButton->setActionTag(ACTION_TAG::COHESION_LEFT);
-	this->leftCohesionButton->setPosition(cocos2d::Vec2(winSize.height + 140.0f, winSize.height - 60.0f));
+	this->leftCohesionButton->setPosition(cocos2d::Vec2(winSize.height + 140.0f, weightLabelY - 60.0f));
 	this->addChild(this->leftCohesionButton);
 
 	this->rightCohesionButton = cocos2d::ui::Button::create("rightButton.png", "rightSelectedButton.png", "rightDisabledButton.png", cocos2d::ui::TextureResType::PLIST);
 	this->rightCohesionButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
 	this->rightCohesionButton->setActionTag(ACTION_TAG::COHESION_RIGHT);
-	this->rightCohesionButton->setPosition(cocos2d::Vec2(winSize.height + 200.0f, winSize.height - 60.0f));
+	this->rightCohesionButton->setPosition(cocos2d::Vec2(winSize.height + 200.0f, weightLabelY - 60.0f));
 	this->addChild(this->rightCohesionButton);
 
 
 	this->separationWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingObject::SEPARATION_WEIGHT).substr(0, 3), "fonts/Marker Felt.ttf", 20);
 	//this->alignmentWeightLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->separationWeightLabel->setPosition(cocos2d::Vec2(winSize.height + 170.0f, winSize.height - 81.0f));
+	this->separationWeightLabel->setPosition(cocos2d::Vec2(winSize.height + 170.0f, weightLabelY - 81.0f));
 	this->addChild(this->separationWeightLabel);
 
 	this->leftSeparationButton = cocos2d::ui::Button::create("leftButton.png", "leftSelectedButton.png", "leftDisabledButton.png", cocos2d::ui::TextureResType::PLIST);
 	this->leftSeparationButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
 	this->leftSeparationButton->setActionTag(ACTION_TAG::SEPARATION_LEFT);
-	this->leftSeparationButton->setPosition(cocos2d::Vec2(winSize.height + 140.0f, winSize.height - 81.0f));
+	this->leftSeparationButton->setPosition(cocos2d::Vec2(winSize.height + 140.0f, weightLabelY - 81.0f));
 	this->addChild(this->leftSeparationButton);
 
 	this->rightSeparationButton = cocos2d::ui::Button::create("rightButton.png", "rightSelectedButton.png", "rightDisabledButton.png", cocos2d::ui::TextureResType::PLIST);
 	this->rightSeparationButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
 	this->rightSeparationButton->setActionTag(ACTION_TAG::SEPARATION_RIGHT);
-	this->rightSeparationButton->setPosition(cocos2d::Vec2(winSize.height + 200.0f, winSize.height - 81.0f));
+	this->rightSeparationButton->setPosition(cocos2d::Vec2(winSize.height + 200.0f, weightLabelY - 81.0f));
 	this->addChild(this->rightSeparationButton);
 
 
 	this->avoidWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingObject::AVOID_WEIGHT).substr(0, 3), "fonts/Marker Felt.ttf", 20);
 	//this->alignmentWeightLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->avoidWeightLabel->setPosition(cocos2d::Vec2(winSize.height + 170.0f, winSize.height - 102.0f));
+	this->avoidWeightLabel->setPosition(cocos2d::Vec2(winSize.height + 170.0f, weightLabelY - 102.0f));
 	this->addChild(this->avoidWeightLabel);
 
 	this->leftAvoidButton = cocos2d::ui::Button::create("leftButton.png", "leftSelectedButton.png", "leftDisabledButton.png", cocos2d::ui::TextureResType::PLIST);
 	this->leftAvoidButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
 	this->leftAvoidButton->setActionTag(ACTION_TAG::AVOID_LEFT);
-	this->leftAvoidButton->setPosition(cocos2d::Vec2(winSize.height + 140.0f, winSize.height - 102.0f));
+	this->leftAvoidButton->setPosition(cocos2d::Vec2(winSize.height + 140.0f, weightLabelY - 102.0f));
 	this->addChild(this->leftAvoidButton);
 
 	this->rightAvoidButton = cocos2d::ui::Button::create("rightButton.png", "rightSelectedButton.png", "rightDisabledButton.png", cocos2d::ui::TextureResType::PLIST);
 	this->rightAvoidButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
 	this->rightAvoidButton->setActionTag(ACTION_TAG::AVOID_RIGHT);
-	this->rightAvoidButton->setPosition(cocos2d::Vec2(winSize.height + 200.0f, winSize.height - 102.0f));
+	this->rightAvoidButton->setPosition(cocos2d::Vec2(winSize.height + 200.0f, weightLabelY - 102.0f));
 	this->addChild(this->rightAvoidButton);
 
 	this->lastTrackingBoidId = -1;
@@ -133,8 +135,30 @@ bool FlockingScene::init()
 	this->qTreeLineNode->retain();
 	this->addChild(this->qTreeLineNode);
 
+	fps = 0;
+	fpsElapsedTime = 0;
+
+	this->fpsLabel = cocos2d::Label::createWithTTF("FPS: " + std::to_string(cocos2d::Director::getInstance()->getFrameRate()), "fonts/Marker Felt.ttf", 25);
+	this->fpsLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
+	this->fpsLabel->setPosition(cocos2d::Vec2(winSize.height + 20.0f, 20.0f));
+	this->addChild(this->fpsLabel);
+
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Keys", "fonts/Marker Felt.ttf", 20));
+	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
+	this->addChild(this->usageLabels.back());
+
+	cocos2d::Vec2 usageStartPos = cocos2d::Vec2(winSize.height + 20.0f, winSize.height * 0.65f);
+
+	auto usageLabelSize = this->usageLabels.size();
+	for (int i = 0; i < usageLabelSize; i++)
+	{
+		cocos2d::Vec2 newPos = usageStartPos;
+		newPos.y -= (20.0f * static_cast<float>(i));
+		this->usageLabels.at(i)->setPosition(newPos);
+	}
+
 	// Limit max entity to 100 in this case
-	ECS::Entity::maxEntitySize = 100;
+	ECS::Entity::maxEntitySize = 400;
 
 	this->pause = false;
 
@@ -156,6 +180,7 @@ void FlockingScene::update(float delta)
 	{
 		resetQTreeAndPurge();
 		updateFlockingAlgorithm(delta);
+		updateFPS(delta);
 	}
 }
 
@@ -309,6 +334,22 @@ void FlockingScene::updateFlockingAlgorithm(const float delta)
 	}
 }
 
+void FlockingScene::updateFPS(const float delta)
+{
+	this->fpsElapsedTime += delta;
+	if (this->fpsElapsedTime > 1.0f)
+	{
+		this->fpsElapsedTime -= 1.0f;
+		fps++;
+		fpsLabel->setString("FPS: " + std::to_string(fps) + " (" + std::to_string(delta).substr(0, 5) + "ms)");
+		fps = 0;
+	}
+	else
+	{
+		fps++;
+	}
+}
+
 void FlockingScene::initInputListeners()
 {
 	this->mouseInputListener = EventListenerMouse::create();
@@ -346,25 +387,6 @@ void FlockingScene::initEntitiesAndQTree()
 ECS::Entity * FlockingScene::createNewEntity()
 {
 	Entity* newEntity = new Entity();
-	/*
-	if (newEntity->id >= Entity::maxEntitySize)
-	{
-		auto size = this->entities.size();
-		if (size == Entity::maxEntitySize)
-		{
-			// Limit entities by 1000
-			delete newEntity;
-			return nullptr;
-		}
-		else
-		{
-			// We can spawn more entities but id exceeded 1000. reassign it.
-			//reassignEntityIds();
-			newEntity->id = size;
-			Entity::idCounter = size + 1;
-		}
-	}
-	*/
 
 	// attach component and return
 	auto dirVecComp = new ECS::DirectionVector();
@@ -372,12 +394,20 @@ ECS::Entity * FlockingScene::createNewEntity()
 	newEntity->components[DIRECTION_VECTOR] = dirVecComp;
 	auto spriteComp = new ECS::Sprite(*this->areaNode, "boidEntity.png");
 	const float angle = dirVecComp->getAngle();
-	//cocos2d::log("id = %d, dirvec= (%f, %f), angle = %f", newEntity->id, dirVecComp->dirVec.x, dirVecComp->dirVec.y, angle);
+
 	spriteComp->rotateToDirVec(-angle);
 	spriteComp->setRandomPosInBoundary(this->displayBoundary);
 	newEntity->components[SPRITE] = spriteComp;
 	newEntity->components[FLOCKING_OBJECT] = new ECS::FlockingObject(ECS::FlockingObject::TYPE::BOID);
 
+	return newEntity;
+}
+
+ECS::Entity * FlockingScene::createNewEntity(const cocos2d::Vec2 & pos)
+{
+	Entity* newEntity = createNewEntity();
+	auto spriteComp = newEntity->getComponent<ECS::Sprite*>(SPRITE);
+	spriteComp->sprite->setPosition(pos);
 	return newEntity;
 }
 
@@ -443,7 +473,11 @@ const cocos2d::Vec2 FlockingScene::getSeparation(Entity* boid, std::list<Entity*
 	for (auto nearBoid : nearBoids)
 	{
 		auto nearBoidSpriteComp = nearBoid->getComponent<ECS::Sprite*>(SPRITE);
-		sumDistVec += (nearBoidSpriteComp->sprite->getPosition() - boidPos);
+		auto nearBoidPos = nearBoidSpriteComp->sprite->getPosition();
+		auto distVec = nearBoidPos - boidPos;
+		float distance = nearBoidPos.distance(boidPos);
+		float distanceFlip = ECS::FlockingObject::SIGHT_RADIUS - distance;
+		sumDistVec += distVec;
 	}
 
 	const float countF = static_cast<float>(nearBoids.size());
@@ -665,7 +699,28 @@ void FlockingScene::onMouseDown(cocos2d::Event* event)
 
 					this->rangeChecker->setVisible(true);
 					this->rangeChecker->setPosition(entity->getComponent<ECS::Sprite*>(SPRITE)->sprite->getPosition());
-					break;
+					return;
+				}
+			}
+
+			// If it didn't track any entity, create one
+			if (this->entities.size() < 400)
+			{
+				this->entities.push_back(createNewEntity(point));
+			}
+		}
+	}
+	else if (mouseButton == 1)
+	{
+		if (this->displayBoundary.containsPoint(point))
+		{
+			for (auto entity : this->entities)
+			{
+				auto spriteComp = entity->getComponent<ECS::Sprite*>(SPRITE);
+				if (spriteComp->sprite->getBoundingBox().containsPoint(point))
+				{
+					entity->alive = false;
+					return;
 				}
 			}
 		}
@@ -675,6 +730,16 @@ void FlockingScene::onMouseDown(cocos2d::Event* event)
 		// Middle click
 		if (this->displayBoundary.containsPoint(point))
 		{
+			for (auto entity : this->entities)
+			{
+				auto spriteComp = entity->getComponent<ECS::Sprite*>(SPRITE);
+				if (spriteComp->sprite->getPosition().distance(point) < 8.0f)
+				{
+					entity->alive = false;
+					return;
+				}
+			}
+
 			this->entities.push_back(createNewObstacleEntity(point));
 		}
 	}
@@ -710,20 +775,36 @@ void FlockingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 		this->pause = !this->pause;
 	}
 
-	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_LEFT_ARROW)
+	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_C)
 	{
-		float curAngle = this->entities.front()->getComponent<ECS::Sprite*>(SPRITE)->sprite->getRotation();
-		curAngle += 10.0f;
-		this->entities.front()->getComponent<ECS::Sprite*>(SPRITE)->sprite->setRotation(curAngle);
-		cocos2d::log("curAngle = %f", curAngle);
+		// Terminate 
+		for (auto entity : this->entities)
+		{
+			entity->alive = false;
+		}
 	}
 
-	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_RIGHT_ARROW)
+	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_A)
 	{
-		float curAngle = this->entities.front()->getComponent<ECS::Sprite*>(SPRITE)->sprite->getRotation();
-		curAngle -= 10.0f;
-		this->entities.front()->getComponent<ECS::Sprite*>(SPRITE)->sprite->setRotation(curAngle);
-		cocos2d::log("curAngle = %f", curAngle);
+		// Terminate 
+		int count = 0;
+		while (this->entities.size() < 400 && count < 10)
+		{
+			this->entities.push_back(createNewEntity());
+			count++;
+		}
+	}
+
+	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_E)
+	{
+		int count = 0;
+		for (auto entity : this->entities)
+		{
+			if (count < 10)
+			{
+				entity->alive = false;
+			}
+		}
 	}
 }
 
@@ -744,5 +825,23 @@ void FlockingScene::onExit()
 {
 	cocos2d::CCScene::onExit();
 
-	releaseInputListeners(); 
+	releaseInputListeners();
+
+	this->areaNode->release();
+
+	// Delete all entities
+	for (auto entity : this->entities)
+	{
+		if (entity != nullptr)
+		{
+			delete entity;
+		}
+	}
+
+	// Delete quadtree
+	if (this->quadTree != nullptr)
+	{
+		delete quadTree;
+	}
+
 }

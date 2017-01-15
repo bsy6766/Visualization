@@ -60,6 +60,24 @@ private:
 	cocos2d::ui::Button* leftAvoidButton;
 	cocos2d::ui::Button* rightAvoidButton;
 
+	cocos2d::Label* entityLabel;
+	cocos2d::Label* fpsLabel;
+	std::vector<cocos2d::Label*> usageLabels;	
+	
+	enum USAGE_KEY
+	{
+		SPACE = 1,
+		CLEAR,
+		ADD_TEN,
+		REMOVE_TEN,
+		MAX_KEYBOARD_USAGE,
+		ADD_ONE,
+		TRACK,
+		REMOVE_ONE,
+		ADD_OBSTACLE,
+		MAX_MOUSE_USAGE
+	};
+
 	enum ACTION_TAG
 	{
 		ALIGNMENT_LEFT,
@@ -78,6 +96,10 @@ private:
 	// Flags
 	bool pause;
 
+	// FPS
+	float fpsElapsedTime;
+	int fps;
+
 	// Entities
 	std::list<ECS::Entity*> entities;
 
@@ -91,12 +113,15 @@ private:
 	void initEntitiesAndQTree();
 	// Creates new entity with required components
 	ECS::Entity* createNewEntity();
+	ECS::Entity* createNewEntity(const cocos2d::Vec2& pos);
 	ECS::Entity* createNewObstacleEntity(const cocos2d::Vec2& pos);
 
 	// Reset QuadTree and remove inactive entities
 	void resetQTreeAndPurge();
 	// Update flocking algorithm
 	void updateFlockingAlgorithm(const float delta);
+	// Update FPS label
+	void updateFPS(const float delta);
 
 	// Flocking algorithm
 	/**
