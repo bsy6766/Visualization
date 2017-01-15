@@ -126,8 +126,6 @@ void FlockingScene::resetQTreeAndPurge()
 		// next
 		it++;
 	}
-
-	this->quadTree->showLines();
 }
 
 void FlockingScene::updateFlockingAlgorithm(const float delta)
