@@ -1,7 +1,7 @@
 # Visualization
 Visualizes simple game techniques for 2D or anything I found interesting.<br>
 Although these are made for 2D, some techniques can be expanded to 3D (i.e. QuadTree to OcTree or 3D flocking with additional axis)<br>
-Project is in progress.
+This project uses my own implementation of ECS (Entity Component System).
 
 ## Engine & Language
 Cocos2d-X 3.13<br>
@@ -141,6 +141,7 @@ Visualizes dot and cross product
 
 ----
 ## ChangeLog
+v0.3 Replaced ECS
 v0.2 Added Flocking Algorithm visualization.<br>
 v0.1 Added QuadTree visualization.<br>
 v0.0 Project started.<br>
