@@ -141,7 +141,7 @@ Visualizes dot and cross product
 
 ----
 ## ChangeLog
-v0.3 Replaced ECS
+v0.3 Replaced ECS<br>
 v0.2 Added Flocking Algorithm visualization.<br>
 v0.1 Added QuadTree visualization.<br>
 v0.0 Project started.<br>
