@@ -1,6 +1,7 @@
 #include "MainScene.h"
 #include "QTreeScene.h"
 #include "FlockingScene.h"
+#include "CirclePackingScene.h"
 #include "Utility.h"
 
 USING_NS_CC;
@@ -37,6 +38,7 @@ bool MainScene::init()
 
 	this->labels.push_back(cocos2d::Label::createWithTTF("Quad Tree", fontPath, 30));
 	this->labels.push_back(cocos2d::Label::createWithTTF("Flocking", fontPath, 30));
+	this->labels.push_back(cocos2d::Label::createWithTTF("Circle Packing", fontPath, 30));
 
 	this->labels.push_back(cocos2d::Label::createWithTTF("EXIT(ESC)", fontPath, 30));
 	
@@ -143,6 +145,12 @@ void MainScene::onMouseDown(cocos2d::Event* event)
 			cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, FlockingScene::create(), cocos2d::Color3B::BLACK));
 		}
 		break;
+		case LABEL_INDEX::CIRCLE_PACKING:
+		{
+			// Load quad tree scene
+			cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, CirclePackingScene::create(), cocos2d::Color3B::BLACK));
+		}
+		break;
 		case LABEL_INDEX::EXIT:
 		{
 			cocos2d::Director::getInstance()->end();
@@ -174,7 +182,7 @@ void MainScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::E
 {
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_ESCAPE)
 	{
-		cocos2d::Director::getInstance()->end();
+		cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, MainScene::create(), cocos2d::Color3B::BLACK));
 	}
 }
 

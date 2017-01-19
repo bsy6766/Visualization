@@ -1,13 +1,13 @@
-#ifndef MAINSCENE_H
-#define MAINSCENE_H
+#ifndef CIRCLEPACKINGSCENE_H
+#define CIRCLEPACKINGSCENE_H
 
 #include "cocos2d.h"
 
-class MainScene : public cocos2d::CCScene
+class CirclePackingScene : public cocos2d::CCScene
 {
 private:
 	//default constructor
-	MainScene() {};
+	CirclePackingScene() {};
 
 	//Input Listeners
 	cocos2d::EventListenerMouse* mouseInputListener;
@@ -29,32 +29,18 @@ private:
 	virtual void update(float delta) override;
 	virtual void onExit() override;
 
-	std::vector<cocos2d::Label*> labels;
-	int hoveringLableIndex;
-	cocos2d::Size winSize;
-
 	void initInputListeners();
 	void releaseInputListeners();
 
-	void checkMouseOver(const cocos2d::Vec2 mousePos);
-
-	enum LABEL_INDEX
-	{
-		QUAD_TREE = 0,
-		FLOCKING,
-		CIRCLE_PACKING,
-		EXIT
-	};
-
 public:
 	//simple creator func
-	static MainScene* createScene();
+	static CirclePackingScene* createScene();
 
 	//default destructor
-	~MainScene() {};
+	~CirclePackingScene() {};
 
 	//Cocos2d Macro
-	CREATE_FUNC(MainScene);
+	CREATE_FUNC(CirclePackingScene);
 };
 
 #endif
