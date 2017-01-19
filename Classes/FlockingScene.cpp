@@ -27,10 +27,6 @@ bool FlockingScene::init()
 
 	std::string fontPath = "fonts/Rubik-Medium.ttf";
 
-	this->backLabel = cocos2d::Label::createWithTTF("BACK(ESC)", fontPath, 30);
-	this->backLabel->setPosition(cocos2d::Vec2(winSize.width - 75.0f, 20.0f));
-	this->addChild(this->backLabel);
-
 	this->areaNode = cocos2d::Node::create();
 	this->areaNode->setPosition(cocos2d::Vec2::ZERO);
 	this->areaNode->retain();
@@ -48,91 +44,114 @@ bool FlockingScene::init()
 	this->blackArea->setPosition(cocos2d::Vec2(winSize.height, winSize.height * 0.5f));
 	this->addChild(this->blackArea);
 
+	this->backLabel = cocos2d::Label::createWithTTF("BACK(ESC)", fontPath, 20);
+	this->backLabel->setPosition(cocos2d::Vec2(winSize.width - 60.0f, 20.0f));
+	this->addChild(this->backLabel);
+
+	float labelX = winSize.height + 5.0f;
+
 	entityCountLabel = cocos2d::Label::createWithTTF("Entities: " + std::to_string(this->entities.size()), fontPath, 25);
 	entityCountLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	entityCountLabel->setPosition(cocos2d::Vec2(winSize.height + 20.0f, winSize.height - 20.0f));
+	entityCountLabel->setPosition(cocos2d::Vec2(labelX, winSize.height - 20.0f));
 	this->addChild(entityCountLabel);
 
-	float weightLabelY = winSize.height - 35.0f;
-	float leftButtonX = winSize.height + 140.0f;
-	float weightLabelX = leftButtonX + 30.0f;
-	float rightButtonX = leftButtonX + 60.0f;
-
-	this->weightLabel = cocos2d::Label::createWithTTF("WEIGHTS (Click buttons to modify)\nALIGNMENT\nCOHESION\nSEPARATION\nAVOID", fontPath, 20);
-	this->weightLabel->setLineSpacing(2.0f);
+	this->weightLabel = cocos2d::Label::createWithTTF("WEIGHTS (Click buttons to modify)", fontPath, 25);
 	this->weightLabel->setAnchorPoint(cocos2d::Vec2(0, 1.0f));
-	this->weightLabel->setPosition(cocos2d::Vec2(winSize.height + 20.0f, weightLabelY -  5.0f));
+	this->weightLabel->setPosition(cocos2d::Vec2(labelX, winSize.height - 35.0f));
 	this->addChild(this->weightLabel);
 
+	float weightLabelY = winSize.height - 50.0f;
+	float leftButtonX = winSize.height + 160.0f;
+	float weightLabelX = leftButtonX + 30.0f;
+	float rightButtonX = leftButtonX + 60.0f;
+	float weightLabelYOffset = 25.0f;
+	float buttonYOffset = 25.0f;
+
+	this->alignmentLabel = cocos2d::Label::createWithTTF("ALIGNMENT", fontPath, 20);
+	this->alignmentLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
+	this->alignmentLabel->setPosition(cocos2d::Vec2(labelX, weightLabelY - weightLabelYOffset));
+	this->addChild(this->alignmentLabel);
+
 	this->alignmentWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingObject::ALIGNMENT_WEIGHT).substr(0, 3), fontPath, 20);
-	//this->alignmentWeightLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->alignmentWeightLabel->setPosition(cocos2d::Vec2(weightLabelX, weightLabelY - 39.0f));
+	this->alignmentWeightLabel->setPosition(cocos2d::Vec2(weightLabelX, weightLabelY - weightLabelYOffset));
 	this->addChild(this->alignmentWeightLabel);
 
 	this->leftAlignmentButton = cocos2d::ui::Button::create("leftButton.png", "leftSelectedButton.png", "leftDisabledButton.png", cocos2d::ui::TextureResType::PLIST);
 	this->leftAlignmentButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
 	this->leftAlignmentButton->setActionTag(ACTION_TAG::ALIGNMENT_LEFT);
-	this->leftAlignmentButton->setPosition(cocos2d::Vec2(leftButtonX, weightLabelY - 39.0f));
+	this->leftAlignmentButton->setPosition(cocos2d::Vec2(leftButtonX, weightLabelY - buttonYOffset));
 	this->addChild(this->leftAlignmentButton);
 
 	this->rightAlignmentButton = cocos2d::ui::Button::create("rightButton.png", "rightSelectedButton.png", "rightDisabledButton.png", cocos2d::ui::TextureResType::PLIST);
 	this->rightAlignmentButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
 	this->rightAlignmentButton->setActionTag(ACTION_TAG::ALIGNMENT_RIGHT);
-	this->rightAlignmentButton->setPosition(cocos2d::Vec2(rightButtonX, weightLabelY - 39.0f));
+	this->rightAlignmentButton->setPosition(cocos2d::Vec2(rightButtonX, weightLabelY - buttonYOffset));
 	this->addChild(this->rightAlignmentButton);
 
 
+	this->cohesionLabel = cocos2d::Label::createWithTTF("COHESION", fontPath, 20);
+	this->cohesionLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
+	this->cohesionLabel->setPosition(cocos2d::Vec2(labelX, weightLabelY - (weightLabelYOffset * 2.0f)));
+	this->addChild(this->cohesionLabel);
+
 	this->cohesionWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingObject::COHENSION_WEIGHT).substr(0, 3), fontPath, 20);
-	//this->alignmentWeightLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->cohesionWeightLabel->setPosition(cocos2d::Vec2(weightLabelX, weightLabelY - 60.0f));
+	this->cohesionWeightLabel->setPosition(cocos2d::Vec2(weightLabelX, weightLabelY - (weightLabelYOffset * 2.0f)));
 	this->addChild(this->cohesionWeightLabel);
 
 	this->leftCohesionButton = cocos2d::ui::Button::create("leftButton.png", "leftSelectedButton.png", "leftDisabledButton.png", cocos2d::ui::TextureResType::PLIST);
 	this->leftCohesionButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
 	this->leftCohesionButton->setActionTag(ACTION_TAG::COHESION_LEFT);
-	this->leftCohesionButton->setPosition(cocos2d::Vec2(leftButtonX, weightLabelY - 60.0f));
+	this->leftCohesionButton->setPosition(cocos2d::Vec2(leftButtonX, weightLabelY - (buttonYOffset * 2.0f)));
 	this->addChild(this->leftCohesionButton);
 
 	this->rightCohesionButton = cocos2d::ui::Button::create("rightButton.png", "rightSelectedButton.png", "rightDisabledButton.png", cocos2d::ui::TextureResType::PLIST);
 	this->rightCohesionButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
 	this->rightCohesionButton->setActionTag(ACTION_TAG::COHESION_RIGHT);
-	this->rightCohesionButton->setPosition(cocos2d::Vec2(rightButtonX, weightLabelY - 60.0f));
+	this->rightCohesionButton->setPosition(cocos2d::Vec2(rightButtonX, weightLabelY - (buttonYOffset * 2.0f)));
 	this->addChild(this->rightCohesionButton);
 
 
+	this->separationLabel = cocos2d::Label::createWithTTF("SEPARATION", fontPath, 20);
+	this->separationLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
+	this->separationLabel->setPosition(cocos2d::Vec2(labelX, weightLabelY - (weightLabelYOffset * 3.0f)));
+	this->addChild(this->separationLabel);
+
 	this->separationWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingObject::SEPARATION_WEIGHT).substr(0, 3), fontPath, 20);
-	//this->alignmentWeightLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->separationWeightLabel->setPosition(cocos2d::Vec2(weightLabelX, weightLabelY - 81.0f));
+	this->separationWeightLabel->setPosition(cocos2d::Vec2(weightLabelX, weightLabelY - (weightLabelYOffset * 3.0f)));
 	this->addChild(this->separationWeightLabel);
 
 	this->leftSeparationButton = cocos2d::ui::Button::create("leftButton.png", "leftSelectedButton.png", "leftDisabledButton.png", cocos2d::ui::TextureResType::PLIST);
 	this->leftSeparationButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
 	this->leftSeparationButton->setActionTag(ACTION_TAG::SEPARATION_LEFT);
-	this->leftSeparationButton->setPosition(cocos2d::Vec2(leftButtonX, weightLabelY - 81.0f));
+	this->leftSeparationButton->setPosition(cocos2d::Vec2(leftButtonX, weightLabelY - (buttonYOffset * 3.0f)));
 	this->addChild(this->leftSeparationButton);
 
 	this->rightSeparationButton = cocos2d::ui::Button::create("rightButton.png", "rightSelectedButton.png", "rightDisabledButton.png", cocos2d::ui::TextureResType::PLIST);
 	this->rightSeparationButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
 	this->rightSeparationButton->setActionTag(ACTION_TAG::SEPARATION_RIGHT);
-	this->rightSeparationButton->setPosition(cocos2d::Vec2(rightButtonX, weightLabelY - 81.0f));
+	this->rightSeparationButton->setPosition(cocos2d::Vec2(rightButtonX, weightLabelY - (buttonYOffset * 3.0f)));
 	this->addChild(this->rightSeparationButton);
 
 
+	this->avoidLabel = cocos2d::Label::createWithTTF("AVOID", fontPath, 20);
+	this->avoidLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
+	this->avoidLabel->setPosition(cocos2d::Vec2(labelX, weightLabelY - (weightLabelYOffset * 4.0f)));
+	this->addChild(this->avoidLabel);
+
 	this->avoidWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingObject::AVOID_WEIGHT).substr(0, 3), fontPath, 20);
-	//this->alignmentWeightLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->avoidWeightLabel->setPosition(cocos2d::Vec2(weightLabelX, weightLabelY - 102.0f));
+	this->avoidWeightLabel->setPosition(cocos2d::Vec2(weightLabelX, weightLabelY - (weightLabelYOffset * 4.0f)));
 	this->addChild(this->avoidWeightLabel);
 
 	this->leftAvoidButton = cocos2d::ui::Button::create("leftButton.png", "leftSelectedButton.png", "leftDisabledButton.png", cocos2d::ui::TextureResType::PLIST);
 	this->leftAvoidButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
 	this->leftAvoidButton->setActionTag(ACTION_TAG::AVOID_LEFT);
-	this->leftAvoidButton->setPosition(cocos2d::Vec2(leftButtonX, weightLabelY - 102.0f));
+	this->leftAvoidButton->setPosition(cocos2d::Vec2(leftButtonX, weightLabelY - (buttonYOffset * 4.0f)));
 	this->addChild(this->leftAvoidButton);
 
 	this->rightAvoidButton = cocos2d::ui::Button::create("rightButton.png", "rightSelectedButton.png", "rightDisabledButton.png", cocos2d::ui::TextureResType::PLIST);
 	this->rightAvoidButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
 	this->rightAvoidButton->setActionTag(ACTION_TAG::AVOID_RIGHT);
-	this->rightAvoidButton->setPosition(cocos2d::Vec2(rightButtonX, weightLabelY - 102.0f));
+	this->rightAvoidButton->setPosition(cocos2d::Vec2(rightButtonX, weightLabelY - (buttonYOffset * 4.0f)));
 	this->addChild(this->rightAvoidButton);
 
 	this->lastTrackingBoidId = -1;
@@ -154,7 +173,7 @@ bool FlockingScene::init()
 
 	this->fpsLabel = cocos2d::Label::createWithTTF("FPS: " + std::to_string(cocos2d::Director::getInstance()->getFrameRate()), fontPath, 25);
 	this->fpsLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->fpsLabel->setPosition(cocos2d::Vec2(winSize.height + 20.0f, 20.0f));
+	this->fpsLabel->setPosition(cocos2d::Vec2(labelX, 20.0f));
 	this->addChild(this->fpsLabel);
 
 	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Keys                        (Green = enabled)", fontPath, 20));
@@ -185,7 +204,7 @@ bool FlockingScene::init()
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Left Click (on Boid) = Display near boids in range", fontPath, 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Left Click (on Boid) = Track Boid", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
@@ -197,11 +216,11 @@ bool FlockingScene::init()
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Middle click (on Obstacle) = Remove Obstacle", fontPath, 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Middle click (on Obstacle) = Remove Obstacle", fontPath, 19));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	cocos2d::Vec2 usageStartPos = cocos2d::Vec2(winSize.height + 20.0f, winSize.height * 0.65f);
+	cocos2d::Vec2 usageStartPos = cocos2d::Vec2(labelX, winSize.height * 0.65f);
 
 	auto usageLabelSize = static_cast<int>(this->usageLabels.size());
 	for (int i = 0; i < usageLabelSize; i++)
@@ -774,6 +793,7 @@ void FlockingScene::onMouseDown(cocos2d::Event* event)
 
 					this->rangeChecker->setVisible(true);
 					this->rangeChecker->setPosition(entity->getComponent<ECS::Sprite*>(SPRITE)->sprite->getPosition());
+					this->playUIAnimation(USAGE_KEY::TRACK);
 					return;
 				}
 			}

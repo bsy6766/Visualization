@@ -158,8 +158,7 @@ bool QTreeScene::init()
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Left Click (on Entity) = Show queried near entities", fontPath, (controlFontSize - 3.0f) * 2.0f));
-	this->usageLabels.back()->setScale(0.5f);
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Left Click (on Entity) = Track entity", fontPath, controlFontSize));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
@@ -622,16 +621,8 @@ void QTreeScene::reassignEntityIds()
 void QTreeScene::playUIAnimation(const USAGE_KEY usageKey)
 {
 	this->usageLabels.at(static_cast<int>(usageKey))->stopAllActions();
-	if (usageKey == USAGE_KEY::TRACK)
-	{
-		this->usageLabels.at(static_cast<int>(usageKey))->setScale(0.5f);
-		this->usageLabels.at(static_cast<int>(usageKey))->runAction(cocos2d::Sequence::create(cocos2d::ScaleTo::create(0, 0.425f), cocos2d::DelayTime::create(0.25f), cocos2d::ScaleTo::create(0, 0.5f), nullptr));
-	}
-	else
-	{
-		this->usageLabels.at(static_cast<int>(usageKey))->setScale(1.0f);
-		this->usageLabels.at(static_cast<int>(usageKey))->runAction(this->clickAnimation);
-	}
+	this->usageLabels.at(static_cast<int>(usageKey))->setScale(1.0f);
+	this->usageLabels.at(static_cast<int>(usageKey))->runAction(this->clickAnimation);
 }
 
 void QTreeScene::initInputListeners()
