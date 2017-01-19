@@ -813,7 +813,7 @@ void FlockingScene::onMouseDown(cocos2d::Event* event)
 			for (auto entity : this->entities)
 			{
 				auto spriteComp = entity->getComponent<ECS::Sprite*>(SPRITE);
-				if (spriteComp->sprite->getPosition().distance(point) < 8.0f)
+				if (spriteComp->sprite->getPosition().distance(point) < 6.0f)
 				{
 					entity->alive = false;
 					this->playUIAnimation(USAGE_KEY::REMOVE_OBSTACLE);
