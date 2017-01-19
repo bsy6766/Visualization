@@ -140,6 +140,9 @@ This program uses Quad Tree like the QuadTree project in this repo to optimize c
 Visualizes dot and cross product
 
 ----
+## Font
+Used (Rubik)[https://www.fontsquirrel.com/fonts/rubik] by Hubert & Fischer
+
 ## ChangeLog
 v0.3 Replaced ECS<br>
 v0.2 Added Flocking Algorithm visualization.<br>
