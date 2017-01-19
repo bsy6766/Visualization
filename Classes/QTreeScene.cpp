@@ -56,8 +56,8 @@ bool QTreeScene::init()
 	const std::string fontPath = "fonts/Rubik-Medium.ttf";
 
 	// Init label
-	this->backLabel = cocos2d::Label::createWithTTF("BACK(ESC)", fontPath, 30);
-	this->backLabel->setPosition(cocos2d::Vec2(winSize.width - 75.0f, 20.0f));
+	this->backLabel = cocos2d::Label::createWithTTF("BACK(ESC)", fontPath, 20);
+	this->backLabel->setPosition(cocos2d::Vec2(winSize.width - 60.0f, 20.0f));
 	this->addChild(this->backLabel);
 
 	// init numbers
@@ -69,96 +69,105 @@ bool QTreeScene::init()
 	fps = 0;
 	fpsElapsedTime = 0;
 
+	// Label x
+	float labelX = winSize.height + 5.0f;
+	float numberLabelY = winSize.height - 20.0f;
+	float numberLabelYOffset = 24.0f;
+	float numberLabelFontSize = 23;
+
 	// init more labels
-	entityCountLabel = cocos2d::Label::createWithTTF("Entities: " + std::to_string(entityCount) , fontPath, 25);
+	entityCountLabel = cocos2d::Label::createWithTTF("Entities: " + std::to_string(entityCount) , fontPath, numberLabelFontSize);
 	entityCountLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	entityCountLabel->setPosition(cocos2d::Vec2(winSize.height + 20.0f, winSize.height - 20.0f));
+	entityCountLabel->setPosition(cocos2d::Vec2(labelX, numberLabelY));
 	this->addChild(entityCountLabel);
 	
-	collisionChecksCountLabel = cocos2d::Label::createWithTTF("Collision check: " + std::to_string(collisionChecksCount), fontPath, 25);
+	collisionChecksCountLabel = cocos2d::Label::createWithTTF("Collision check: " + std::to_string(collisionChecksCount), fontPath, numberLabelFontSize);
 	collisionChecksCountLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	collisionChecksCountLabel->setPosition(cocos2d::Vec2(winSize.height + 20.0f, winSize.height - 50.0f));
+	collisionChecksCountLabel->setPosition(cocos2d::Vec2(labelX, numberLabelY - numberLabelYOffset));
 	this->addChild(collisionChecksCountLabel);
 
-	collisionCheckWithOutRepeatCountLabel = cocos2d::Label::createWithTTF("Collision check w/o duplication: " + std::to_string(bruteforceChecksCount), fontPath, 25);
+	collisionCheckWithOutRepeatCountLabel = cocos2d::Label::createWithTTF("Collision check w/o duplication: " + std::to_string(bruteforceChecksCount), fontPath, numberLabelFontSize);
 	collisionCheckWithOutRepeatCountLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	collisionCheckWithOutRepeatCountLabel->setPosition(cocos2d::Vec2(winSize.height + 20.0f, winSize.height - 80.0f));
+	collisionCheckWithOutRepeatCountLabel->setPosition(cocos2d::Vec2(labelX, numberLabelY - (numberLabelYOffset * 2.0f)));
 	this->addChild(collisionCheckWithOutRepeatCountLabel);
 
-	bruteforceChecksCountLabel = cocos2d::Label::createWithTTF("Brute-froce collision check: " + std::to_string(bruteforceChecksCount), fontPath, 25);
+	bruteforceChecksCountLabel = cocos2d::Label::createWithTTF("Brute-froce collision check: " + std::to_string(bruteforceChecksCount), fontPath, numberLabelFontSize);
 	bruteforceChecksCountLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	bruteforceChecksCountLabel->setPosition(cocos2d::Vec2(winSize.height + 20.0f, winSize.height - 110.0f));
+	bruteforceChecksCountLabel->setPosition(cocos2d::Vec2(labelX, numberLabelY - (numberLabelYOffset * 3.0f)));
 	this->addChild(bruteforceChecksCountLabel);
 
-	quadtreeLevelLabel = cocos2d::Label::createWithTTF("Quadtree max level: " + std::to_string(0), fontPath, 25);
+	quadtreeLevelLabel = cocos2d::Label::createWithTTF("Quadtree max level: " + std::to_string(0), fontPath, numberLabelFontSize);
 	quadtreeLevelLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	quadtreeLevelLabel->setPosition(cocos2d::Vec2(winSize.height + 20.0f, winSize.height - 140.0f));
+	quadtreeLevelLabel->setPosition(cocos2d::Vec2(labelX, numberLabelY - (numberLabelYOffset * 4.0f)));
 	this->addChild(quadtreeLevelLabel);
 
-	fpsLabel = cocos2d::Label::createWithTTF("FPS: " + std::to_string(cocos2d::Director::getInstance()->getFrameRate()), fontPath, 25);
+	fpsLabel = cocos2d::Label::createWithTTF("FPS: " + std::to_string(cocos2d::Director::getInstance()->getFrameRate()), fontPath, numberLabelFontSize);
 	fpsLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	fpsLabel->setPosition(cocos2d::Vec2(winSize.height + 20.0f, 20.0f));
+	fpsLabel->setPosition(cocos2d::Vec2(labelX, 18.0f));
 	this->addChild(fpsLabel);
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Keys                        (Green = enabled)", fontPath, 20));
+	float controlFontSize = 20;
+
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Keys                        (Green = enabled)", fontPath, controlFontSize));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Space = Toggle update", fontPath, 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Space = Toggle update", fontPath, controlFontSize));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("C = Clear all entities", fontPath, 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("C = Clear all entities", fontPath, controlFontSize));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("A = Add 10 entities", fontPath, 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("A = Add 10 entities", fontPath, controlFontSize));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("E = Remove 10 entities(FIFO)", fontPath, 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("E = Remove 10 entities(FIFO)", fontPath, controlFontSize));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("G = Toggle quadtree grid", fontPath, 20));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->usageLabels.back()->setColor(cocos2d::Color3B::GREEN);
-	this->addChild(this->usageLabels.back());
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("D = Toggle duplication check", fontPath, 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("G = Toggle quadtree grid", fontPath, controlFontSize));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->usageLabels.back()->setColor(cocos2d::Color3B::GREEN);
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("R = Toggle collision resolve", fontPath, 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("D = Toggle duplication check", fontPath, controlFontSize));
+	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
+	this->usageLabels.back()->setColor(cocos2d::Color3B::GREEN);
+	this->addChild(this->usageLabels.back());
+
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("R = Toggle collision resolve", fontPath, controlFontSize));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("1 = Increase quadtree max level", fontPath, 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("1 = Increase quadtree max level", fontPath, controlFontSize));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("2 = Decrease quadtree max level", fontPath, 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("2 = Decrease quadtree max level", fontPath, controlFontSize));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Mouse", fontPath, 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Mouse", fontPath, controlFontSize));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Left Click (in box) = Add entity", fontPath, 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Left Click (in box) = Add entity", fontPath, controlFontSize));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Left Click (on Entity) = Display queried near entities", fontPath, 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Left Click (on Entity) = Show queried near entities", fontPath, (controlFontSize - 3.0f) * 2.0f));
+	this->usageLabels.back()->setScale(0.5f);
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Right click (on entity) = Remove entity", fontPath, 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Right click (on entity) = Remove entity", fontPath, controlFontSize));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	cocos2d::Vec2 usageStartPos = cocos2d::Vec2(winSize.height + 20.0f, winSize.height * 0.65f);
+	cocos2d::Vec2 usageStartPos = cocos2d::Vec2(labelX, winSize.height * 0.65f);
 
 	auto usageLabelSize = static_cast<int>(this->usageLabels.size());
 	for (int i = 0; i < usageLabelSize; i++)
@@ -613,8 +622,16 @@ void QTreeScene::reassignEntityIds()
 void QTreeScene::playUIAnimation(const USAGE_KEY usageKey)
 {
 	this->usageLabels.at(static_cast<int>(usageKey))->stopAllActions();
-	this->usageLabels.at(static_cast<int>(usageKey))->setScale(1.0f);
-	this->usageLabels.at(static_cast<int>(usageKey))->runAction(this->clickAnimation);
+	if (usageKey == USAGE_KEY::TRACK)
+	{
+		this->usageLabels.at(static_cast<int>(usageKey))->setScale(0.5f);
+		this->usageLabels.at(static_cast<int>(usageKey))->runAction(cocos2d::Sequence::create(cocos2d::ScaleTo::create(0, 0.425f), cocos2d::DelayTime::create(0.25f), cocos2d::ScaleTo::create(0, 0.5f), nullptr));
+	}
+	else
+	{
+		this->usageLabels.at(static_cast<int>(usageKey))->setScale(1.0f);
+		this->usageLabels.at(static_cast<int>(usageKey))->runAction(this->clickAnimation);
+	}
 }
 
 void QTreeScene::initInputListeners()
