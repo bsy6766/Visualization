@@ -155,7 +155,7 @@ bool QTreeScene::init()
 
 	cocos2d::Vec2 usageStartPos = cocos2d::Vec2(winSize.height + 20.0f, winSize.height * 0.65f);
 
-	auto usageLabelSize = this->usageLabels.size();
+	auto usageLabelSize = static_cast<int>(this->usageLabels.size());
 	for (int i = 0; i < usageLabelSize; i++)
 	{
 		cocos2d::Vec2 newPos = usageStartPos;
@@ -384,7 +384,7 @@ void QTreeScene::checkCollision()
 					entityQTreeObjectComp->visitied.at(nearEntity->id) = 1;
 
 					// See if near entitiy already checked collision with this entity
-					bool alreadyChecked = static_cast<bool>(nearEntityQTreeObjectComp->visitied.at(entity->id));
+					bool alreadyChecked = nearEntityQTreeObjectComp->visitied.at(entity->id) ? true : false;
 
 					if(!alreadyChecked)
 					{
