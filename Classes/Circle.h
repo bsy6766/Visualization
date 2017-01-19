@@ -15,12 +15,16 @@ public:
 
 	bool growing;
 	bool alive;
+	int id;
+
+	static int idCounter;
 
 	static float MAX_RADIUS;
 	static float GROWTH_SPEED;
 
 	void update(const float delta);
 	void activate(const cocos2d::Vec2& position, const float radius, const cocos2d::Color4F color);
+	void deactivate();
 };
 
 #endif

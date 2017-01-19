@@ -2,8 +2,10 @@
 #define CIRCLEPACKINGSCENE_H
 
 #include "cocos2d.h"
-
-class Circle;
+#include "circle.h"
+#include "QTree.h"
+#include "ECS.h"
+#include <memory>
 
 class CirclePackingScene : public cocos2d::CCScene
 {
@@ -35,14 +37,30 @@ private:
 	void releaseInputListeners();
 
 	cocos2d::Label* backLabel;
+	int fps;
+	float fpsElapsedTime;
+	cocos2d::Label* fpsLabel;
 	cocos2d::DrawNode* drawNode;
 
 	std::vector<cocos2d::Image*> images;
 	std::vector<cocos2d::Sprite*> imageSprites;
-	std::vector<Circle*> circles;
-	// Numbers of circles that have been spawned
-	int spawnedCircleCount;
-	std::queue<cocos2d::Vec2> circleSpawnPoints;
+
+	// new circles are added on front. Growing circles are placed on front block. 
+	// All grown circles are moved to end of list
+	// [[----growing circles-----][-----all grown circles------]]
+	std::list<std::unique_ptr<Circle>> activeCircles;
+	// Fresh circles are deactived. Front element moves to activeCircles list when activated
+	// [---------------deactivated circles----------------------]
+	std::list<std::unique_ptr<Circle>> freshCircles;
+
+	struct SpawnPoint
+	{
+		cocos2d::Vec2 point;
+		cocos2d::Color4F color;
+	};
+
+	// Possible spawn point where circle can spawn. Pops from front.
+	std::queue<SpawnPoint> circleSpawnPointsWithColor;
 
 	// Initial number of circles that spawn on start
 	int initialCircleCount;
@@ -58,9 +76,11 @@ private:
 
 	enum IMAGE_INDEX
 	{
-		DEAULT = 0,	//C++
+		CPP = 0,	//C++
 		CAT,
-		MAX_SIZE
+		THE_SCREAM,
+		MAX_SIZE,
+		NONE,
 	};
 
 	IMAGE_INDEX currentImageIndex;
@@ -77,9 +97,16 @@ private:
 	int searchSpawnPointHeightOffset;
 
 	void initImages();
-	void findCircleSpawnPoint(const IMAGE_INDEX index);
+	void initImageAndSprite(const std::string& imageName);
+	void findCircleSpawnPoint(const IMAGE_INDEX imageIndex);
 	void initCircles();
-	void spawnCircles(const int rate);
+	// Move all grown circles to back of list
+	void moveAllGrownCircles();
+	void spawnCircles(const int spawnRate);
+	void resetCircles();
+	cocos2d::Vec2 pixelToPoint(const int x, const int y, const int height, const cocos2d::Vec2& spritePos);
+	void runCirclePacking(const IMAGE_INDEX imageIndex);
+	void updateFPS(const float delta);
 
 public:
 	//simple creator func

@@ -1,6 +1,5 @@
 #include "CirclePackingScene.h"
 #include "MainScene.h"
-#include "Circle.h"
 #include <algorithm>	// std::random_shuffle
 #include <utility>		// std::swap
 #include <random>
@@ -28,27 +27,20 @@ bool CirclePackingScene::init()
 	this->addChild(this->drawNode, SPRITE_Z_ORDER::CIRCLES);
 
 	// Set spawn point serach offsets
-	this->searchSpawnPointWidthOffset = 2;
-	this->searchSpawnPointHeightOffset = 2;
+	this->searchSpawnPointWidthOffset = 4;
+	this->searchSpawnPointHeightOffset = 4;
+
+	this->currentImageIndex = IMAGE_INDEX::NONE;
 
 	// Init images
 	initImages();
 
-	// Set max circles to draw
-	this->maxCircles = 500;
-
-	// Initializes deactivated circles
-	initCircles();
+	// init max Circles to 0. Will be initialized later
+	this->maxCircles = 0;
 
 	// Set number of circles to spawn at start and every tick
 	this->initialCircleCount = 10;
-	this->circleSpawnRate = 1;
-
-	//temp
-	this->spawnedCircleCount = 0;
-	findCircleSpawnPoint(IMAGE_INDEX::DEAULT);
-	spawnCircles(this->initialCircleCount);
-	this->currentImageIndex = IMAGE_INDEX::DEAULT;
+	this->circleSpawnRate = 5;
 
 	auto winSize = cocos2d::Director::getInstance()->getVisibleSize();
 
@@ -64,6 +56,14 @@ bool CirclePackingScene::init()
 	this->pause = true;
 
 	this->simulateSpeedMultiplier = 1.5f;
+
+	fps = 0;
+	fpsElapsedTime = 0;
+
+	this->fpsLabel = cocos2d::Label::createWithTTF("FPS: " + std::to_string(cocos2d::Director::getInstance()->getFrameRate()), fontPath, 25);
+	this->fpsLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
+	this->fpsLabel->setPosition(cocos2d::Vec2(5.0f, 20.0f));
+	this->addChild(this->fpsLabel);
 
 	return true;
 }
@@ -82,42 +82,54 @@ void CirclePackingScene::initImages()
 
 		switch (index)
 		{
-		case IMAGE_INDEX::DEAULT:
+		case IMAGE_INDEX::CPP:
 		{
-			this->images.back()->initWithImageFile("Images/C++.png");
-
-			cocos2d::Texture2D* tex = new cocos2d::Texture2D();
-			tex->initWithImage(this->images.back());
-			tex->autorelease();
-
-			cocos2d::Sprite* sprite = cocos2d::Sprite::createWithTexture(tex);
-			sprite->retain();
-			sprite->setAnchorPoint(cocos2d::Vec2(0, 0));
-			auto sizeHalf = sprite->getContentSize() * 0.5f;
-			auto winSizeHalf = winSize * 0.5f;
-			sprite->setPosition(cocos2d::Vec2(winSizeHalf - sizeHalf));
-			sprite->setVisible(false);
-
-			this->addChild(sprite, SPRITE_Z_ORDER::BEHIND_CIRCLES);
-			this->imageSprites.push_back(sprite);
+			initImageAndSprite("Images/C++.png");
 		}
 			break;
 		case IMAGE_INDEX::CAT:
+		{
+			initImageAndSprite("Images/cat.png");
+		}
 			break;
-		case IMAGE_INDEX::MAX_SIZE:
-			break;
+		case IMAGE_INDEX::THE_SCREAM:
+		{
+			initImageAndSprite("Images/TheScream.png");
+		}
+		break;
 		default:
 			break;
 		}
 	}
 }
 
+void CirclePackingScene::initImageAndSprite(const std::string & imageName)
+{
+	this->images.back()->initWithImageFile(imageName);
+
+	cocos2d::Texture2D* tex = new cocos2d::Texture2D();
+	tex->initWithImage(this->images.back());
+	tex->autorelease();
+
+	cocos2d::Sprite* sprite = cocos2d::Sprite::createWithTexture(tex);
+	sprite->retain();
+	sprite->setAnchorPoint(cocos2d::Vec2(0, 0));
+	auto sizeHalf = sprite->getContentSize() * 0.5f;
+	auto winSize = cocos2d::Director::getInstance()->getVisibleSize();
+	auto winSizeHalf = winSize * 0.5f;
+	sprite->setPosition(cocos2d::Vec2(winSizeHalf - sizeHalf));
+	sprite->setVisible(false);
+
+	this->addChild(sprite, SPRITE_Z_ORDER::BEHIND_CIRCLES);
+	this->imageSprites.push_back(sprite);
+}
+
 void CirclePackingScene::findCircleSpawnPoint(const IMAGE_INDEX imageIndex)
 {
-	if (this->circleSpawnPoints.empty() == false)
+	if (this->circleSpawnPointsWithColor.empty() == false)
 	{
-		std::queue<cocos2d::Vec2> empty;
-		std::swap(this->circleSpawnPoints, empty);
+		std::queue<SpawnPoint> empty;
+		std::swap(this->circleSpawnPointsWithColor, empty);
 	}
 
 	unsigned int index = static_cast<unsigned int>(imageIndex);
@@ -128,15 +140,15 @@ void CirclePackingScene::findCircleSpawnPoint(const IMAGE_INDEX imageIndex)
 		x = 4;
 	}
 
-	unsigned char *data = new unsigned char[this->images.at(index)->getDataLen()*x];
-	data = this->images.at(index)->getData();
+	unsigned char *data = this->images.at(index)->getData();
+
 	// [0][0] => Left-Top Pixel !
 	// But cocos2d Location Y-axis is Bottom(0) to Top(max)
 
 	int width = this->images.at(index)->getWidth();
 	int height = this->images.at(index)->getHeight();
 
-	std::vector<cocos2d::Vec2> points;
+	std::vector<SpawnPoint> points;
 
 	for (int i = 0; i < width; i += this->searchSpawnPointWidthOffset)
 	{
@@ -152,7 +164,7 @@ void CirclePackingScene::findCircleSpawnPoint(const IMAGE_INDEX imageIndex)
 
 			switch (imageIndex)
 			{
-			case IMAGE_INDEX::DEAULT:
+			case IMAGE_INDEX::CPP:
 			{
 				if (a <= 0)
 				{
@@ -164,14 +176,36 @@ void CirclePackingScene::findCircleSpawnPoint(const IMAGE_INDEX imageIndex)
 					// On default image, only detect white pixel
 					if (r == 255 && g == 255 && b == 255)
 					{
-						auto point = CC_POINT_PIXELS_TO_POINTS(cocos2d::Vec2(i, j));
-						point += this->imageSprites.at(index)->getPosition();
-						points.push_back(point);
+						//auto point = cocos2d::Vec2(i, j);
+						auto point = this->pixelToPoint(i, j, height, this->imageSprites.at(index)->getPosition());
+						//auto point = CC_POINT_PIXELS_TO_POINTS(cocos2d::Vec2(i, j));
+
+						cocos2d::Color4F color = cocos2d::Color4F(cocos2d::RandomHelper::random_real<float>(0, 1.0f),
+								cocos2d::RandomHelper::random_real<float>(0, 1.0f),
+								cocos2d::RandomHelper::random_real<float>(0, 1.0f),
+								1.0f);
+						points.push_back(SpawnPoint{ point, color });
 					}
 					else
 					{
 						continue;
 					}
+				}
+			}
+				break;
+			case IMAGE_INDEX::CAT:
+			case IMAGE_INDEX::THE_SCREAM:
+			{
+				if (a > 0)
+				{
+					// For cat, all points that are visible will be spawn point
+					auto point = this->pixelToPoint(i, j, height, this->imageSprites.at(index)->getPosition());
+
+					points.push_back(SpawnPoint{ point, cocos2d::Color4F(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f) });
+				}
+				else
+				{
+					continue;
 				}
 			}
 				break;
@@ -181,45 +215,83 @@ void CirclePackingScene::findCircleSpawnPoint(const IMAGE_INDEX imageIndex)
 		}
 	}
 
-	delete[] data;
-
 	if (!points.empty())
 	{
-		std::random_shuffle(std::begin(points), std::end(points));
 		int size = static_cast<int>(points.size());
+		int newSize = size / 10 * 8;
+		this->maxCircles = newSize;
+		
+		std::random_shuffle(std::begin(points), std::end(points));
+		points.resize(newSize);
 
-		for (int i = 0; i < size; i++)
+		for (int i = 0; i < newSize; i++)
 		{
-			this->circleSpawnPoints.push(points.at(i));
+			this->circleSpawnPointsWithColor.push(points.at(i));
 		}
 	}
+
+	points.clear();
 }
 
 void CirclePackingScene::initCircles()
 {
-	for (int i = 0; i < this->maxCircles; i++)
+	int size = static_cast<int>(this->freshCircles.size());
+
+	if (size >= this->maxCircles)
 	{
-		this->circles.push_back(new Circle(cocos2d::Vec2::ZERO, 0));
+		// We already have enough circles. resize. Circles will be deallocated
+		this->freshCircles.resize(this->maxCircles);
+		return;
+	}
+	else
+	{
+		// Fill fresh circles by max size. If there are fresh circles left, resue them
+		for (int i = this->freshCircles.size(); i < this->maxCircles; i++)
+		{
+			this->freshCircles.push_back(std::unique_ptr<Circle>(new Circle(cocos2d::Vec2::ZERO, 0)));
+		}
 	}
 }
 
-void CirclePackingScene::spawnCircles(const int rate)
+void CirclePackingScene::moveAllGrownCircles()
+{
+	auto it = this->activeCircles.begin();
+	for (;it != this->activeCircles.end();)
+	{
+		// Circles that are growing are placed at front of list
+		// Circles that are all grown are placed at the back of list.
+		// So iterate until it finds alive and all grown circle
+		if ((*it)->growing == false)
+		{
+			// Move all grown circle back to list
+			this->activeCircles.splice(this->activeCircles.end(), this->activeCircles, it);
+		}
+
+		it++;
+	}
+}
+
+void CirclePackingScene::spawnCircles(const int spawnRate)
 {
 	int count = 0;
-	if (!this->circleSpawnPoints.empty() && this->spawnedCircleCount < this->maxCircles)
+	// Both spawn point and fresh circles must not be empty
+	if (!this->circleSpawnPointsWithColor.empty() && !this->freshCircles.empty())
 	{
-		while (count < rate && this->circleSpawnPoints.size() > 0)
+		// Run until spawn point exists and fill spawn rate
+		while (count < spawnRate && this->circleSpawnPointsWithColor.size() > 0)
 		{
-			auto point = this->circleSpawnPoints.front();
+			// get first spawn point
+			auto spawnPoint = this->circleSpawnPointsWithColor.front();
 
+			// flag
 			bool inCircle = false;
 
-			for (int i = 0; i < this->spawnedCircleCount; i++)
+			for (auto& activeCircle : this->activeCircles)
 			{
-				float distance = this->circles.at(i)->position.distance(point);
-				if (distance <= this->circles.at(i)->radius)
+				float distance = activeCircle->position.distance(spawnPoint.point);
+				if (distance <= activeCircle->radius)
 				{
-					// point is in the circle. skip
+					// Spawn point is already covered by another circle. 
 					inCircle = true;
 					break;
 				}
@@ -227,26 +299,74 @@ void CirclePackingScene::spawnCircles(const int rate)
 
 			if (inCircle)
 			{
-				this->circleSpawnPoints.pop();
+				// Spawn point in circle. Pop this point and continue
+				this->circleSpawnPointsWithColor.pop();
 				continue;
 			}
 
-			cocos2d::Color4F color = cocos2d::Color4F::WHITE;
-
-			if (this->currentImageIndex == IMAGE_INDEX::DEAULT)
-			{
-				color = cocos2d::Color4F(cocos2d::RandomHelper::random_real<float>(0, 1.0f),
-					cocos2d::RandomHelper::random_real<float>(0, 1.0f),
-					cocos2d::RandomHelper::random_real<float>(0, 1.0f),
-					1.0f);
-			}
-
-			this->circles.at(this->spawnedCircleCount)->activate(point, 1.0f, color);
-			this->spawnedCircleCount++;
-
-			this->circleSpawnPoints.pop();
+			// Point is not covered by other circles.
+			auto it_front = this->freshCircles.begin();
+			// activate circle
+			(*it_front)->activate(spawnPoint.point, 1.0f, spawnPoint.color);
+			// Move to activeCircles
+			this->activeCircles.splice(this->activeCircles.begin(), this->freshCircles, it_front);
+			// pop spawn point
+			this->circleSpawnPointsWithColor.pop();
+			// inc count
 			count++;
 		}
+	}
+}
+
+void CirclePackingScene::resetCircles()
+{
+	for (auto& circle : this->activeCircles)
+	{
+		circle->deactivate();
+	}
+
+	this->freshCircles.splice(this->freshCircles.begin(), this->activeCircles);
+	
+	this->maxCircles = 0;
+}
+
+cocos2d::Vec2 CirclePackingScene::pixelToPoint(const int x, const int y, const int height, const cocos2d::Vec2& spritePos)
+{
+	cocos2d::Vec2 point = cocos2d::Vec2(x, y);
+	point.y = height - point.y;
+	point += spritePos;
+	return point;
+}
+
+void CirclePackingScene::runCirclePacking(const IMAGE_INDEX imageIndex)
+{
+	// Reset existing circles
+	this->resetCircles();
+	// clear draw buffer
+	this->drawNode->clear();
+	// update image index
+	this->currentImageIndex = imageIndex;
+	// reset spawn point
+	this->findCircleSpawnPoint(imageIndex);
+	// set max circles size
+	this->maxCircles = this->circleSpawnPointsWithColor.size();
+	// initialize circles
+	initCircles();
+}
+
+void CirclePackingScene::updateFPS(const float delta)
+{
+	this->fpsElapsedTime += delta;
+	if (this->fpsElapsedTime > 1.0f)
+	{
+		this->fpsElapsedTime -= 1.0f;
+		fps++;
+		fpsLabel->setString("FPS: " + std::to_string(fps) + " (" + std::to_string(delta).substr(0, 5) + "ms)");
+		fps = 0;
+	}
+	else
+	{
+		fps++;
 	}
 }
 
@@ -266,54 +386,81 @@ void CirclePackingScene::update(float delta)
 		return;
 	}
 
+	updateFPS(delta);
+
+	// Modify time by multiplier
 	delta *= this->simulateSpeedMultiplier;
+
+	// check current image
+	if (this->currentImageIndex == IMAGE_INDEX::NONE) return;
 
 	// Spawn circles
 	spawnCircles(this->circleSpawnRate);
 
 	// Update growth
-	for (int i = 0; i < this->spawnedCircleCount; i++)
+	for (auto& circle : this->activeCircles)
 	{
-		if (this->circles.at(i)->alive)
+		if (circle->growing)
 		{
-			this->circles.at(i)->update(delta);
+			circle->update(delta);
 		}
 	}
 
 	// Update collision
-	for (int i = 0; i < this->spawnedCircleCount; i++)
+	int growingCircleSize = 0;
+	for (auto& activeCircle : this->activeCircles)
 	{
-		for (int j = 0; j < this->spawnedCircleCount; j++)
+		if (activeCircle->growing)
+		{
+			growingCircleSize++;
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	auto& left_it = this->activeCircles.begin();
+
+	auto size = static_cast<int>(this->activeCircles.size());
+
+	for (int i = 0; i < size; i++)
+	{
+		auto& right_it = this->activeCircles.begin();
+		for (int j = 0; j < size; j++)
 		{
 			if (i != j)
 			{
-				if (this->circles.at(i)->growing || this->circles.at(j)->growing)
+				if ((*left_it)->growing || (*right_it)->growing)
 				{
 					//either one of circle must be growing. If both are not growing, don't need to check
-					float distance = this->circles.at(i)->position.distance(this->circles.at(j)->position);
-					float minDistance = this->circles.at(i)->radius + this->circles.at(j)->radius;
+					float distance = (*left_it)->position.distance((*right_it)->position);
+					float minDistance = (*left_it)->radius + (*right_it)->radius;
 					if (distance <= minDistance)
 					{
 						// These two circle touched each other. Stop growing
-						this->circles.at(i)->growing = false;
-						this->circles.at(j)->growing = false;
+						(*left_it)->growing = false;
+						(*right_it)->growing = false;
 					}
 				}
 			}
+
+			right_it++;
 		}
+
+		left_it++;
 	}
+
+	// Move all grown circles to another list
+	this->moveAllGrownCircles();
 
 	// Clear all buffer
 	this->drawNode->clear();
 
 	// Draw dot
-	for (int i = 0; i < this->spawnedCircleCount; i++)
+	for (auto& activeCircle : this->activeCircles)
 	{
-		this->drawNode->drawDot(this->circles.at(i)->position, this->circles.at(i)->radius, this->circles.at(i)->color);
-		if (this->circles.at(i)->growing)
-		{
-			//this->drawNode->drawCircle(this->circles.at(i)->position, this->circles.at(i)->radius, 360.0f, 50, false, cocos2d::Color4F::WHITE);
-		}
+		this->drawNode->drawDot(activeCircle->position, activeCircle->radius, activeCircle->color);
 	}
 }
 
@@ -364,7 +511,7 @@ void CirclePackingScene::onMouseScroll(cocos2d::Event* event)
 	//float y = mouseEvent->getScrollY();
 }
 
-void CirclePackingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::Event* event) 
+void CirclePackingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::Event* event)
 {
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_ESCAPE)
 	{
@@ -374,13 +521,30 @@ void CirclePackingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, c
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_S)
 	{
 		// toggle sprite
-		this->imageSprites.front()->setVisible(!this->imageSprites.front()->isVisible());
+		this->imageSprites.at(static_cast<int>(this->currentImageIndex))->setVisible(!this->imageSprites.at(static_cast<int>(this->currentImageIndex))->isVisible());
 	}
 
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_SPACE)
 	{
 		// Terminate 
 		this->pause = !this->pause;
+	}
+
+
+	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_1)
+	{
+		// C++
+		this->runCirclePacking(IMAGE_INDEX::CPP);
+	}
+	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_2)
+	{
+		// Cat
+		this->runCirclePacking(IMAGE_INDEX::CAT);
+	}
+	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_3)
+	{
+		// The Scream
+		this->runCirclePacking(IMAGE_INDEX::THE_SCREAM);
 	}
 }
 
@@ -407,13 +571,6 @@ void CirclePackingScene::onExit()
 
 	this->imageSprites.clear();
 
-	for (auto circle : this->circles)
-	{
-		if (circle != nullptr)
-		{
-			delete circle;
-		}
-	}
-
-	this->circles.clear();
+	this->freshCircles.clear();
+	this->activeCircles.clear();
 }
