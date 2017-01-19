@@ -19,6 +19,9 @@ bool QTreeScene::init()
 	}
 
 	ECS::Entity::idCounter = 0;
+
+	// Limit max entity to 400 in this case
+	ECS::Entity::maxEntitySize = 1000;
 	
 	//init node
 	this->areaNode = cocos2d::Node::create();

@@ -209,7 +209,7 @@ bool FlockingScene::init()
 		this->usageLabels.at(i)->setPosition(newPos);
 	}
 
-	// Limit max entity to 100 in this case
+	// Limit max entity to 400 in this case
 	ECS::Entity::maxEntitySize = 400;
 
 	this->pause = false;
