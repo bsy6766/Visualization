@@ -3,6 +3,8 @@
 
 #include "cocos2d.h"
 
+class Circle;
+
 class CirclePackingScene : public cocos2d::CCScene
 {
 private:
@@ -33,17 +35,51 @@ private:
 	void releaseInputListeners();
 
 	cocos2d::Label* backLabel;
+	cocos2d::DrawNode* drawNode;
 
 	std::vector<cocos2d::Image*> images;
+	std::vector<cocos2d::Sprite*> imageSprites;
+	std::vector<Circle*> circles;
+	// Numbers of circles that have been spawned
+	int spawnedCircleCount;
+	std::queue<cocos2d::Vec2> circleSpawnPoints;
+
+	// Initial number of circles that spawn on start
+	int initialCircleCount;
+
+	// Number of circles that spawn every tick
+	int circleSpawnRate;
+
+	// Pause simulation
+	bool pause;
+
+	// Simulate speed multiplier. 1.0 by default. 0 = stops simulation
+	float simulateSpeedMultiplier;
 
 	enum IMAGE_INDEX
 	{
-		DEAULT = 0,
+		DEAULT = 0,	//C++
 		CAT,
 		MAX_SIZE
 	};
 
+	IMAGE_INDEX currentImageIndex;
+
+	enum SPRITE_Z_ORDER
+	{
+		BEHIND_CIRCLES = 0,
+		CIRCLES,
+		ABOVE_CIRCLES
+	};
+
+	int maxCircles;
+	int searchSpawnPointWidthOffset;
+	int searchSpawnPointHeightOffset;
+
 	void initImages();
+	void findCircleSpawnPoint(const IMAGE_INDEX index);
+	void initCircles();
+	void spawnCircles(const int rate);
 
 public:
 	//simple creator func
