@@ -2,7 +2,7 @@
 
 using namespace ECS;
 
-FlockingSystem::FlockingSystem() : System({ DIRECTION_VECTOR, SPRITE, FLOCKING_OBJECT })
+FlockingSystem::FlockingSystem() : System({ DIRECTION_VECTOR, SPRITE, FLOCKING_DATA })
 {
 
 }
