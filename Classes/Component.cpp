@@ -96,26 +96,66 @@ void ECS::Sprite::wrapPositionWithInBoundary(const cocos2d::Rect & boundary)
 	this->sprite->setPosition(curPos);
 }
 
-QTreeObject::QTreeObject() : Component(QTREE_OBJECT), tracking(false)
+QTreeData::QTreeData() : Component(QTREE_DATA), tracking(false)
 {
 	this->speed = Utility::Random::randomReal<float>(20.0f, 100.0f);
 	this->visitied.resize(Entity::maxEntitySize, 0);
 }
 
-QTreeObject::~QTreeObject()
+QTreeData::~QTreeData()
 {
 	this->visitied.clear();
 }
 
 
 
-float FlockingObject::movementSpeed = 1.0f;
-float FlockingObject::steerSpeed = 2.0f;
-float FlockingObject::SIGHT_RADIUS = 30.0f;
-float FlockingObject::COHENSION_WEIGHT = 1.0f;
-float FlockingObject::ALIGNMENT_WEIGHT = 1.0f;
-float FlockingObject::SEPARATION_WEIGHT = 1.0f;
-float FlockingObject::AVOID_RADIUS = 50.0f;
-float FlockingObject::AVOID_WEIGHT = 2.0f;
+float FlockingData::movementSpeed = 1.0f;
+float FlockingData::steerSpeed = 2.0f;
+float FlockingData::SIGHT_RADIUS = 30.0f;
+float FlockingData::COHENSION_WEIGHT = 1.0f;
+float FlockingData::ALIGNMENT_WEIGHT = 1.0f;
+float FlockingData::SEPARATION_WEIGHT = 1.0f;
+float FlockingData::AVOID_RADIUS = 50.0f;
+float FlockingData::AVOID_WEIGHT = 2.0f;
 
-FlockingObject::FlockingObject(const TYPE type) : Component(FLOCKING_OBJECT), tracking(false), type(type) {}
+FlockingData::FlockingData(const TYPE type) : Component(FLOCKING_DATA), tracking(false), type(type) {}
+
+
+
+float CirclePackingData::maxRadius = 60.0f;
+float CirclePackingData::growthSpeed = 2.0f;
+float CirclePackingData::initialRadius = 5.0f;
+int CirclePackingData::idCounter = 0;
+
+CirclePackingData::CirclePackingData(const cocos2d::Vec2 & position, const float radius, const cocos2d::Color4F color) : Component(CIRCLE_PACKING_DATA), alive(false), growing(false), position(position), radius(radius), color(color) {}
+
+void CirclePackingData::update(const float delta)
+{
+	if (this->growing)
+	{
+		this->radius += delta * CirclePackingData::growthSpeed;
+		if (this->radius > CirclePackingData::maxRadius)
+		{
+			this->radius = CirclePackingData::maxRadius;
+			this->growing = false;
+		}
+	}
+}
+
+void CirclePackingData::activate(const cocos2d::Vec2 & position, const float radius, const cocos2d::Color4F color)
+{
+	this->alive = true;
+	this->growing = true;
+	this->position = position;
+	this->radius = radius;
+	this->color = color;
+}
+
+void CirclePackingData::deactivate()
+{
+	this->alive = false;
+	this->growing = false;
+	this->position = cocos2d::Vec2::ZERO;
+	this->radius = 0;
+	this->color = cocos2d::Color4F::WHITE;
+}

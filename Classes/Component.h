@@ -18,8 +18,9 @@ namespace ECS
 	{
 		DIRECTION_VECTOR = 0,
 		SPRITE,
-		QTREE_OBJECT,
-		FLOCKING_OBJECT
+		QTREE_DATA,
+		FLOCKING_DATA,
+		CIRCLE_PACKING_DATA,
 	};
 
 
@@ -59,20 +60,20 @@ namespace ECS
 		void wrapPositionWithInBoundary(const cocos2d::Rect& boundary);
 	};
 
-	class QTreeObject : public Component
+	class QTreeData : public Component
 	{
 	public:
-		QTreeObject();
-		~QTreeObject();
-		QTreeObject(QTreeObject const&) = delete;
-		void operator=(QTreeObject const&) = delete;
+		QTreeData();
+		~QTreeData();
+		QTreeData(QTreeData const&) = delete;
+		void operator=(QTreeData const&) = delete;
 
 		std::vector<int> visitied;
 		float speed;
 		bool tracking;
 	};
 
-	class FlockingObject : public Component
+	class FlockingData : public Component
 	{
 	public:
 		enum class TYPE
@@ -82,10 +83,10 @@ namespace ECS
 		};
 
 	public:
-		FlockingObject(const TYPE type);
-		~FlockingObject() = default;
-		FlockingObject(FlockingObject const&) = delete;
-		void operator=(FlockingObject const&) = delete;
+		FlockingData(const TYPE type);
+		~FlockingData() = default;
+		FlockingData(FlockingData const&) = delete;
+		void operator=(FlockingData const&) = delete;
 		
 		static float movementSpeed;
 		static float steerSpeed;
@@ -99,6 +100,33 @@ namespace ECS
 		static float AVOID_WEIGHT;
 
 		TYPE type;
+	};
+
+	class CirclePackingData : public Component
+	{
+	public:
+		CirclePackingData(const cocos2d::Vec2& position, const float radius = CirclePackingData::initialRadius, const cocos2d::Color4F color = cocos2d::Color4F::WHITE);
+		~CirclePackingData() = default;
+		CirclePackingData(CirclePackingData const&) = delete;
+		void operator=(CirclePackingData const&) = delete;
+
+		cocos2d::Vec2 position;
+		float radius;
+		cocos2d::Color4F color;
+
+		bool growing;
+		bool alive;
+		int id;
+
+		static int idCounter;
+
+		static float maxRadius;
+		static float growthSpeed;
+		static float initialRadius;
+
+		void update(const float delta);
+		void activate(const cocos2d::Vec2& position, const float radius, const cocos2d::Color4F color);
+		void deactivate();
 	};
 }
 

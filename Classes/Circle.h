@@ -19,8 +19,8 @@ public:
 
 	static int idCounter;
 
-	static float MAX_RADIUS;
-	static float GROWTH_SPEED;
+	static float maxRadius;
+	static float growthSpeed;
 
 	void update(const float delta);
 	void activate(const cocos2d::Vec2& position, const float radius, const cocos2d::Color4F color);
