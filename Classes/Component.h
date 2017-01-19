@@ -116,10 +116,7 @@ namespace ECS
 
 		bool growing;
 		bool alive;
-		int id;
-
-		static int idCounter;
-
+		
 		static float maxRadius;
 		static float growthSpeed;
 		static float initialRadius;

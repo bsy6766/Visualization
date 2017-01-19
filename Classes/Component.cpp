@@ -125,7 +125,6 @@ FlockingData::FlockingData(const TYPE type) : Component(FLOCKING_DATA), tracking
 float CirclePackingData::maxRadius = 60.0f;
 float CirclePackingData::growthSpeed = 2.0f;
 float CirclePackingData::initialRadius = 5.0f;
-int CirclePackingData::idCounter = 0;
 
 CirclePackingData::CirclePackingData(const cocos2d::Vec2 & position, const float radius, const cocos2d::Color4F color) : Component(CIRCLE_PACKING_DATA), alive(false), growing(false), position(position), radius(radius), color(color) {}
 
