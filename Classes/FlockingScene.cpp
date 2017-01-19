@@ -25,7 +25,9 @@ bool FlockingScene::init()
 
 	this->displayBoundary = cocos2d::Rect(0, 0, winSize.height, winSize.height);
 
-	this->backLabel = cocos2d::Label::createWithTTF("BACK(ESC)", "fonts/Marker Felt.ttf", 30);
+	std::string fontPath = "fonts/Rubik-Medium.ttf";
+
+	this->backLabel = cocos2d::Label::createWithTTF("BACK(ESC)", fontPath, 30);
 	this->backLabel->setPosition(cocos2d::Vec2(winSize.width - 75.0f, 20.0f));
 	this->addChild(this->backLabel);
 
@@ -46,7 +48,7 @@ bool FlockingScene::init()
 	this->blackArea->setPosition(cocos2d::Vec2(winSize.height, winSize.height * 0.5f));
 	this->addChild(this->blackArea);
 
-	entityCountLabel = cocos2d::Label::createWithTTF("Entities: " + std::to_string(this->entities.size()), "fonts/Marker Felt.ttf", 25);
+	entityCountLabel = cocos2d::Label::createWithTTF("Entities: " + std::to_string(this->entities.size()), fontPath, 25);
 	entityCountLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	entityCountLabel->setPosition(cocos2d::Vec2(winSize.height + 20.0f, winSize.height - 20.0f));
 	this->addChild(entityCountLabel);
@@ -56,13 +58,13 @@ bool FlockingScene::init()
 	float weightLabelX = leftButtonX + 30.0f;
 	float rightButtonX = leftButtonX + 60.0f;
 
-	this->weightLabel = cocos2d::Label::createWithTTF("WEIGHTS (Click buttons to modify)\nALIGNMENT\nCOHESION\nSEPARATION\nAVOID", "fonts/Marker Felt.ttf", 20);
+	this->weightLabel = cocos2d::Label::createWithTTF("WEIGHTS (Click buttons to modify)\nALIGNMENT\nCOHESION\nSEPARATION\nAVOID", fontPath, 20);
 	this->weightLabel->setLineSpacing(2.0f);
 	this->weightLabel->setAnchorPoint(cocos2d::Vec2(0, 1.0f));
 	this->weightLabel->setPosition(cocos2d::Vec2(winSize.height + 20.0f, weightLabelY -  5.0f));
 	this->addChild(this->weightLabel);
 
-	this->alignmentWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingObject::ALIGNMENT_WEIGHT).substr(0, 3), "fonts/Marker Felt.ttf", 20);
+	this->alignmentWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingObject::ALIGNMENT_WEIGHT).substr(0, 3), fontPath, 20);
 	//this->alignmentWeightLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->alignmentWeightLabel->setPosition(cocos2d::Vec2(weightLabelX, weightLabelY - 39.0f));
 	this->addChild(this->alignmentWeightLabel);
@@ -80,7 +82,7 @@ bool FlockingScene::init()
 	this->addChild(this->rightAlignmentButton);
 
 
-	this->cohesionWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingObject::COHENSION_WEIGHT).substr(0, 3), "fonts/Marker Felt.ttf", 20);
+	this->cohesionWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingObject::COHENSION_WEIGHT).substr(0, 3), fontPath, 20);
 	//this->alignmentWeightLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->cohesionWeightLabel->setPosition(cocos2d::Vec2(weightLabelX, weightLabelY - 60.0f));
 	this->addChild(this->cohesionWeightLabel);
@@ -98,7 +100,7 @@ bool FlockingScene::init()
 	this->addChild(this->rightCohesionButton);
 
 
-	this->separationWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingObject::SEPARATION_WEIGHT).substr(0, 3), "fonts/Marker Felt.ttf", 20);
+	this->separationWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingObject::SEPARATION_WEIGHT).substr(0, 3), fontPath, 20);
 	//this->alignmentWeightLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->separationWeightLabel->setPosition(cocos2d::Vec2(weightLabelX, weightLabelY - 81.0f));
 	this->addChild(this->separationWeightLabel);
@@ -116,7 +118,7 @@ bool FlockingScene::init()
 	this->addChild(this->rightSeparationButton);
 
 
-	this->avoidWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingObject::AVOID_WEIGHT).substr(0, 3), "fonts/Marker Felt.ttf", 20);
+	this->avoidWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingObject::AVOID_WEIGHT).substr(0, 3), fontPath, 20);
 	//this->alignmentWeightLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->avoidWeightLabel->setPosition(cocos2d::Vec2(weightLabelX, weightLabelY - 102.0f));
 	this->addChild(this->avoidWeightLabel);
@@ -150,52 +152,52 @@ bool FlockingScene::init()
 	fps = 0;
 	fpsElapsedTime = 0;
 
-	this->fpsLabel = cocos2d::Label::createWithTTF("FPS: " + std::to_string(cocos2d::Director::getInstance()->getFrameRate()), "fonts/Marker Felt.ttf", 25);
+	this->fpsLabel = cocos2d::Label::createWithTTF("FPS: " + std::to_string(cocos2d::Director::getInstance()->getFrameRate()), fontPath, 25);
 	this->fpsLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->fpsLabel->setPosition(cocos2d::Vec2(winSize.height + 20.0f, 20.0f));
 	this->addChild(this->fpsLabel);
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Keys                        (Green = enabled)", "fonts/Marker Felt.ttf", 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Keys                        (Green = enabled)", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Space = Toggle update", "fonts/Marker Felt.ttf", 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Space = Toggle update", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("C = Clear all entities", "fonts/Marker Felt.ttf", 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("C = Clear all entities", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("A = Add 10 entities", "fonts/Marker Felt.ttf", 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("A = Add 10 entities", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("E = Remove 10 entities(FIFO)", "fonts/Marker Felt.ttf", 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("E = Remove 10 entities(FIFO)", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Mouse", "fonts/Marker Felt.ttf", 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Mouse", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Left Click (in box) = Add Boid", "fonts/Marker Felt.ttf", 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Left Click (in box) = Add Boid", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Left Click (on Boid) = Display near boids in range", "fonts/Marker Felt.ttf", 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Left Click (on Boid) = Display near boids in range", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Right click (on Boid) = Remove Boid", "fonts/Marker Felt.ttf", 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Right click (on Boid) = Remove Boid", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Middle click (in box) = Add Obstacle", "fonts/Marker Felt.ttf", 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Middle click (in box) = Add Obstacle", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Middle click (on Obstacle) = Remove Obstacle", "fonts/Marker Felt.ttf", 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Middle click (on Obstacle) = Remove Obstacle", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 

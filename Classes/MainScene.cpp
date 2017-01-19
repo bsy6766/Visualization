@@ -29,13 +29,13 @@ bool MainScene::init()
 	// Uncomment this to activate update(float) function
 	//this->scheduleUpdate();
 
-	auto titleLabel = cocos2d::Label::createWithTTF("Visualizations", "fonts/Marker Felt.ttf", 40);
+	std::string fontPath = "fonts/Rubik-Medium.ttf";
+
+	auto titleLabel = cocos2d::Label::createWithTTF("Visualizations", fontPath, 50);
 	winSize = cocos2d::Director::getInstance()->getVisibleSize();
 	titleLabel->setPosition(cocos2d::Vec2(winSize.width * 0.5f, winSize.height - 50.0f));
 	this->addChild(titleLabel);
-
-	std::string fontPath = "fonts/Marker Felt.ttf";
-
+	
 	this->labels.push_back(cocos2d::Label::createWithTTF("Quad Tree", fontPath, 30));
 	this->labels.push_back(cocos2d::Label::createWithTTF("Flocking", fontPath, 30));
 	this->labels.push_back(cocos2d::Label::createWithTTF("Circle Packing", fontPath, 30));
@@ -74,13 +74,31 @@ void MainScene::checkMouseOver(const cocos2d::Vec2 mousePos)
 	{
 		if (label->getBoundingBox().containsPoint(mousePos))
 		{
-			if (hoveringLableIndex != -1 && hoveringLableIndex != index)
+			if (this->hoveringLableIndex == -1)
 			{
-				this->labels.at(hoveringLableIndex)->setScale(1.0f);
+				// wasn't hovering any menu.
+				this->hoveringLableIndex = index;
+				label->setScale(1.2f);
+				label->setString("> " + label->getString() + " <");
+				return;
 			}
-			label->setScale(1.2f);
-			hoveringLableIndex = index;
-			break;
+			else if(this->hoveringLableIndex == index)
+			{
+				// Hovering same. return
+				return;
+			}
+			else
+			{
+				// Was hovering something, and wasn't the same
+				this->labels.at(this->hoveringLableIndex)->setScale(1.0f);
+				std::string labelStr = this->labels.at(this->hoveringLableIndex)->getString();
+				this->labels.at(this->hoveringLableIndex)->setString(labelStr.substr(2, labelStr.size() - 4));
+
+				label->setScale(1.2f);
+				hoveringLableIndex = index;
+				label->setString("> " + label->getString() + " <");
+				return;
+			}
 		}
 		else
 		{
@@ -88,9 +106,16 @@ void MainScene::checkMouseOver(const cocos2d::Vec2 mousePos)
 			{
 				label->setScale(1.0f);
 			}
-			hoveringLableIndex = -1;
 		}
 		index++;
+	}
+
+	// If reach here, mouse wasn't hovering any.
+	if (this->hoveringLableIndex != -1)
+	{
+		std::string labelStr = this->labels.at(this->hoveringLableIndex)->getString();
+		this->labels.at(this->hoveringLableIndex)->setString(labelStr.substr(2, labelStr.size() - 4));
+		this->hoveringLableIndex = -1;
 	}
 }
 

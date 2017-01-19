@@ -53,8 +53,10 @@ bool QTreeScene::init()
 	// Get boundary
 	this->displayBoundary = cocos2d::Rect(0, 0, winSize.height, winSize.height);
 
+	const std::string fontPath = "fonts/Rubik-Medium.ttf";
+
 	// Init label
-	this->backLabel = cocos2d::Label::createWithTTF("BACK(ESC)", "fonts/Marker Felt.ttf", 30);
+	this->backLabel = cocos2d::Label::createWithTTF("BACK(ESC)", fontPath, 30);
 	this->backLabel->setPosition(cocos2d::Vec2(winSize.width - 75.0f, 20.0f));
 	this->addChild(this->backLabel);
 
@@ -68,91 +70,91 @@ bool QTreeScene::init()
 	fpsElapsedTime = 0;
 
 	// init more labels
-	entityCountLabel = cocos2d::Label::createWithTTF("Entities: " + std::to_string(entityCount) , "fonts/Marker Felt.ttf", 25);
+	entityCountLabel = cocos2d::Label::createWithTTF("Entities: " + std::to_string(entityCount) , fontPath, 25);
 	entityCountLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	entityCountLabel->setPosition(cocos2d::Vec2(winSize.height + 20.0f, winSize.height - 20.0f));
 	this->addChild(entityCountLabel);
 	
-	collisionChecksCountLabel = cocos2d::Label::createWithTTF("Collision check: " + std::to_string(collisionChecksCount), "fonts/Marker Felt.ttf", 25);
+	collisionChecksCountLabel = cocos2d::Label::createWithTTF("Collision check: " + std::to_string(collisionChecksCount), fontPath, 25);
 	collisionChecksCountLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	collisionChecksCountLabel->setPosition(cocos2d::Vec2(winSize.height + 20.0f, winSize.height - 50.0f));
 	this->addChild(collisionChecksCountLabel);
 
-	collisionCheckWithOutRepeatCountLabel = cocos2d::Label::createWithTTF("Collision check w/o duplication: " + std::to_string(bruteforceChecksCount), "fonts/Marker Felt.ttf", 25);
+	collisionCheckWithOutRepeatCountLabel = cocos2d::Label::createWithTTF("Collision check w/o duplication: " + std::to_string(bruteforceChecksCount), fontPath, 25);
 	collisionCheckWithOutRepeatCountLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	collisionCheckWithOutRepeatCountLabel->setPosition(cocos2d::Vec2(winSize.height + 20.0f, winSize.height - 80.0f));
 	this->addChild(collisionCheckWithOutRepeatCountLabel);
 
-	bruteforceChecksCountLabel = cocos2d::Label::createWithTTF("Brute-froce collision check: " + std::to_string(bruteforceChecksCount), "fonts/Marker Felt.ttf", 25);
+	bruteforceChecksCountLabel = cocos2d::Label::createWithTTF("Brute-froce collision check: " + std::to_string(bruteforceChecksCount), fontPath, 25);
 	bruteforceChecksCountLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	bruteforceChecksCountLabel->setPosition(cocos2d::Vec2(winSize.height + 20.0f, winSize.height - 110.0f));
 	this->addChild(bruteforceChecksCountLabel);
 
-	quadtreeLevelLabel = cocos2d::Label::createWithTTF("Quadtree max level: " + std::to_string(0), "fonts/Marker Felt.ttf", 25);
+	quadtreeLevelLabel = cocos2d::Label::createWithTTF("Quadtree max level: " + std::to_string(0), fontPath, 25);
 	quadtreeLevelLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	quadtreeLevelLabel->setPosition(cocos2d::Vec2(winSize.height + 20.0f, winSize.height - 140.0f));
 	this->addChild(quadtreeLevelLabel);
 
-	fpsLabel = cocos2d::Label::createWithTTF("FPS: " + std::to_string(cocos2d::Director::getInstance()->getFrameRate()), "fonts/Marker Felt.ttf", 25);
+	fpsLabel = cocos2d::Label::createWithTTF("FPS: " + std::to_string(cocos2d::Director::getInstance()->getFrameRate()), fontPath, 25);
 	fpsLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	fpsLabel->setPosition(cocos2d::Vec2(winSize.height + 20.0f, 20.0f));
 	this->addChild(fpsLabel);
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Keys                        (Green = enabled)", "fonts/Marker Felt.ttf", 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Keys                        (Green = enabled)", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Space = Toggle update", "fonts/Marker Felt.ttf", 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Space = Toggle update", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("C = Clear all entities", "fonts/Marker Felt.ttf", 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("C = Clear all entities", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("A = Add 10 entities", "fonts/Marker Felt.ttf", 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("A = Add 10 entities", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("E = Remove 10 entities(FIFO)", "fonts/Marker Felt.ttf", 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("E = Remove 10 entities(FIFO)", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("G = Toggle quadtree grid", "fonts/Marker Felt.ttf", 20));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->usageLabels.back()->setColor(cocos2d::Color3B::GREEN);
-	this->addChild(this->usageLabels.back());
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("D = Toggle duplication check", "fonts/Marker Felt.ttf", 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("G = Toggle quadtree grid", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->usageLabels.back()->setColor(cocos2d::Color3B::GREEN);
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("R = Toggle collision resolve", "fonts/Marker Felt.ttf", 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("D = Toggle duplication check", fontPath, 20));
+	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
+	this->usageLabels.back()->setColor(cocos2d::Color3B::GREEN);
+	this->addChild(this->usageLabels.back());
+
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("R = Toggle collision resolve", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("1 = Increase quadtree max level", "fonts/Marker Felt.ttf", 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("1 = Increase quadtree max level", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("2 = Decrease quadtree max level", "fonts/Marker Felt.ttf", 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("2 = Decrease quadtree max level", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Mouse", "fonts/Marker Felt.ttf", 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Mouse", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Left Click (in box) = Add entity", "fonts/Marker Felt.ttf", 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Left Click (in box) = Add entity", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Left Click (on Entity) = Display queried near entities", "fonts/Marker Felt.ttf", 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Left Click (on Entity) = Display queried near entities", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Right click (on entity) = Remove entity", "fonts/Marker Felt.ttf", 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Right click (on entity) = Remove entity", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
