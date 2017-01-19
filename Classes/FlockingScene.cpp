@@ -72,7 +72,7 @@ bool FlockingScene::init()
 	this->alignmentLabel->setPosition(cocos2d::Vec2(labelX, weightLabelY - weightLabelYOffset));
 	this->addChild(this->alignmentLabel);
 
-	this->alignmentWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingObject::ALIGNMENT_WEIGHT).substr(0, 3), fontPath, 20);
+	this->alignmentWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingData::ALIGNMENT_WEIGHT).substr(0, 3), fontPath, 20);
 	this->alignmentWeightLabel->setPosition(cocos2d::Vec2(weightLabelX, weightLabelY - weightLabelYOffset));
 	this->addChild(this->alignmentWeightLabel);
 
@@ -94,7 +94,7 @@ bool FlockingScene::init()
 	this->cohesionLabel->setPosition(cocos2d::Vec2(labelX, weightLabelY - (weightLabelYOffset * 2.0f)));
 	this->addChild(this->cohesionLabel);
 
-	this->cohesionWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingObject::COHENSION_WEIGHT).substr(0, 3), fontPath, 20);
+	this->cohesionWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingData::COHENSION_WEIGHT).substr(0, 3), fontPath, 20);
 	this->cohesionWeightLabel->setPosition(cocos2d::Vec2(weightLabelX, weightLabelY - (weightLabelYOffset * 2.0f)));
 	this->addChild(this->cohesionWeightLabel);
 
@@ -116,7 +116,7 @@ bool FlockingScene::init()
 	this->separationLabel->setPosition(cocos2d::Vec2(labelX, weightLabelY - (weightLabelYOffset * 3.0f)));
 	this->addChild(this->separationLabel);
 
-	this->separationWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingObject::SEPARATION_WEIGHT).substr(0, 3), fontPath, 20);
+	this->separationWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingData::SEPARATION_WEIGHT).substr(0, 3), fontPath, 20);
 	this->separationWeightLabel->setPosition(cocos2d::Vec2(weightLabelX, weightLabelY - (weightLabelYOffset * 3.0f)));
 	this->addChild(this->separationWeightLabel);
 
@@ -138,7 +138,7 @@ bool FlockingScene::init()
 	this->avoidLabel->setPosition(cocos2d::Vec2(labelX, weightLabelY - (weightLabelYOffset * 4.0f)));
 	this->addChild(this->avoidLabel);
 
-	this->avoidWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingObject::AVOID_WEIGHT).substr(0, 3), fontPath, 20);
+	this->avoidWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingData::AVOID_WEIGHT).substr(0, 3), fontPath, 20);
 	this->avoidWeightLabel->setPosition(cocos2d::Vec2(weightLabelX, weightLabelY - (weightLabelYOffset * 4.0f)));
 	this->addChild(this->avoidWeightLabel);
 
@@ -160,7 +160,7 @@ bool FlockingScene::init()
 	this->rangeChecker->setAnchorPoint(cocos2d::Vec2(0.5f, 0.5f));
 	this->rangeChecker->setVisible(false);
 	this->rangeChecker->setOpacity(128);
-	this->rangeChecker->setScale(ECS::FlockingObject::SIGHT_RADIUS * 2.0f / 100.0f);
+	this->rangeChecker->setScale(ECS::FlockingData::SIGHT_RADIUS * 2.0f / 100.0f);
 	this->areaNode->addChild(rangeChecker);
 
 	this->qTreeLineNode = QTreeLineNode::createNode();
@@ -285,7 +285,7 @@ void FlockingScene::resetQTreeAndPurge()
 		this->quadTree->insert((*it));
 
 		// Reset color to white. Only boids
-		if ((*it)->getComponent<ECS::FlockingObject*>(FLOCKING_OBJECT)->type == ECS::FlockingObject::TYPE::BOID)
+		if ((*it)->getComponent<ECS::FlockingData*>(FLOCKING_DATA)->type == ECS::FlockingData::TYPE::BOID)
 		{
 			(*it)->getComponent<ECS::Sprite*>(SPRITE)->sprite->setColor(cocos2d::Color3B::WHITE);
 		}
@@ -300,8 +300,8 @@ void FlockingScene::updateFlockingAlgorithm(const float delta)
 	// iterate entities
 	for (auto entity : entities)
 	{
-		auto entityFlockingObjComp = entity->getComponent<ECS::FlockingObject*>(FLOCKING_OBJECT);
-		if (entityFlockingObjComp->type == ECS::FlockingObject::TYPE::BOID)
+		auto entityFlockingObjComp = entity->getComponent<ECS::FlockingData*>(FLOCKING_DATA);
+		if (entityFlockingObjComp->type == ECS::FlockingData::TYPE::BOID)
 		{
 			// If entity is boid, update flocking algorithm
 			auto entitySpriteComp = entity->getComponent<ECS::Sprite*>(SPRITE);
@@ -309,7 +309,7 @@ void FlockingScene::updateFlockingAlgorithm(const float delta)
 
 			// Create query rect and query near entities
 			cocos2d::Rect queryingArea = cocos2d::Rect::ZERO;
-			float pad = ECS::FlockingObject::SIGHT_RADIUS;
+			float pad = ECS::FlockingData::SIGHT_RADIUS;
 			queryingArea.origin = (entitySpriteComp->sprite->getPosition() - cocos2d::Vec2(pad, pad));
 			queryingArea.size = cocos2d::Vec2(pad * 2.0f, pad * 2.0f);
 
@@ -321,15 +321,15 @@ void FlockingScene::updateFlockingAlgorithm(const float delta)
 			// Iterate near entieis
 			for (auto nearEntity : nearEntities)
 			{
-				auto nearEntityFlockingObjComp = nearEntity->getComponent<ECS::FlockingObject*>(FLOCKING_OBJECT);
+				auto nearEntityFlockingObjComp = nearEntity->getComponent<ECS::FlockingData*>(FLOCKING_DATA);
 				auto nearBoidSpriteComp = nearEntity->getComponent<ECS::Sprite*>(SPRITE);
 				auto entityPos = entitySpriteComp->sprite->getPosition();
 				auto nearBoidPos = nearBoidSpriteComp->sprite->getPosition();
 				float distance = nearBoidPos.distance(entityPos);
-				if (nearEntityFlockingObjComp->type == ECS::FlockingObject::TYPE::BOID)
+				if (nearEntityFlockingObjComp->type == ECS::FlockingData::TYPE::BOID)
 				{
 					// If near entity is boid, check distance
-					if (distance <= ECS::FlockingObject::SIGHT_RADIUS)
+					if (distance <= ECS::FlockingData::SIGHT_RADIUS)
 					{
 						// Add near entity as near boid
 						nearBoids.push_back(nearEntity);
@@ -339,10 +339,10 @@ void FlockingScene::updateFlockingAlgorithm(const float delta)
 						}
 					}
 				}
-				else if (nearEntityFlockingObjComp->type == ECS::FlockingObject::TYPE::OBSTACLE)
+				else if (nearEntityFlockingObjComp->type == ECS::FlockingData::TYPE::OBSTACLE)
 				{
 					// If near entity is obstacle, check distance
-					if (distance <= ECS::FlockingObject::AVOID_RADIUS)
+					if (distance <= ECS::FlockingData::AVOID_RADIUS)
 					{
 						// Add near entity as near obstacle
 						nearAvoids.push_back(nearEntity);
@@ -359,15 +359,15 @@ void FlockingScene::updateFlockingAlgorithm(const float delta)
 			{
 				// Apply avoid direction
 				avoidVec = this->getAvoid(entity, nearAvoids);
-				finalVec += (avoidVec * ECS::FlockingObject::AVOID_WEIGHT);
+				finalVec += (avoidVec * ECS::FlockingData::AVOID_WEIGHT);
 			}
 
 			if (!nearBoids.empty())
 			{
 				// Apply core 3 steer behavior.
-				cocos2d::Vec2 alignmentVec = this->getAlignment(entity, nearBoids) * ECS::FlockingObject::ALIGNMENT_WEIGHT;
-				cocos2d::Vec2 cohesionVec = this->getCohesion(entity, nearBoids) * ECS::FlockingObject::COHENSION_WEIGHT;
-				cocos2d::Vec2 separationVec = this->getSeparation(entity, nearBoids) * ECS::FlockingObject::SEPARATION_WEIGHT;
+				cocos2d::Vec2 alignmentVec = this->getAlignment(entity, nearBoids) * ECS::FlockingData::ALIGNMENT_WEIGHT;
+				cocos2d::Vec2 cohesionVec = this->getCohesion(entity, nearBoids) * ECS::FlockingData::COHENSION_WEIGHT;
+				cocos2d::Vec2 separationVec = this->getSeparation(entity, nearBoids) * ECS::FlockingData::SEPARATION_WEIGHT;
 				finalVec += (alignmentVec + cohesionVec + separationVec);
 			}
 
@@ -379,7 +379,7 @@ void FlockingScene::updateFlockingAlgorithm(const float delta)
 				// Steer boid's direction smooothly
 				auto newDirVec = entityDirVecComp->dirVec;
 				auto diffVec = finalVec - newDirVec;
-				diffVec *= (delta * ECS::FlockingObject::steerSpeed);
+				diffVec *= (delta * ECS::FlockingData::steerSpeed);
 				entityDirVecComp->dirVec += diffVec;
 			}
 			else
@@ -389,7 +389,7 @@ void FlockingScene::updateFlockingAlgorithm(const float delta)
 			}
 
 			// update position
-			auto movedDir = entityDirVecComp->dirVec * ECS::FlockingObject::movementSpeed;
+			auto movedDir = entityDirVecComp->dirVec * ECS::FlockingData::movementSpeed;
 			auto newPos = entitySpriteComp->sprite->getPosition() + movedDir;
 			entitySpriteComp->sprite->setPosition(newPos);
 
@@ -475,7 +475,7 @@ ECS::Entity * FlockingScene::createNewEntity()
 	spriteComp->rotateToDirVec(-angle);
 	spriteComp->setRandomPosInBoundary(this->displayBoundary);
 	newEntity->components[SPRITE] = spriteComp;
-	newEntity->components[FLOCKING_OBJECT] = new ECS::FlockingObject(ECS::FlockingObject::TYPE::BOID);
+	newEntity->components[FLOCKING_DATA] = new ECS::FlockingData(ECS::FlockingData::TYPE::BOID);
 
 	return newEntity;
 }
@@ -495,7 +495,7 @@ ECS::Entity * FlockingScene::createNewObstacleEntity(const cocos2d::Vec2& pos)
 	spriteComp->sprite->setColor(cocos2d::Color3B::RED);
 	spriteComp->sprite->setPosition(pos);
 	newEntity->components[SPRITE] = spriteComp;
-	newEntity->components[FLOCKING_OBJECT] = new ECS::FlockingObject(ECS::FlockingObject::TYPE::OBSTACLE);
+	newEntity->components[FLOCKING_DATA] = new ECS::FlockingData(ECS::FlockingData::TYPE::OBSTACLE);
 	return newEntity;
 }
 
@@ -608,92 +608,92 @@ void FlockingScene::onButtonPressed(cocos2d::Ref * sender)
 	switch (tag)
 	{
 	case ACTION_TAG::ALIGNMENT_LEFT:
-		if (ECS::FlockingObject::ALIGNMENT_WEIGHT > 0.1f)
+		if (ECS::FlockingData::ALIGNMENT_WEIGHT > 0.1f)
 		{
-			ECS::FlockingObject::ALIGNMENT_WEIGHT -= 0.1f;
+			ECS::FlockingData::ALIGNMENT_WEIGHT -= 0.1f;
 		}
 		else
 		{
-			ECS::FlockingObject::ALIGNMENT_WEIGHT = 0;
+			ECS::FlockingData::ALIGNMENT_WEIGHT = 0;
 		}
-		this->alignmentWeightLabel->setString(std::to_string(ECS::FlockingObject::ALIGNMENT_WEIGHT).substr(0, 3));
+		this->alignmentWeightLabel->setString(std::to_string(ECS::FlockingData::ALIGNMENT_WEIGHT).substr(0, 3));
 		break;
 	case ACTION_TAG::ALIGNMENT_RIGHT:
-		if (ECS::FlockingObject::ALIGNMENT_WEIGHT < 2.0f)
+		if (ECS::FlockingData::ALIGNMENT_WEIGHT < 2.0f)
 		{
-			ECS::FlockingObject::ALIGNMENT_WEIGHT += 0.1f;
+			ECS::FlockingData::ALIGNMENT_WEIGHT += 0.1f;
 		}
 		else
 		{
-			ECS::FlockingObject::ALIGNMENT_WEIGHT = 2.0f;
+			ECS::FlockingData::ALIGNMENT_WEIGHT = 2.0f;
 		}
-		this->alignmentWeightLabel->setString(std::to_string(ECS::FlockingObject::ALIGNMENT_WEIGHT).substr(0, 3));
+		this->alignmentWeightLabel->setString(std::to_string(ECS::FlockingData::ALIGNMENT_WEIGHT).substr(0, 3));
 		break;
 	case ACTION_TAG::COHESION_LEFT:
-		if (ECS::FlockingObject::COHENSION_WEIGHT > 0.1f)
+		if (ECS::FlockingData::COHENSION_WEIGHT > 0.1f)
 		{
-			ECS::FlockingObject::COHENSION_WEIGHT -= 0.1f;
+			ECS::FlockingData::COHENSION_WEIGHT -= 0.1f;
 		}
 		else
 		{
-			ECS::FlockingObject::COHENSION_WEIGHT = 0;
+			ECS::FlockingData::COHENSION_WEIGHT = 0;
 		}
-		this->cohesionWeightLabel->setString(std::to_string(ECS::FlockingObject::COHENSION_WEIGHT).substr(0, 3));
+		this->cohesionWeightLabel->setString(std::to_string(ECS::FlockingData::COHENSION_WEIGHT).substr(0, 3));
 		break;
 	case ACTION_TAG::COHESION_RIGHT:
-		if (ECS::FlockingObject::COHENSION_WEIGHT < 2.0f)
+		if (ECS::FlockingData::COHENSION_WEIGHT < 2.0f)
 		{
-			ECS::FlockingObject::COHENSION_WEIGHT += 0.1f;
+			ECS::FlockingData::COHENSION_WEIGHT += 0.1f;
 		}
 		else
 		{
-			ECS::FlockingObject::COHENSION_WEIGHT = 2.0f;
+			ECS::FlockingData::COHENSION_WEIGHT = 2.0f;
 		}
-		this->cohesionWeightLabel->setString(std::to_string(ECS::FlockingObject::COHENSION_WEIGHT).substr(0, 3));
+		this->cohesionWeightLabel->setString(std::to_string(ECS::FlockingData::COHENSION_WEIGHT).substr(0, 3));
 		break;
 	case ACTION_TAG::SEPARATION_LEFT:
-		if (ECS::FlockingObject::SEPARATION_WEIGHT > 0.1f)
+		if (ECS::FlockingData::SEPARATION_WEIGHT > 0.1f)
 		{
-			ECS::FlockingObject::SEPARATION_WEIGHT -= 0.1f;
+			ECS::FlockingData::SEPARATION_WEIGHT -= 0.1f;
 		}
 		else
 		{
-			ECS::FlockingObject::SEPARATION_WEIGHT = 0;
+			ECS::FlockingData::SEPARATION_WEIGHT = 0;
 		}
-		this->separationWeightLabel->setString(std::to_string(ECS::FlockingObject::SEPARATION_WEIGHT).substr(0, 3));
+		this->separationWeightLabel->setString(std::to_string(ECS::FlockingData::SEPARATION_WEIGHT).substr(0, 3));
 		break;
 	case ACTION_TAG::SEPARATION_RIGHT:
-		if (ECS::FlockingObject::SEPARATION_WEIGHT < 2.0f)
+		if (ECS::FlockingData::SEPARATION_WEIGHT < 2.0f)
 		{
-			ECS::FlockingObject::SEPARATION_WEIGHT += 0.1f;
+			ECS::FlockingData::SEPARATION_WEIGHT += 0.1f;
 		}
 		else
 		{
-			ECS::FlockingObject::SEPARATION_WEIGHT = 2.0f;
+			ECS::FlockingData::SEPARATION_WEIGHT = 2.0f;
 		}
-		this->separationWeightLabel->setString(std::to_string(ECS::FlockingObject::SEPARATION_WEIGHT).substr(0, 3));
+		this->separationWeightLabel->setString(std::to_string(ECS::FlockingData::SEPARATION_WEIGHT).substr(0, 3));
 		break;
 	case ACTION_TAG::AVOID_LEFT:
-		if (ECS::FlockingObject::AVOID_WEIGHT > 0.1f)
+		if (ECS::FlockingData::AVOID_WEIGHT > 0.1f)
 		{
-			ECS::FlockingObject::AVOID_WEIGHT -= 0.1f;
+			ECS::FlockingData::AVOID_WEIGHT -= 0.1f;
 		}
 		else
 		{
-			ECS::FlockingObject::AVOID_WEIGHT = 0;
+			ECS::FlockingData::AVOID_WEIGHT = 0;
 		}
-		this->avoidWeightLabel->setString(std::to_string(ECS::FlockingObject::AVOID_WEIGHT).substr(0, 3));
+		this->avoidWeightLabel->setString(std::to_string(ECS::FlockingData::AVOID_WEIGHT).substr(0, 3));
 		break;
 	case ACTION_TAG::AVOID_RIGHT:
-		if (ECS::FlockingObject::AVOID_WEIGHT < 2.0f)
+		if (ECS::FlockingData::AVOID_WEIGHT < 2.0f)
 		{
-			ECS::FlockingObject::AVOID_WEIGHT += 0.1f;
+			ECS::FlockingData::AVOID_WEIGHT += 0.1f;
 		}
 		else
 		{
-			ECS::FlockingObject::AVOID_WEIGHT = 2.0f;
+			ECS::FlockingData::AVOID_WEIGHT = 2.0f;
 		}
-		this->avoidWeightLabel->setString(std::to_string(ECS::FlockingObject::AVOID_WEIGHT).substr(0, 3));
+		this->avoidWeightLabel->setString(std::to_string(ECS::FlockingData::AVOID_WEIGHT).substr(0, 3));
 		break;
 	default:
 		break;
@@ -754,7 +754,7 @@ void FlockingScene::onMouseDown(cocos2d::Event* event)
 				auto spriteComp = entity->getComponent<ECS::Sprite*>(SPRITE);
 				if (spriteComp->sprite->getBoundingBox().containsPoint(point))
 				{
-					auto entityFlockingObjComp = entity->getComponent<ECS::FlockingObject*>(FLOCKING_OBJECT);
+					auto entityFlockingObjComp = entity->getComponent<ECS::FlockingData*>(FLOCKING_DATA);
 
 					// Clicked boid sprite
 					if (entity->id == this->lastTrackingBoidId)
@@ -779,7 +779,7 @@ void FlockingScene::onMouseDown(cocos2d::Event* event)
 							if (lastEntity->id == this->lastTrackingBoidId)
 							{
 								// Disable tracking on last tracking entitiy
-								auto comp = lastEntity->getComponent<ECS::FlockingObject*>(FLOCKING_OBJECT);
+								auto comp = lastEntity->getComponent<ECS::FlockingData*>(FLOCKING_DATA);
 								this->playUIAnimation(USAGE_KEY::TRACK);
 								this->usageLabels.at(static_cast<int>(USAGE_KEY::TRACK))->setColor(cocos2d::Color3B::GREEN);
 								comp->tracking = false;
@@ -816,7 +816,7 @@ void FlockingScene::onMouseDown(cocos2d::Event* event)
 				if (spriteComp->sprite->getBoundingBox().containsPoint(point))
 				{
 					entity->alive = false;
-					auto flockingObjComp = entity->getComponent<ECS::FlockingObject*>(FLOCKING_OBJECT);
+					auto flockingObjComp = entity->getComponent<ECS::FlockingData*>(FLOCKING_DATA);
 					if (flockingObjComp->tracking)
 					{
 						this->rangeChecker->setVisible(false);
@@ -919,7 +919,7 @@ void FlockingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 			if (count < 10)
 			{
 				entity->alive = false;
-				auto flockingObjComp = entity->getComponent<ECS::FlockingObject*>(FLOCKING_OBJECT);
+				auto flockingObjComp = entity->getComponent<ECS::FlockingData*>(FLOCKING_DATA);
 				if (flockingObjComp->tracking)
 				{
 					this->rangeChecker->setVisible(false);

@@ -225,7 +225,7 @@ Entity* QTreeScene::createNewEntity()
 	spriteComp->sprite->setScaleX(Utility::Random::randomReal<float>(0.25f, 1.0f));
 	spriteComp->sprite->setScaleY(Utility::Random::randomReal<float>(0.25f, 1.0f));
 	newEntity->components[SPRITE] = spriteComp;
-	newEntity->components[QTREE_OBJECT] = new QTreeObject();
+	newEntity->components[QTREE_DATA] = new QTreeData();
 	return newEntity;
 }
 
@@ -302,7 +302,7 @@ void QTreeScene::resetQTreeAndUpdatePosition(float delta)
 
 		// Get entity's component
 		auto dirVecComp = (*it)->getComponent<DirectionVector*>(DIRECTION_VECTOR);
-		auto qTreeObjComp = (*it)->getComponent<QTreeObject*>(QTREE_OBJECT); 
+		auto qTreeObjComp = (*it)->getComponent<QTreeData*>(QTREE_DATA); 
 		auto spriteComp = (*it)->getComponent<ECS::Sprite*>(SPRITE);
 
 		// Update new position based on direction, speed and time
@@ -361,7 +361,7 @@ void QTreeScene::checkCollision()
 	{
 		// Get entity's component
 		auto entitySpriteComp = entity->getComponent<ECS::Sprite*>(SPRITE);
-		auto entityQTreeObjectComp = entity->getComponent<QTreeObject*>(QTREE_OBJECT);
+		auto entityQTreeObjectComp = entity->getComponent<QTreeData*>(QTREE_DATA);
 		auto entityDirVecComp = entity->getComponent<DirectionVector*>(DIRECTION_VECTOR);
 
 		// Get entity's bounding box
@@ -381,7 +381,7 @@ void QTreeScene::checkCollision()
 		for (auto nearEntity : neighbors)
 		{
 			// Get components
-			auto nearEntityQTreeObjectComp = nearEntity->getComponent<QTreeObject*>(QTREE_OBJECT);
+			auto nearEntityQTreeObjectComp = nearEntity->getComponent<QTreeData*>(QTREE_DATA);
 			auto nearEntitySpriteComp = nearEntity->getComponent<ECS::Sprite*>(SPRITE);
 			auto nearEntityDirVecComp = nearEntity->getComponent<DirectionVector*>(DIRECTION_VECTOR);
 
@@ -693,7 +693,7 @@ void QTreeScene::onMouseDown(cocos2d::Event* event)
 				for (auto entity : nearEntities)
 				{
 					auto entitySpriteComp = entity->getComponent<ECS::Sprite*>(SPRITE);
-					auto entityQTreeObjectComp = entity->getComponent<QTreeObject*>(QTREE_OBJECT);
+					auto entityQTreeObjectComp = entity->getComponent<QTreeData*>(QTREE_DATA);
 					auto entityDirVecComp = entity->getComponent<DirectionVector*>(DIRECTION_VECTOR);
 
 					if (entitySpriteComp->sprite->getBoundingBox().containsPoint(point))
@@ -720,7 +720,7 @@ void QTreeScene::onMouseDown(cocos2d::Event* event)
 								if (lastEntity->id == this->lastTrackingEntityID)
 								{
 									// Disable tracking on last tracking entitiy
-									auto comp = lastEntity->getComponent<ECS::QTreeObject*>(QTREE_OBJECT);
+									auto comp = lastEntity->getComponent<ECS::QTreeData*>(QTREE_DATA);
 									comp->tracking = false;
 									break;
 								}
