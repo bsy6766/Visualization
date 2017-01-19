@@ -133,6 +133,13 @@ This program uses Quad Tree like the QuadTree project in this repo to optimize c
 
 </details>
 
+<details>
+<summary><b>Circle Packing</b></summary>
+#### Note
+Visualizes Circle Packing in 2D.<br>
+Reads image and picks random position to spawn circle and circle grows until it reaches maximum size or touches other circle.<br>
+</details>
+
 ----
 ##In Progress
 ### Animated Circle Packing
@@ -144,6 +151,7 @@ Visualizes dot and cross product
 Used (Rubik)[https://www.fontsquirrel.com/fonts/rubik] by Hubert & Fischer
 
 ## ChangeLog
+v0.4 Fixed Bugs<br>
 v0.3 Replaced ECS<br>
 v0.2 Added Flocking Algorithm visualization.<br>
 v0.1 Added QuadTree visualization.<br>
