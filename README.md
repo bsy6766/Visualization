@@ -148,7 +148,7 @@ Visualizes dot and cross product
 
 ----
 ## Font
-Used (Rubik)[https://www.fontsquirrel.com/fonts/rubik] by Hubert & Fischer
+Used [Rubik](https://www.fontsquirrel.com/fonts/rubik) by Hubert & Fischer
 
 ## ChangeLog
 v0.4 Fixed Bugs<br>
