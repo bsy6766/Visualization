@@ -32,6 +32,8 @@ private:
 	void initInputListeners();
 	void releaseInputListeners();
 
+	cocos2d::Label* backLabel;
+
 	std::vector<cocos2d::Image*> images;
 
 	enum IMAGE_INDEX

@@ -21,6 +21,14 @@ bool CirclePackingScene::init()
 
 	initImages();
 
+	auto winSize = cocos2d::Director::getInstance()->getVisibleSize();
+
+	std::string fontPath = "fonts/Rubik-Medium.ttf";
+
+	this->backLabel = cocos2d::Label::createWithTTF("BACK(ESC)", fontPath, 30);
+	this->backLabel->setPosition(cocos2d::Vec2(winSize.width - 75.0f, 20.0f));
+	this->addChild(this->backLabel);
+
 	return true;
 }
 
@@ -39,7 +47,7 @@ void CirclePackingScene::initImages()
 		{
 		case CirclePackingScene::DEAULT:
 		{
-			this->images.back()->initWithImageFile("Images/2017.png");
+			this->images.back()->initWithImageFile("Images/C++.png");
 		}
 			break;
 		case CirclePackingScene::CAT:
@@ -137,4 +145,9 @@ void CirclePackingScene::onExit()
 	cocos2d::CCScene::onExit();
 	// Uncomment this if you are using initInputListeners()
 	releaseInputListeners(); 
+
+	for (auto image : this->images)
+	{
+		image->release();
+	}
 }
