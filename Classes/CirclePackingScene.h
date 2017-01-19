@@ -32,6 +32,17 @@ private:
 	void initInputListeners();
 	void releaseInputListeners();
 
+	std::vector<cocos2d::Image*> images;
+
+	enum IMAGE_INDEX
+	{
+		DEAULT = 0,
+		CAT,
+		MAX_SIZE
+	};
+
+	void initImages();
+
 public:
 	//simple creator func
 	static CirclePackingScene* createScene();

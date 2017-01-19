@@ -19,7 +19,37 @@ bool CirclePackingScene::init()
 	// Uncomment this to activate update(float) function
 	//this->scheduleUpdate();
 
+	initImages();
+
 	return true;
+}
+
+void CirclePackingScene::initImages()
+{
+	int size = static_cast<int>(IMAGE_INDEX::MAX_SIZE);
+	for (int i = 0; i < size; i++)
+	{
+		this->images.push_back(new cocos2d::Image());
+		this->images.back()->autorelease();
+		this->images.back()->retain();
+
+		auto INDEX = static_cast<IMAGE_INDEX>(i);
+
+		switch (INDEX)
+		{
+		case CirclePackingScene::DEAULT:
+		{
+			this->images.back()->initWithImageFile("Images/2017.png");
+		}
+			break;
+		case CirclePackingScene::CAT:
+			break;
+		case CirclePackingScene::MAX_SIZE:
+			break;
+		default:
+			break;
+		}
+	}
 }
 
 void CirclePackingScene::onEnter()
@@ -83,7 +113,10 @@ void CirclePackingScene::onMouseScroll(cocos2d::Event* event)
 
 void CirclePackingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::Event* event) 
 {
-
+	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_ESCAPE)
+	{
+		cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, MainScene::create(), cocos2d::Color3B::BLACK));
+	}
 }
 
 void CirclePackingScene::onKeyReleased(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::Event* event) 

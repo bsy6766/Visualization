@@ -182,7 +182,7 @@ void MainScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::E
 {
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_ESCAPE)
 	{
-		cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, MainScene::create(), cocos2d::Color3B::BLACK));
+		cocos2d::Director::getInstance()->end();
 	}
 }
 
