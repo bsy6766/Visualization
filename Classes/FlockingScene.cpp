@@ -203,7 +203,7 @@ bool FlockingScene::init()
 
 	cocos2d::Vec2 usageStartPos = cocos2d::Vec2(winSize.height + 20.0f, winSize.height * 0.65f);
 
-	auto usageLabelSize = this->usageLabels.size();
+	auto usageLabelSize = static_cast<int>(this->usageLabels.size());
 	for (int i = 0; i < usageLabelSize; i++)
 	{
 		cocos2d::Vec2 newPos = usageStartPos;
@@ -779,7 +779,7 @@ void FlockingScene::onMouseDown(cocos2d::Event* event)
 			}
 
 			// If it didn't track any entity, create one
-			if (this->entities.size() < ECS::Entity::maxEntitySize)
+			if (static_cast<int>(this->entities.size()) < ECS::Entity::maxEntitySize)
 			{
 				this->entities.push_back(createNewEntity(point));
 				this->playUIAnimation(USAGE_KEY::ADD_ONE);
