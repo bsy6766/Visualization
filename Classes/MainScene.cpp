@@ -120,9 +120,9 @@ void MainScene::onMouseMove(cocos2d::Event* event)
 
 void MainScene::onMouseDown(cocos2d::Event* event) 
 {
-	//auto mouseEvent = static_cast<EventMouse*>(event);
+	auto mouseEvent = static_cast<EventMouse*>(event);
 	//0 = left, 1 = right, 2 = middle
-	//int mouseButton = mouseEvent->getMouseButton();
+	int mouseButton = mouseEvent->getMouseButton();
 	//float x = mouseEvent->getCursorX();
 	//float y = mouseEvent->getCursorY();
 	if (hoveringLableIndex == -1)
@@ -131,33 +131,36 @@ void MainScene::onMouseDown(cocos2d::Event* event)
 	}
 	else
 	{
-		switch (this->hoveringLableIndex)
+		if (mouseButton == 0)
 		{
-		case LABEL_INDEX::QUAD_TREE:
-		{
-			// Load quad tree scene
-			cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, QTreeScene::create(), cocos2d::Color3B::BLACK));
-		}
-		break;
-		case LABEL_INDEX::FLOCKING:
-		{
-			// Load quad tree scene
-			cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, FlockingScene::create(), cocos2d::Color3B::BLACK));
-		}
-		break;
-		case LABEL_INDEX::CIRCLE_PACKING:
-		{
-			// Load quad tree scene
-			cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, CirclePackingScene::create(), cocos2d::Color3B::BLACK));
-		}
-		break;
-		case LABEL_INDEX::EXIT:
-		{
-			cocos2d::Director::getInstance()->end();
-		}
-		break;
-		default:
+			switch (this->hoveringLableIndex)
+			{
+			case LABEL_INDEX::QUAD_TREE:
+			{
+				// Load quad tree scene
+				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, QTreeScene::create(), cocos2d::Color3B::BLACK));
+			}
 			break;
+			case LABEL_INDEX::FLOCKING:
+			{
+				// Load quad tree scene
+				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, FlockingScene::create(), cocos2d::Color3B::BLACK));
+			}
+			break;
+			case LABEL_INDEX::CIRCLE_PACKING:
+			{
+				// Load quad tree scene
+				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, CirclePackingScene::create(), cocos2d::Color3B::BLACK));
+			}
+			break;
+			case LABEL_INDEX::EXIT:
+			{
+				cocos2d::Director::getInstance()->end();
+			}
+			break;
+			default:
+				break;
+			}
 		}
 	}
 }
