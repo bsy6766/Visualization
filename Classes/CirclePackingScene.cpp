@@ -3,8 +3,10 @@
 #include <algorithm>	// std::random_shuffle
 #include <utility>		// std::swap
 #include <random>
+#include "Component.h"
 
 USING_NS_CC;
+using namespace ECS;
 
 CirclePackingScene* CirclePackingScene::createScene()
 {
@@ -240,7 +242,17 @@ void CirclePackingScene::initCircles()
 	if (size >= this->maxCircles)
 	{
 		// We already have enough circles. resize. Circles will be deallocated
-		this->freshCircles.resize(this->maxCircles);
+		auto it = this->freshCircles.begin();
+		std::advance(it, this->maxCircles);
+		for (; it != this->freshCircles.end();)
+		{
+			delete (*it);
+			it = this->activeCircles.erase(it);
+			continue;
+		}
+
+		assert(this->freshCircles.size() == this->maxCircles);
+
 		return;
 	}
 	else
@@ -248,7 +260,8 @@ void CirclePackingScene::initCircles()
 		// Fill fresh circles by max size. If there are fresh circles left, resue them
 		for (int i = this->freshCircles.size(); i < this->maxCircles; i++)
 		{
-			this->freshCircles.push_back(std::unique_ptr<Circle>(new Circle(cocos2d::Vec2::ZERO, 0)));
+			//this->freshCircles.push_back(std::unique_ptr<Circle>(new Circle(cocos2d::Vec2::ZERO, 0)));
+			this->freshCircles.push_back(this->createNewEntity());
 		}
 	}
 }
@@ -261,7 +274,8 @@ void CirclePackingScene::moveAllGrownCircles()
 		// Circles that are growing are placed at front of list
 		// Circles that are all grown are placed at the back of list.
 		// So iterate until it finds alive and all grown circle
-		if ((*it)->growing == false)
+		auto dataComp = (*it)->getComponent<CirclePackingData*>(CIRCLE_PACKING_DATA);
+		if (dataComp->growing == false)
 		{
 			// Move all grown circle back to list
 			this->activeCircles.splice(this->activeCircles.end(), this->activeCircles, it);
@@ -288,8 +302,9 @@ void CirclePackingScene::spawnCircles(const int spawnRate)
 
 			for (auto& activeCircle : this->activeCircles)
 			{
-				float distance = activeCircle->position.distance(spawnPoint.point);
-				if (distance <= activeCircle->radius)
+				auto dataComp = activeCircle->getComponent<CirclePackingData*>(CIRCLE_PACKING_DATA);
+				float distance = dataComp->position.distance(spawnPoint.point);
+				if (distance <= dataComp->radius)
 				{
 					// Spawn point is already covered by another circle. 
 					inCircle = true;
@@ -307,7 +322,8 @@ void CirclePackingScene::spawnCircles(const int spawnRate)
 			// Point is not covered by other circles.
 			auto it_front = this->freshCircles.begin();
 			// activate circle
-			(*it_front)->activate(spawnPoint.point, 1.0f, spawnPoint.color);
+			auto dataComp = (*it_front)->getComponent<CirclePackingData*>(CIRCLE_PACKING_DATA);
+			dataComp->activate(spawnPoint.point, 1.0f, spawnPoint.color);
 			// Move to activeCircles
 			this->activeCircles.splice(this->activeCircles.begin(), this->freshCircles, it_front);
 			// pop spawn point
@@ -322,7 +338,8 @@ void CirclePackingScene::resetCircles()
 {
 	for (auto& circle : this->activeCircles)
 	{
-		circle->deactivate();
+		auto dataComp = circle->getComponent<CirclePackingData*>(CIRCLE_PACKING_DATA);
+		dataComp->deactivate();
 	}
 
 	this->freshCircles.splice(this->freshCircles.begin(), this->activeCircles);
@@ -370,6 +387,70 @@ void CirclePackingScene::updateFPS(const float delta)
 	}
 }
 
+ECS::Entity* CirclePackingScene::createNewEntity()
+{
+	Entity* newEntity = new Entity();
+
+	// attach component and return
+	auto circlePackingData = new CirclePackingData(cocos2d::Vec2::ZERO, 0, cocos2d::Color4F::WHITE);
+	newEntity->components[CIRCLE_PACKING_DATA] = circlePackingData;
+
+	return newEntity;
+}
+
+void CirclePackingScene::initQuadTree()
+{
+	if (this->currentImageIndex == IMAGE_INDEX::NONE) return;
+
+	// Init quadtree with initial boundary
+	this->quadTree = new QTree(this->imageSprites.at(static_cast<int>(this->currentImageIndex))->getBoundingBox(), 0);
+}
+
+void CirclePackingScene::insertEntitiesToQuadTree()
+{
+	this->quadTree->clear();
+
+	auto it = this->activeCircles.begin();
+	for (; it != this->activeCircles.end();)
+	{
+		// Remove if entities is dead
+		if ((*it)->alive == false)
+		{
+			delete (*it);
+			it = this->activeCircles.erase(it);
+			continue;
+		}
+
+		if (pause)
+		{
+			// if simulation is paused, don't update entitie's position
+			it++;
+			continue;
+		}
+
+		// Re-insert to quadtree
+		this->quadTree->insert(*it);
+
+		// Reset color to white. Only boids
+		if ((*it)->getComponent<ECS::FlockingData*>(FLOCKING_DATA)->type == ECS::FlockingData::TYPE::BOID)
+		{
+			(*it)->getComponent<ECS::Sprite*>(SPRITE)->sprite->setColor(cocos2d::Color3B::WHITE);
+		}
+
+		// next
+		it++;
+	}
+}
+
+void CirclePackingScene::releaseQuadTree()
+{
+	if (this->quadTree != nullptr)
+	{
+		delete this->quadTree;
+		this->quadTree = nullptr;
+	}
+}
+
 void CirclePackingScene::onEnter()
 {
 	cocos2d::CCScene::onEnter();
@@ -400,26 +481,14 @@ void CirclePackingScene::update(float delta)
 	// Update growth
 	for (auto& circle : this->activeCircles)
 	{
-		if (circle->growing)
+		auto dataComp = circle->getComponent<CirclePackingData*>(CIRCLE_PACKING_DATA);
+		if (dataComp->growing)
 		{
-			circle->update(delta);
+			dataComp->update(delta);
 		}
 	}
 
 	// Update collision
-	int growingCircleSize = 0;
-	for (auto& activeCircle : this->activeCircles)
-	{
-		if (activeCircle->growing)
-		{
-			growingCircleSize++;
-		}
-		else
-		{
-			break;
-		}
-	}
-
 	auto& left_it = this->activeCircles.begin();
 
 	auto size = static_cast<int>(this->activeCircles.size());
@@ -431,16 +500,18 @@ void CirclePackingScene::update(float delta)
 		{
 			if (i != j)
 			{
-				if ((*left_it)->growing || (*right_it)->growing)
+				auto leftDataComp = (*left_it)->getComponent<CirclePackingData*>(CIRCLE_PACKING_DATA);
+				auto rightDataComp = (*right_it)->getComponent<CirclePackingData*>(CIRCLE_PACKING_DATA);
+				if (leftDataComp->growing || rightDataComp->growing)
 				{
 					//either one of circle must be growing. If both are not growing, don't need to check
-					float distance = (*left_it)->position.distance((*right_it)->position);
-					float minDistance = (*left_it)->radius + (*right_it)->radius;
+					float distance = leftDataComp->position.distance(rightDataComp->position);
+					float minDistance = leftDataComp->radius + rightDataComp->radius;
 					if (distance <= minDistance)
 					{
 						// These two circle touched each other. Stop growing
-						(*left_it)->growing = false;
-						(*right_it)->growing = false;
+						leftDataComp->growing = false;
+						rightDataComp->growing = false;
 					}
 				}
 			}
@@ -460,7 +531,8 @@ void CirclePackingScene::update(float delta)
 	// Draw dot
 	for (auto& activeCircle : this->activeCircles)
 	{
-		this->drawNode->drawDot(activeCircle->position, activeCircle->radius, activeCircle->color);
+		auto dataComp = activeCircle->getComponent<CirclePackingData*>(CIRCLE_PACKING_DATA);
+		this->drawNode->drawDot(dataComp->position, dataComp->radius, dataComp->color);
 	}
 }
 

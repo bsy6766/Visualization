@@ -2,7 +2,6 @@
 #define CIRCLEPACKINGSCENE_H
 
 #include "cocos2d.h"
-#include "circle.h"
 #include "QTree.h"
 #include "ECS.h"
 #include <memory>
@@ -48,10 +47,12 @@ private:
 	// new circles are added on front. Growing circles are placed on front block. 
 	// All grown circles are moved to end of list
 	// [[----growing circles-----][-----all grown circles------]]
-	std::list<std::unique_ptr<Circle>> activeCircles;
+	//std::list<std::unique_ptr<Circle>> activeCircles;
+	std::list<ECS::Entity*> activeCircles;
 	// Fresh circles are deactived. Front element moves to activeCircles list when activated
 	// [---------------deactivated circles----------------------]
-	std::list<std::unique_ptr<Circle>> freshCircles;
+	//std::list<std::unique_ptr<Circle>> freshCircles;
+	std::list<ECS::Entity*> freshCircles;
 
 	struct SpawnPoint
 	{
@@ -73,6 +74,9 @@ private:
 
 	// Simulate speed multiplier. 1.0 by default. 0 = stops simulation
 	float simulateSpeedMultiplier;
+
+	// Quadtree to optimize collision check
+	QTree* quadTree;
 
 	enum IMAGE_INDEX
 	{
@@ -107,6 +111,13 @@ private:
 	cocos2d::Vec2 pixelToPoint(const int x, const int y, const int height, const cocos2d::Vec2& spritePos);
 	void runCirclePacking(const IMAGE_INDEX imageIndex);
 	void updateFPS(const float delta);
+	ECS::Entity* createNewEntity();
+	// Initialize entities and quad tree
+	void initQuadTree();
+	// Insert entities to quad tree
+	void insertEntitiesToQuadTree();
+	// Reset QuadTree and remove inactive entities
+	void releaseQuadTree();
 
 public:
 	//simple creator func
