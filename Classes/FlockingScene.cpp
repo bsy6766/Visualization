@@ -163,11 +163,6 @@ bool FlockingScene::init()
 	this->rangeChecker->setScale(ECS::FlockingData::SIGHT_RADIUS * 2.0f / 100.0f);
 	this->areaNode->addChild(rangeChecker);
 
-	this->qTreeLineNode = QTreeLineNode::createNode();
-	this->qTreeLineNode->setPosition(cocos2d::Vec2::ZERO);
-	this->qTreeLineNode->retain();
-	this->addChild(this->qTreeLineNode);
-
 	fps = 0;
 	fpsElapsedTime = 0;
 
@@ -455,8 +450,6 @@ void FlockingScene::initEntitiesAndQTree()
 		}
 	}
 
-	// Store lineNode pointer to quadtree for visualization
-	QTree::lineNode = this->qTreeLineNode;
 	// Init quadtree with initial boundary
 	this->quadTree = new QTree(this->displayBoundary, 0);
 }

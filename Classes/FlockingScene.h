@@ -41,7 +41,6 @@ private:
 	cocos2d::Label* backLabel;
 	cocos2d::Rect displayBoundary;
 	cocos2d::Node* areaNode;
-	cocos2d::Node* qTreeLineNode;
 	cocos2d::Node* blackArea;
 
 	// Labels
@@ -122,6 +121,7 @@ private:
 
 	// Initialize entities and quad tree
 	void initEntitiesAndQTree();
+
 	// Creates new entity with required components
 	ECS::Entity* createNewEntity();
 	ECS::Entity* createNewEntity(const cocos2d::Vec2& pos);
