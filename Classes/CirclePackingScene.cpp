@@ -60,7 +60,7 @@ bool CirclePackingScene::init()
 	this->addChild(this->imageNameLabel);
 
 	this->imageTestPurposeLabel = cocos2d::Label::createWithTTF("", fontPath, 20);
-	this->imageTestPurposeLabel->setPosition(cocos2d::Vec2(winSize.width * 0.5f, winSize.height - 20.0f));
+	this->imageTestPurposeLabel->setPosition(cocos2d::Vec2(winSize.width * 0.5f, winSize.height - 40.0f));
 	this->addChild(this->imageTestPurposeLabel);
 
 	cocos2d::DrawNode* drawNode = cocos2d::DrawNode::create();
