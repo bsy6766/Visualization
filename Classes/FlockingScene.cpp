@@ -17,6 +17,9 @@ bool FlockingScene::init()
 	}
 
 	ECS::Entity::idCounter = 0;
+    
+    // Init mouse point
+    this->curMousePosition = cocos2d::Vec2(-1.0f, -1.0f);
 
 	// Uncomment this to activate update(float) function
 	this->scheduleUpdate();
@@ -189,9 +192,21 @@ bool FlockingScene::init()
 
 	this->usageLabels.push_back(cocos2d::Label::createWithTTF("E = Remove 10 entities(FIFO)", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->addChild(this->usageLabels.back());
+    this->addChild(this->usageLabels.back());
+    
+    this->usageLabels.push_back(cocos2d::Label::createWithTTF("Mouse Hover and Key (Press key while hovering)", fontPath, 20));
+    this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
+    this->addChild(this->usageLabels.back());
+    
+    this->usageLabels.push_back(cocos2d::Label::createWithTTF("O (hovering on box) = Add Obstacle", fontPath, 20));
+    this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
+    this->addChild(this->usageLabels.back());
+    
+    this->usageLabels.push_back(cocos2d::Label::createWithTTF("O (hovering on Obstacle) = Remove Obstacle", fontPath, 19));
+    this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
+    this->addChild(this->usageLabels.back());
 
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Mouse", fontPath, 20));
+	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Mouse Click", fontPath, 20));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
@@ -204,14 +219,6 @@ bool FlockingScene::init()
 	this->addChild(this->usageLabels.back());
 
 	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Right click (on Boid) = Remove Boid", fontPath, 20));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->addChild(this->usageLabels.back());
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Middle click (in box) = Add Obstacle", fontPath, 20));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->addChild(this->usageLabels.back());
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Middle click (on Obstacle) = Remove Obstacle", fontPath, 19));
 	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->usageLabels.back());
 
@@ -705,8 +712,10 @@ void FlockingScene::onMouseMove(cocos2d::Event* event)
 	auto mouseEvent = static_cast<EventMouse*>(event);
 	float x = mouseEvent->getCursorX();
 	float y = mouseEvent->getCursorY();
+    
+    const cocos2d::Vec2 point = cocos2d::Vec2(x, y);
 
-	if (this->backLabel->getBoundingBox().containsPoint(cocos2d::Vec2(x, y)))
+	if (this->backLabel->getBoundingBox().containsPoint(point))
 	{
 		this->backLabel->setScale(1.2f);
 	}
@@ -717,6 +726,8 @@ void FlockingScene::onMouseMove(cocos2d::Event* event)
 			this->backLabel->setScale(1.0f);
 		}
 	}
+    
+    this->curMousePosition = point;
 }
 
 void FlockingScene::onMouseDown(cocos2d::Event* event) 
@@ -921,9 +932,36 @@ void FlockingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 		}
 		this->playUIAnimation(USAGE_KEY::REMOVE_TEN);
 	}
+    
+    if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_O)
+    {
+        // This is added for laptop users because they might not have middle click
+        if(this->curMousePosition.x == -1.0f || this->curMousePosition.y == -1.0f)
+        {
+            // mouse position must be positive. It's either out of window or hasn't intialized
+            return;
+        }
+        
+        if (this->displayBoundary.containsPoint(this->curMousePosition))
+        {
+            for (auto entity : this->entities)
+            {
+                auto spriteComp = entity->getComponent<ECS::Sprite*>(SPRITE);
+                if (spriteComp->sprite->getPosition().distance(this->curMousePosition) < 6.0f)
+                {
+                    entity->alive = false;
+                    this->playUIAnimation(USAGE_KEY::REMOVE_OBSTACLE);
+                    return;
+                }
+            }
+            
+            this->entities.push_back(createNewObstacleEntity(this->curMousePosition));
+            this->playUIAnimation(USAGE_KEY::ADD_OBSTACLE);
+        }
+    }
 }
 
-void FlockingScene::onKeyReleased(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::Event* event) 
+void FlockingScene::onKeyReleased(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::Event* event)
 {
 
 }

@@ -42,6 +42,7 @@ private:
 	cocos2d::Rect displayBoundary;
 	cocos2d::Node* areaNode;
 	cocos2d::Node* blackArea;
+    cocos2d::Vec2 curMousePosition;
 
 	// Labels
 	cocos2d::Label* weightLabel;
@@ -76,12 +77,13 @@ private:
 		CLEAR,
 		ADD_TEN,
 		REMOVE_TEN,
-		MAX_KEYBOARD_USAGE,
+        MAX_KEYBOARD_USAGE,
+        ADD_OBSTACLE,
+        REMOVE_OBSTACLE,
+        MAX_MOUSE_HOVER_AND_KEY,
 		ADD_ONE,
 		TRACK,
 		REMOVE_ONE,
-		ADD_OBSTACLE,
-		REMOVE_OBSTACLE,
 		MAX_MOUSE_USAGE
 	};
 
