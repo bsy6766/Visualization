@@ -13,7 +13,7 @@ QTreeScene* QTreeScene::createScene()
 
 bool QTreeScene::init()
 {
-	if (!CCScene::init())
+	if (!cocos2d::Scene::init())
 	{
 		return false;
 	}
@@ -231,7 +231,7 @@ Entity* QTreeScene::createNewEntity()
 
 void QTreeScene::onEnter()
 {
-	cocos2d::CCScene::onEnter();
+	cocos2d::Scene::onEnter();
 
 	initEntitiesAndQTree();
 	
@@ -694,7 +694,6 @@ void QTreeScene::onMouseDown(cocos2d::Event* event)
 				{
 					auto entitySpriteComp = entity->getComponent<ECS::Sprite*>(SPRITE);
 					auto entityQTreeObjectComp = entity->getComponent<QTreeData*>(QTREE_DATA);
-					auto entityDirVecComp = entity->getComponent<DirectionVector*>(DIRECTION_VECTOR);
 
 					if (entitySpriteComp->sprite->getBoundingBox().containsPoint(point))
 					{
@@ -901,7 +900,7 @@ void QTreeScene::releaseInputListeners()
 
 void QTreeScene::onExit()
 {
-	cocos2d::CCScene::onExit();
+	cocos2d::Scene::onExit();
 	releaseInputListeners();
 	this->areaNode->release();
 	this->qTreeLineNode->release();

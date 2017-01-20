@@ -194,7 +194,6 @@ void QTree::subDivide()
 		se = new QTree(cocos2d::Rect(this->boundary.getMidX(), this->boundary.getMinY(), width, height), this->level + 1);
 
 	//so...replace the object
-	auto entity = this->datas.begin();
 	std::list<Entity*> remainingData;
 
 	for (auto data : this->datas)

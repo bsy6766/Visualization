@@ -10,7 +10,7 @@ QTreeLineNode* QTreeLineNode::createNode()
 
 bool QTreeLineNode::init()
 {
-	if (!CCNode::init())
+    if (!cocos2d::Node::init())
 	{
 		return false;
 	}

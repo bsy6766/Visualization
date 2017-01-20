@@ -16,7 +16,7 @@ CirclePackingScene* CirclePackingScene::createScene()
 
 bool CirclePackingScene::init()
 {
-	if (!CCScene::init())
+	if (!cocos2d::Scene::init())
 	{
 		return false;
 	}
@@ -72,7 +72,6 @@ bool CirclePackingScene::init()
 
 void CirclePackingScene::initImages()
 {
-	auto winSize = cocos2d::Director::getInstance()->getVisibleSize();
 	int size = static_cast<int>(IMAGE_INDEX::MAX_SIZE);
 	for (int i = 0; i < size; i++)
 	{
@@ -247,7 +246,7 @@ void CirclePackingScene::initCircles()
 		for (; it != this->freshCircles.end();)
 		{
 			delete (*it);
-			it = this->activeCircles.erase(it);
+			it = this->freshCircles.erase(it);
 			continue;
 		}
 
@@ -453,7 +452,7 @@ void CirclePackingScene::releaseQuadTree()
 
 void CirclePackingScene::onEnter()
 {
-	cocos2d::CCScene::onEnter();
+	cocos2d::Scene::onEnter();
 
 	initInputListeners();
 
@@ -489,13 +488,13 @@ void CirclePackingScene::update(float delta)
 	}
 
 	// Update collision
-	auto& left_it = this->activeCircles.begin();
+	auto left_it = this->activeCircles.begin();
 
 	auto size = static_cast<int>(this->activeCircles.size());
 
 	for (int i = 0; i < size; i++)
 	{
-		auto& right_it = this->activeCircles.begin();
+		auto right_it = this->activeCircles.begin();
 		for (int j = 0; j < size; j++)
 		{
 			if (i != j)
@@ -635,7 +634,7 @@ void CirclePackingScene::releaseInputListeners()
 
 void CirclePackingScene::onExit()
 {
-	cocos2d::CCScene::onExit();
+	cocos2d::Scene::onExit();
 	// Uncomment this if you are using initInputListeners()
 	releaseInputListeners(); 
 

@@ -8,7 +8,7 @@
 #include "Component.h"
 #include "QTreeLineNode.h"
 
-class FlockingScene : public cocos2d::CCScene
+class FlockingScene : public cocos2d::Scene
 {
 private:
 	//default constructor

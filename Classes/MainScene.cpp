@@ -14,7 +14,7 @@ MainScene* MainScene::createScene()
 
 bool MainScene::init()
 {
-	if (!CCScene::init())
+	if (!cocos2d::Scene::init())
 	{
 		return false;
 	}
@@ -58,7 +58,7 @@ bool MainScene::init()
 
 void MainScene::onEnter()
 {
-	cocos2d::CCScene::onEnter();
+	cocos2d::Scene::onEnter();
 	initInputListeners();
 }
 
@@ -229,6 +229,6 @@ void MainScene::releaseInputListeners()
 
 void MainScene::onExit()
 {
-	cocos2d::CCScene::onExit();
+	cocos2d::Scene::onExit();
 	releaseInputListeners();
 }

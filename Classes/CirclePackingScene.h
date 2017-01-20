@@ -6,7 +6,7 @@
 #include "ECS.h"
 #include <memory>
 
-class CirclePackingScene : public cocos2d::CCScene
+class CirclePackingScene : public cocos2d::Scene
 {
 private:
 	//default constructor

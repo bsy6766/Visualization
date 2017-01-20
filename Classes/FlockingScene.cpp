@@ -11,7 +11,7 @@ FlockingScene* FlockingScene::createScene()
 
 bool FlockingScene::init()
 {
-	if (!CCScene::init())
+    if (!cocos2d::Scene::init())
 	{
 		return false;
 	}
@@ -76,13 +76,13 @@ bool FlockingScene::init()
 	this->alignmentWeightLabel->setPosition(cocos2d::Vec2(weightLabelX, weightLabelY - weightLabelYOffset));
 	this->addChild(this->alignmentWeightLabel);
 
-	this->leftAlignmentButton = cocos2d::ui::Button::create("leftButton.png", "leftSelectedButton.png", "leftDisabledButton.png", cocos2d::ui::TextureResType::PLIST);
+	this->leftAlignmentButton = cocos2d::ui::Button::create("leftButton.png", "leftSelectedButton.png", "leftDisabledButton.png", cocos2d::ui::Widget::TextureResType::PLIST);
 	this->leftAlignmentButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
 	this->leftAlignmentButton->setActionTag(ACTION_TAG::ALIGNMENT_LEFT);
 	this->leftAlignmentButton->setPosition(cocos2d::Vec2(leftButtonX, weightLabelY - buttonYOffset));
 	this->addChild(this->leftAlignmentButton);
 
-	this->rightAlignmentButton = cocos2d::ui::Button::create("rightButton.png", "rightSelectedButton.png", "rightDisabledButton.png", cocos2d::ui::TextureResType::PLIST);
+	this->rightAlignmentButton = cocos2d::ui::Button::create("rightButton.png", "rightSelectedButton.png", "rightDisabledButton.png", cocos2d::ui::Widget::TextureResType::PLIST);
 	this->rightAlignmentButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
 	this->rightAlignmentButton->setActionTag(ACTION_TAG::ALIGNMENT_RIGHT);
 	this->rightAlignmentButton->setPosition(cocos2d::Vec2(rightButtonX, weightLabelY - buttonYOffset));
@@ -98,13 +98,13 @@ bool FlockingScene::init()
 	this->cohesionWeightLabel->setPosition(cocos2d::Vec2(weightLabelX, weightLabelY - (weightLabelYOffset * 2.0f)));
 	this->addChild(this->cohesionWeightLabel);
 
-	this->leftCohesionButton = cocos2d::ui::Button::create("leftButton.png", "leftSelectedButton.png", "leftDisabledButton.png", cocos2d::ui::TextureResType::PLIST);
+	this->leftCohesionButton = cocos2d::ui::Button::create("leftButton.png", "leftSelectedButton.png", "leftDisabledButton.png", cocos2d::ui::Widget::TextureResType::PLIST);
 	this->leftCohesionButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
 	this->leftCohesionButton->setActionTag(ACTION_TAG::COHESION_LEFT);
 	this->leftCohesionButton->setPosition(cocos2d::Vec2(leftButtonX, weightLabelY - (buttonYOffset * 2.0f)));
 	this->addChild(this->leftCohesionButton);
 
-	this->rightCohesionButton = cocos2d::ui::Button::create("rightButton.png", "rightSelectedButton.png", "rightDisabledButton.png", cocos2d::ui::TextureResType::PLIST);
+	this->rightCohesionButton = cocos2d::ui::Button::create("rightButton.png", "rightSelectedButton.png", "rightDisabledButton.png", cocos2d::ui::Widget::TextureResType::PLIST);
 	this->rightCohesionButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
 	this->rightCohesionButton->setActionTag(ACTION_TAG::COHESION_RIGHT);
 	this->rightCohesionButton->setPosition(cocos2d::Vec2(rightButtonX, weightLabelY - (buttonYOffset * 2.0f)));
@@ -120,13 +120,13 @@ bool FlockingScene::init()
 	this->separationWeightLabel->setPosition(cocos2d::Vec2(weightLabelX, weightLabelY - (weightLabelYOffset * 3.0f)));
 	this->addChild(this->separationWeightLabel);
 
-	this->leftSeparationButton = cocos2d::ui::Button::create("leftButton.png", "leftSelectedButton.png", "leftDisabledButton.png", cocos2d::ui::TextureResType::PLIST);
+	this->leftSeparationButton = cocos2d::ui::Button::create("leftButton.png", "leftSelectedButton.png", "leftDisabledButton.png", cocos2d::ui::Widget::TextureResType::PLIST);
 	this->leftSeparationButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
 	this->leftSeparationButton->setActionTag(ACTION_TAG::SEPARATION_LEFT);
 	this->leftSeparationButton->setPosition(cocos2d::Vec2(leftButtonX, weightLabelY - (buttonYOffset * 3.0f)));
 	this->addChild(this->leftSeparationButton);
 
-	this->rightSeparationButton = cocos2d::ui::Button::create("rightButton.png", "rightSelectedButton.png", "rightDisabledButton.png", cocos2d::ui::TextureResType::PLIST);
+	this->rightSeparationButton = cocos2d::ui::Button::create("rightButton.png", "rightSelectedButton.png", "rightDisabledButton.png", cocos2d::ui::Widget::TextureResType::PLIST);
 	this->rightSeparationButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
 	this->rightSeparationButton->setActionTag(ACTION_TAG::SEPARATION_RIGHT);
 	this->rightSeparationButton->setPosition(cocos2d::Vec2(rightButtonX, weightLabelY - (buttonYOffset * 3.0f)));
@@ -142,13 +142,13 @@ bool FlockingScene::init()
 	this->avoidWeightLabel->setPosition(cocos2d::Vec2(weightLabelX, weightLabelY - (weightLabelYOffset * 4.0f)));
 	this->addChild(this->avoidWeightLabel);
 
-	this->leftAvoidButton = cocos2d::ui::Button::create("leftButton.png", "leftSelectedButton.png", "leftDisabledButton.png", cocos2d::ui::TextureResType::PLIST);
+    this->leftAvoidButton = cocos2d::ui::Button::create("leftButton.png", "leftSelectedButton.png", "leftDisabledButton.png", cocos2d::ui::Widget::TextureResType::PLIST);
 	this->leftAvoidButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
 	this->leftAvoidButton->setActionTag(ACTION_TAG::AVOID_LEFT);
 	this->leftAvoidButton->setPosition(cocos2d::Vec2(leftButtonX, weightLabelY - (buttonYOffset * 4.0f)));
 	this->addChild(this->leftAvoidButton);
 
-	this->rightAvoidButton = cocos2d::ui::Button::create("rightButton.png", "rightSelectedButton.png", "rightDisabledButton.png", cocos2d::ui::TextureResType::PLIST);
+    this->rightAvoidButton = cocos2d::ui::Button::create("rightButton.png", "rightSelectedButton.png", "rightDisabledButton.png", cocos2d::ui::Widget::TextureResType::PLIST);
 	this->rightAvoidButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
 	this->rightAvoidButton->setActionTag(ACTION_TAG::AVOID_RIGHT);
 	this->rightAvoidButton->setPosition(cocos2d::Vec2(rightButtonX, weightLabelY - (buttonYOffset * 4.0f)));
@@ -235,7 +235,7 @@ bool FlockingScene::init()
 
 void FlockingScene::onEnter()
 {
-	cocos2d::CCScene::onEnter();
+	cocos2d::Scene::onEnter();
 
 	initInputListeners();
 
@@ -938,7 +938,7 @@ void FlockingScene::releaseInputListeners()
 
 void FlockingScene::onExit()
 {
-	cocos2d::CCScene::onExit();
+	cocos2d::Scene::onExit();
 
 	releaseInputListeners();
 

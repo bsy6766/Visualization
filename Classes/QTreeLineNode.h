@@ -11,7 +11,7 @@
 *	Purpose of this class is to create node that has all the quadtree line
 */
 
-class QTreeLineNode : public cocos2d::CCNode
+class QTreeLineNode : public cocos2d::Node
 {
 private:
 	//Default contructor

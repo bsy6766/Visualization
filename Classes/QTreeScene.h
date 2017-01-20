@@ -10,7 +10,7 @@
 #include <vector>
 #include <list>
 
-class QTreeScene : public cocos2d::CCScene
+class QTreeScene : public cocos2d::Scene
 {
 private:
 	//default constructor
