@@ -25,13 +25,16 @@ bool CirclePackingScene::init()
 	this->scheduleUpdate();
 
 	// Initialize drawNode
-	this->drawNode = cocos2d::DrawNode::create();
-	this->addChild(this->drawNode, SPRITE_Z_ORDER::CIRCLES);
+	this->growingDrawNode = cocos2d::DrawNode::create();
+	this->addChild(this->growingDrawNode, SPRITE_Z_ORDER::CIRCLES);
+	this->allGrownCircleDrawNode = cocos2d::DrawNode::create();
+	this->addChild(this->allGrownCircleDrawNode, SPRITE_Z_ORDER::CIRCLES);
 
 	// Set spawn point serach offsets
 	this->searchSpawnPointWidthOffset = 4;
 	this->searchSpawnPointHeightOffset = 4;
 
+	// Init current image index
 	this->currentImageIndex = IMAGE_INDEX::NONE;
 
 	// Init images
@@ -51,6 +54,14 @@ bool CirclePackingScene::init()
 	this->backLabel = cocos2d::Label::createWithTTF("BACK(ESC)", fontPath, 20);
 	this->backLabel->setPosition(cocos2d::Vec2(winSize.width - 60.0f, 20.0f));
 	this->addChild(this->backLabel);
+
+	this->imageNameLabel = cocos2d::Label::createWithTTF("", fontPath, 30);
+	this->imageNameLabel->setPosition(cocos2d::Vec2(winSize.width * 0.5f, winSize.height - 20.0f));
+	this->addChild(this->imageNameLabel);
+
+	this->imageTestPurposeLabel = cocos2d::Label::createWithTTF("", fontPath, 20);
+	this->imageTestPurposeLabel->setPosition(cocos2d::Vec2(winSize.width * 0.5f, winSize.height - 20.0f));
+	this->addChild(this->imageTestPurposeLabel);
 
 	cocos2d::DrawNode* drawNode = cocos2d::DrawNode::create();
 	this->addChild(drawNode);
@@ -90,14 +101,19 @@ void CirclePackingScene::initImages()
 			break;
 		case IMAGE_INDEX::CAT:
 		{
-			initImageAndSprite("Images/cat.png");
+			initImageAndSprite("Images/Shrek Cat.png");
 		}
 			break;
 		case IMAGE_INDEX::THE_SCREAM:
 		{
 			initImageAndSprite("Images/TheScream.png");
 		}
-		break;
+			break;
+		case IMAGE_INDEX::GRADIENT:
+		{
+			initImageAndSprite("Images/Gradient.png");
+		}
+			break;
 		default:
 			break;
 		}
@@ -199,10 +215,27 @@ void CirclePackingScene::findCircleSpawnPoint(const IMAGE_INDEX imageIndex)
 			{
 				if (a > 0)
 				{
-					// For cat, all points that are visible will be spawn point
+					// For cat and The scream, we are doing color test, all points that are visible will be spawn point
 					auto point = this->pixelToPoint(i, j, height, this->imageSprites.at(index)->getPosition());
 
 					points.push_back(SpawnPoint{ point, cocos2d::Color4F(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f) });
+				}
+				else
+				{
+					continue;
+				}
+			}
+				break;
+			case IMAGE_INDEX::GRADIENT:
+			{
+				if (a > 0)
+				{
+					// For cat, all points that are visible will be spawn point
+					auto point = this->pixelToPoint(i, j, height, this->imageSprites.at(index)->getPosition());
+					cocos2d::Color4F color = cocos2d::Color4F::WHITE;
+					color.a = a / 255.0f;
+
+					points.push_back(SpawnPoint{ point, color });
 				}
 				else
 				{
@@ -265,8 +298,9 @@ void CirclePackingScene::initCircles()
 	}
 }
 
-void CirclePackingScene::moveAllGrownCircles()
+const bool CirclePackingScene::moveAllGrownCircles()
 {
+	bool grownCircleFound = false;
 	auto it = this->activeCircles.begin();
 	for (;it != this->activeCircles.end();)
 	{
@@ -278,10 +312,13 @@ void CirclePackingScene::moveAllGrownCircles()
 		{
 			// Move all grown circle back to list
 			this->activeCircles.splice(this->activeCircles.end(), this->activeCircles, it);
+			grownCircleFound = true;
 		}
 
 		it++;
 	}
+
+	return grownCircleFound;
 }
 
 void CirclePackingScene::spawnCircles(const int spawnRate)
@@ -359,7 +396,8 @@ void CirclePackingScene::runCirclePacking(const IMAGE_INDEX imageIndex)
 	// Reset existing circles
 	this->resetCircles();
 	// clear draw buffer
-	this->drawNode->clear();
+	this->growingDrawNode->clear();
+	this->allGrownCircleDrawNode->clear();
 	// update image index
 	this->currentImageIndex = imageIndex;
 	// reset spawn point
@@ -368,6 +406,41 @@ void CirclePackingScene::runCirclePacking(const IMAGE_INDEX imageIndex)
 	this->maxCircles = this->circleSpawnPointsWithColor.size();
 	// initialize circles
 	initCircles();
+	// update image name label
+	this->setImageNameLabel();
+}
+
+void CirclePackingScene::setImageNameLabel()
+{
+	switch (this->currentImageIndex)
+	{
+	case IMAGE_INDEX::CPP:
+	{
+		this->imageNameLabel->setString("C++");
+		this->imageTestPurposeLabel->setString("Circle Packing on white pixels");
+	}
+		break;
+	case IMAGE_INDEX::CAT:
+	{
+		this->imageNameLabel->setString("Shrek Cat");
+		this->imageTestPurposeLabel->setString("Circle Packing with color");
+	}
+		break;
+	case IMAGE_INDEX::THE_SCREAM:
+	{
+		this->imageNameLabel->setString("Edvard Munch's 'The Scream'");
+		this->imageTestPurposeLabel->setString("Circle Packing with color");
+	}
+		break;
+	case IMAGE_INDEX::GRADIENT:
+	{
+		this->imageNameLabel->setString("Gradient");
+		this->imageTestPurposeLabel->setString("Circle Packing related to alpha channel");
+	}
+		break;
+	default:
+		break;
+	}
 }
 
 void CirclePackingScene::updateFPS(const float delta)
@@ -522,16 +595,28 @@ void CirclePackingScene::update(float delta)
 	}
 
 	// Move all grown circles to another list
-	this->moveAllGrownCircles();
+	bool resetAllGrownDrawNode = this->moveAllGrownCircles();
 
 	// Clear all buffer
-	this->drawNode->clear();
+	this->growingDrawNode->clear();
+
+	if (resetAllGrownDrawNode)
+	{
+		this->allGrownCircleDrawNode->clear();
+	}
 
 	// Draw dot
 	for (auto& activeCircle : this->activeCircles)
 	{
 		auto dataComp = activeCircle->getComponent<CirclePackingData*>(CIRCLE_PACKING_DATA);
-		this->drawNode->drawDot(dataComp->position, dataComp->radius, dataComp->color);
+		if (dataComp->growing)
+		{
+			this->growingDrawNode->drawDot(dataComp->position, dataComp->radius, dataComp->color);
+		}
+		else
+		{
+			this->allGrownCircleDrawNode->drawDot(dataComp->position, dataComp->radius, dataComp->color);
+		}
 	}
 }
 
@@ -616,6 +701,23 @@ void CirclePackingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, c
 	{
 		// The Scream
 		this->runCirclePacking(IMAGE_INDEX::THE_SCREAM);
+	}
+	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_4)
+	{
+		// The Scream
+		this->runCirclePacking(IMAGE_INDEX::GRADIENT);
+	}
+
+	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_R)
+	{
+		// reset
+	}
+
+	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_H)
+	{
+		// Toggle circles hidden
+		this->growingDrawNode->setVisible(!this->growingDrawNode->isVisible());
+		this->allGrownCircleDrawNode->setVisible(!this->allGrownCircleDrawNode->isVisible());
 	}
 }
 

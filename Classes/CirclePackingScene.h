@@ -39,7 +39,10 @@ private:
 	int fps;
 	float fpsElapsedTime;
 	cocos2d::Label* fpsLabel;
-	cocos2d::DrawNode* drawNode;
+	cocos2d::DrawNode* growingDrawNode;
+	cocos2d::DrawNode* allGrownCircleDrawNode;
+	cocos2d::Label* imageNameLabel;
+	cocos2d::Label* imageTestPurposeLabel;
 
 	std::vector<cocos2d::Image*> images;
 	std::vector<cocos2d::Sprite*> imageSprites;
@@ -47,11 +50,9 @@ private:
 	// new circles are added on front. Growing circles are placed on front block. 
 	// All grown circles are moved to end of list
 	// [[----growing circles-----][-----all grown circles------]]
-	//std::list<std::unique_ptr<Circle>> activeCircles;
 	std::list<ECS::Entity*> activeCircles;
 	// Fresh circles are deactived. Front element moves to activeCircles list when activated
 	// [---------------deactivated circles----------------------]
-	//std::list<std::unique_ptr<Circle>> freshCircles;
 	std::list<ECS::Entity*> freshCircles;
 
 	struct SpawnPoint
@@ -81,8 +82,9 @@ private:
 	enum IMAGE_INDEX
 	{
 		CPP = 0,	//C++
-		CAT,
-		THE_SCREAM,
+		CAT,		//Color test
+		THE_SCREAM,	//Color test
+		GRADIENT,	//Alpha test
 		MAX_SIZE,
 		NONE,
 	};
@@ -104,12 +106,13 @@ private:
 	void initImageAndSprite(const std::string& imageName);
 	void findCircleSpawnPoint(const IMAGE_INDEX imageIndex);
 	void initCircles();
-	// Move all grown circles to back of list
-	void moveAllGrownCircles();
+	// Move all grown circles to back of list. Returns true if new all grown up circles are found
+	const bool moveAllGrownCircles();
 	void spawnCircles(const int spawnRate);
 	void resetCircles();
 	cocos2d::Vec2 pixelToPoint(const int x, const int y, const int height, const cocos2d::Vec2& spritePos);
 	void runCirclePacking(const IMAGE_INDEX imageIndex);
+	void setImageNameLabel();
 	void updateFPS(const float delta);
 	ECS::Entity* createNewEntity();
 	// Initialize entities and quad tree
