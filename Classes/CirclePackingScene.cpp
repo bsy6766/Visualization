@@ -42,8 +42,8 @@ bool CirclePackingScene::init()
 	this->maxCircles = 0;
 
 	// Set number of circles to spawn at start and every tick
-	this->initialCircleCount = 15;
-	this->circleSpawnRate = 2;
+	this->initialCircleCount = 10;
+	this->circleSpawnRate = 5;
 
 	auto winSize = cocos2d::Director::getInstance()->getVisibleSize();
 
@@ -182,10 +182,6 @@ void CirclePackingScene::updateCircleRadius(const float delta)
 				float newRadius = dataComp->radius;
 				spriteComp->sprite->setScale(newRadius / 50.0f);
 			}
-		}
-		else
-		{
-			break;
 		}
 	}
 }
