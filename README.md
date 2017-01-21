@@ -1,7 +1,9 @@
 # Visualization
 Visualizes simple game techniques for 2D or anything I found interesting.<br>
 Although these are made for 2D, some techniques can be expanded to 3D (i.e. QuadTree to OcTree or 3D flocking with additional axis)<br>
-This project uses my own implementation of ECS (Entity Component System).
+This project uses my own implementation of ECS (Entity Component System).<br>
+<br>
+**There are preview GIF for each algorithm below on Algorithm section**
 
 ## Engine & Language
 Cocos2d-X 3.13<br>
@@ -10,7 +12,7 @@ Cocos2d-X 3.13<br>
 C++
 
 ## Performance
-Performance of each algorithm are different. Some algorithm, Quad Tree for example, limits the size of total entities, but some algorithm aren't like Circle Packing.<br> I am trying to make the program to run at 60fps, which it does on my machine, but I am more focusing on implementing algorithm than optimization at this moment.<br>
+Performance of each algorithm are different. Some algorithm, Quad Tree for example, limits the size of total entities, but some algorithm can have more than 10000 entities like Circle Packing.<br> I am trying to make the program to run at 60fps, which it does on my machine, but I am more focusing on implementing algorithm than optimization at this moment.<br>
 
 ## Working/Tested Platforms
 Windows 10<br>
