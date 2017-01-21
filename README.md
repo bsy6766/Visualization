@@ -157,10 +157,14 @@ To run algorithm, place your mouse pointer near the left edge of screen to show 
 </details>
 
 ----
-##In Progress
-### Animated Circle Packing
-### Vector Math
+## In Progress
+### A* pathfinding
+Visualizes A* pathfinding step by step
+## Planned
+### Vector Math 
 Visualizes dot and cross product
+### Audio spectrum
+Visualizes music in to several different form of graphs
 
 ----
 ## Font
