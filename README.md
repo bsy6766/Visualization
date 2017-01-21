@@ -46,7 +46,7 @@ In progress
 </details>
 
 
-## Features (Press traingle to expand/collapse)
+## Algorithms (Press traingle to expand/collapse)
 <details>
 <summary><b>QuadTree</b></summary>
 #### Note
