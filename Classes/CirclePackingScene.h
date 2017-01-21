@@ -49,6 +49,10 @@ private:
 	cocos2d::Node* imageSelectNode;
 	cocos2d::Sprite* imageSelectPanelBg;
 	bool viewingImageSelectPanel;
+	cocos2d::Label* statsLabel;
+	cocos2d::Label* runStatus;
+	cocos2d::Label* possibleCircleSpawnPointLabel;
+	cocos2d::Label* spawnedCircleCountLabel;
 
 	std::vector<cocos2d::Image*> images;
 	std::vector<cocos2d::Sprite*> imageSprites;
