@@ -32,7 +32,7 @@ Application is available [**here**](https://drive.google.com/open?id=0BxL3wp7rb6
 **Note: Haven't tested on any other OS X versions than Sierra. Please open issue if there is any problem.**
 </details>
 <details>
-<summary><b>Linux</b></summary>
+<summary><b>~~Linux~~</b></summary>
 In progress
 </details>
 
