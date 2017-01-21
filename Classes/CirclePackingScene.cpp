@@ -265,7 +265,7 @@ void CirclePackingScene::updateCircleGrowthWithCollision()
 						else if (!leftDataComp->growing && rightDataComp->growing)
 						{
 							// Only right circle was growing. All grown circles should not be modified
-							rightDataComp->growing -= distanceDiff;
+							rightDataComp->radius -= distanceDiff;
 
 							rightSpriteComp->sprite->setScale(rightDataComp->radius / 50.0f);
 
