@@ -2,6 +2,7 @@
 #define CIRCLEPACKINGSCENE_H
 
 #include "cocos2d.h"
+#include "ui/CocosGUI.h"
 #include "QTree.h"
 #include "ECS.h"
 #include <memory>
@@ -43,9 +44,23 @@ private:
 	cocos2d::DrawNode* allGrownCircleDrawNode;
 	cocos2d::Label* imageNameLabel;
 	cocos2d::Label* imageTestPurposeLabel;
+	cocos2d::Label* imageSelectInstructionLabel;
+	cocos2d::Sprite* leftArrow;
+	cocos2d::Node* imageSelectNode;
+	cocos2d::Sprite* imageSelectPanelBg;
+	bool viewingImageSelectPanel;
 
 	std::vector<cocos2d::Image*> images;
 	std::vector<cocos2d::Sprite*> imageSprites;
+	std::vector<cocos2d::ui::Button*> imageSpritesIconButtons;
+
+	enum BUTTON_TAG
+	{
+		CPP,
+		CAT,
+		THE_SCREAM,
+		GRADIENT
+	};
 
 	// new circles are added on front. Growing circles are placed on front block. 
 	// All grown circles are moved to end of list
@@ -76,10 +91,13 @@ private:
 	// Simulate speed multiplier. 1.0 by default. 0 = stops simulation
 	float simulateSpeedMultiplier;
 
+	// Keep track growing circle number
+	int growingCircleCount;
+
 	// Quadtree to optimize collision check
 	QTree* quadTree;
 
-	enum IMAGE_INDEX
+	enum class IMAGE_INDEX
 	{
 		CPP = 0,	//C++
 		CAT,		//Color test
@@ -91,7 +109,7 @@ private:
 
 	IMAGE_INDEX currentImageIndex;
 
-	enum SPRITE_Z_ORDER
+	enum class SPRITE_Z_ORDER
 	{
 		BEHIND_CIRCLES = 0,
 		CIRCLES,
@@ -103,7 +121,7 @@ private:
 	int searchSpawnPointHeightOffset;
 
 	void initImages();
-	void initImageAndSprite(const std::string& imageName);
+	void initImageAndSprite(const std::string& imageName, const BUTTON_TAG buttonTag);
 	void findCircleSpawnPoint(const IMAGE_INDEX imageIndex);
 	void initCircles();
 	// Move all grown circles to back of list. Returns true if new all grown up circles are found
@@ -114,6 +132,9 @@ private:
 	void runCirclePacking(const IMAGE_INDEX imageIndex);
 	void setImageNameLabel();
 	void updateFPS(const float delta);
+	void updateCircleRadius(const float delta);
+	void updateCircleGrowthWithCollision();
+	void updateDrawNodes(const bool clearAllGrownDrawNode);
 	ECS::Entity* createNewEntity();
 	// Initialize entities and quad tree
 	void initQuadTree();
@@ -121,6 +142,8 @@ private:
 	void insertEntitiesToQuadTree();
 	// Reset QuadTree and remove inactive entities
 	void releaseQuadTree();
+	// Button press call back
+	void onButtonPressed(cocos2d::Ref* sender);
 
 public:
 	//simple creator func

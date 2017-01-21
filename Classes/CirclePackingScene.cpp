@@ -4,6 +4,7 @@
 #include <utility>		// std::swap
 #include <random>
 #include "Component.h"
+#include "Utility.h"	// custom random
 
 USING_NS_CC;
 using namespace ECS;
@@ -26,9 +27,9 @@ bool CirclePackingScene::init()
 
 	// Initialize drawNode
 	this->growingDrawNode = cocos2d::DrawNode::create();
-	this->addChild(this->growingDrawNode, SPRITE_Z_ORDER::CIRCLES);
+	this->addChild(this->growingDrawNode, static_cast<int>(SPRITE_Z_ORDER::CIRCLES));
 	this->allGrownCircleDrawNode = cocos2d::DrawNode::create();
-	this->addChild(this->allGrownCircleDrawNode, SPRITE_Z_ORDER::CIRCLES);
+	this->addChild(this->allGrownCircleDrawNode, static_cast<int>(SPRITE_Z_ORDER::CIRCLES));
 
 	// Set spawn point serach offsets
 	this->searchSpawnPointWidthOffset = 4;
@@ -37,17 +38,17 @@ bool CirclePackingScene::init()
 	// Init current image index
 	this->currentImageIndex = IMAGE_INDEX::NONE;
 
-	// Init images
-	initImages();
-
 	// init max Circles to 0. Will be initialized later
 	this->maxCircles = 0;
 
 	// Set number of circles to spawn at start and every tick
-	this->initialCircleCount = 10;
-	this->circleSpawnRate = 5;
+	this->initialCircleCount = 15;
+	this->circleSpawnRate = 2;
 
 	auto winSize = cocos2d::Director::getInstance()->getVisibleSize();
+
+	this->viewingImageSelectPanel = false;
+	this->pause = false;
 
 	std::string fontPath = "fonts/Rubik-Medium.ttf";
 
@@ -63,12 +64,35 @@ bool CirclePackingScene::init()
 	this->imageTestPurposeLabel->setPosition(cocos2d::Vec2(winSize.width * 0.5f, winSize.height - 40.0f));
 	this->addChild(this->imageTestPurposeLabel);
 
-	cocos2d::DrawNode* drawNode = cocos2d::DrawNode::create();
-	this->addChild(drawNode);
+	this->leftArrow = cocos2d::Sprite::createWithSpriteFrameName("arrowLeft.png");
+	this->leftArrow->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
+	this->leftArrow->setPosition(cocos2d::Vec2(10.0f, winSize.height * 0.5f));
+	this->addChild(this->leftArrow);
 
-	this->pause = true;
+	this->imageSelectInstructionLabel = cocos2d::Label::createWithTTF("Move your mouse to left edge\nto select images.", fontPath, 20);
+	this->imageSelectInstructionLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
+	auto arrowSize = this->leftArrow->getContentSize();
+	this->imageSelectInstructionLabel->setPosition(cocos2d::Vec2(15.0f + arrowSize.width, winSize.height * 0.5f));
+	this->addChild(this->imageSelectInstructionLabel);
+
+	this->imageSelectNode = cocos2d::Node::create();
+	this->imageSelectNode->setPosition(cocos2d::Vec2(0, winSize.height * 0.5f));
+	this->imageSelectNode->setVisible(false);
+	this->addChild(this->imageSelectNode);
+
+	this->imageSelectPanelBg = cocos2d::Sprite::createWithSpriteFrameName("dot.png");
+	this->imageSelectPanelBg->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
+	this->imageSelectPanelBg->setScaleY(winSize.height);
+	this->imageSelectPanelBg->setScaleX(120.0f);
+	this->imageSelectPanelBg->setColor(cocos2d::Color3B::GRAY);
+	this->imageSelectPanelBg->setOpacity(30);
+	this->imageSelectNode->addChild(this->imageSelectPanelBg);
+
+	// Init images
+	initImages();
 
 	this->simulateSpeedMultiplier = 1.5f;
+	this->growingCircleCount = 0;
 
 	fps = 0;
 	fpsElapsedTime = 0;
@@ -78,7 +102,222 @@ bool CirclePackingScene::init()
 	this->fpsLabel->setPosition(cocos2d::Vec2(5.0f, 20.0f));
 	this->addChild(this->fpsLabel);
 
+	this->quadTree = nullptr;
+
 	return true;
+}
+
+void CirclePackingScene::onEnter()
+{
+	cocos2d::Scene::onEnter();
+
+	initInputListeners();
+}
+
+void CirclePackingScene::update(float delta)
+{
+	if (this->pause)
+	{
+		return;
+	}
+
+	updateFPS(delta);
+
+	// check current image
+	if (this->currentImageIndex == IMAGE_INDEX::NONE) return;
+
+	// Modify time by multiplier
+	delta *= this->simulateSpeedMultiplier;
+
+	// Reset QuadTree
+	insertEntitiesToQuadTree();
+
+	// Spawn circles
+	spawnCircles(this->circleSpawnRate);
+
+	// Update growth
+	updateCircleRadius(delta);
+
+	// Reset QuadTree
+	insertEntitiesToQuadTree();
+
+	// Update growth
+	updateCircleGrowthWithCollision();
+
+	// Move all grown circles to another list
+	bool clearAllGrownDrawNode = this->moveAllGrownCircles();
+
+	// Draw dot
+	//updateDrawNodes(clearAllGrownDrawNode);
+}
+
+void CirclePackingScene::updateFPS(const float delta)
+{
+	this->fpsElapsedTime += delta;
+	if (this->fpsElapsedTime > 1.0f)
+	{
+		this->fpsElapsedTime -= 1.0f;
+		fps++;
+		fpsLabel->setString("FPS: " + std::to_string(fps) + " (" + std::to_string(delta).substr(0, 5) + "ms)");
+		fps = 0;
+	}
+	else
+	{
+		fps++;
+	}
+}
+
+void CirclePackingScene::updateCircleRadius(const float delta)
+{
+	for (auto& circle : this->activeCircles)
+	{
+		auto dataComp = circle->getComponent<CirclePackingData*>(CIRCLE_PACKING_DATA);
+		auto spriteComp = circle->getComponent<ECS::Sprite*>(SPRITE);
+		if (dataComp->growing)
+		{
+			dataComp->update(delta);
+
+			if (spriteComp)
+			{
+				float newRadius = dataComp->radius;
+				spriteComp->sprite->setScale(newRadius / 50.0f);
+			}
+		}
+		else
+		{
+			break;
+		}
+	}
+}
+
+void CirclePackingScene::updateCircleGrowthWithCollision()
+{
+	if (this->growingCircleCount <= 0)
+	{
+		// No circles are growing at this moment
+		return;
+	}
+
+	auto size = static_cast<int>(this->activeCircles.size());
+
+	for (auto activeCircle : this->activeCircles)
+	{
+		// Create query box
+		auto leftSpriteComp = activeCircle->getComponent<ECS::Sprite*>(SPRITE);
+		cocos2d::Rect queryBox = leftSpriteComp->sprite->getBoundingBox();
+		float pad = 20.0f;
+		queryBox.origin.x -= pad;
+		queryBox.origin.y -= pad;
+		queryBox.size.width += pad * 2.0f;
+		queryBox.size.height += pad * 2.0f;
+
+		std::list<ECS::Entity*> nearCircles;
+		quadTree->queryAllEntities(queryBox, nearCircles);
+
+		if (nearCircles.empty())
+		{
+			continue;
+		}
+
+		for (auto nearCircle : nearCircles)
+		{
+			if (activeCircle->id != nearCircle->id)
+			{
+				auto leftDataComp = activeCircle->getComponent<CirclePackingData*>(CIRCLE_PACKING_DATA);
+				auto rightDataComp = nearCircle->getComponent<CirclePackingData*>(CIRCLE_PACKING_DATA);
+
+				if (leftDataComp->growing || rightDataComp->growing)
+				{
+					//either one of circle must be growing. If both are not growing, don't need to check
+					float distance = leftDataComp->position.distance(rightDataComp->position);
+					float minDistance = leftDataComp->radius + rightDataComp->radius;
+					if (distance <= minDistance)
+					{
+						// These two circle touched each other
+						float distanceDiff = fabsf(minDistance - distance);
+						assert(distanceDiff >= 0);
+
+						auto leftSpriteComp = activeCircle->getComponent<ECS::Sprite*>(SPRITE);
+						auto rightSpriteComp = nearCircle->getComponent<ECS::Sprite*>(SPRITE);
+
+						// Update radius, sprite and stop growing
+						if (leftDataComp->growing && rightDataComp->growing)
+						{
+							// Both were growing. Share overlapped distance
+							leftDataComp->radius -= (distanceDiff * 0.5f);
+							rightDataComp->radius -= (distanceDiff * 0.5f);
+
+							leftSpriteComp->sprite->setScale(leftDataComp->radius / 50.0f);
+							rightSpriteComp->sprite->setScale(rightDataComp->radius / 50.0f);
+
+							leftDataComp->growing = false;
+							rightDataComp->growing = false;
+						}
+						else if (leftDataComp->growing && !rightDataComp->growing)
+						{
+							// Only left circle was growing. All grown circles should not be modified
+							leftDataComp->radius -= distanceDiff;
+
+							leftSpriteComp->sprite->setScale(leftDataComp->radius / 50.0f);
+
+							leftDataComp->growing = false;
+						}
+						else if (!leftDataComp->growing && rightDataComp->growing)
+						{
+							// Only right circle was growing. All grown circles should not be modified
+							rightDataComp->growing -= distanceDiff;
+
+							rightSpriteComp->sprite->setScale(rightDataComp->radius / 50.0f);
+
+							rightDataComp->growing = false;
+						}
+						// Else, can't be both circles are all grown
+					}
+				}
+			}
+		}
+	}
+}
+
+void CirclePackingScene::updateDrawNodes(const bool clearAllGrownDrawNode)
+{
+	// Clear all buffer
+	this->growingDrawNode->clear();
+
+	if (clearAllGrownDrawNode)
+	{
+		this->allGrownCircleDrawNode->clear();
+	}
+
+
+	for (auto& activeCircle : this->activeCircles)
+	{
+		auto dataComp = activeCircle->getComponent<CirclePackingData*>(CIRCLE_PACKING_DATA);
+
+		if (dataComp->growing)
+		{
+			this->growingDrawNode->drawDot(dataComp->position, dataComp->radius, dataComp->color);
+		}
+		else
+		{
+			this->allGrownCircleDrawNode->drawDot(dataComp->position, dataComp->radius, dataComp->color);
+		}
+	}
+}
+
+void CirclePackingScene::initInputListeners()
+{
+	this->mouseInputListener = EventListenerMouse::create();
+	this->mouseInputListener->onMouseMove = CC_CALLBACK_1(CirclePackingScene::onMouseMove, this);
+	this->mouseInputListener->onMouseDown = CC_CALLBACK_1(CirclePackingScene::onMouseDown, this);
+	this->mouseInputListener->onMouseUp = CC_CALLBACK_1(CirclePackingScene::onMouseUp, this);
+	this->mouseInputListener->onMouseScroll = CC_CALLBACK_1(CirclePackingScene::onMouseScroll, this);
+	_eventDispatcher->addEventListenerWithSceneGraphPriority(this->mouseInputListener, this);
+
+	this->keyInputListener = EventListenerKeyboard::create();
+	this->keyInputListener->onKeyPressed = CC_CALLBACK_2(CirclePackingScene::onKeyPressed, this);
+	this->keyInputListener->onKeyReleased = CC_CALLBACK_2(CirclePackingScene::onKeyReleased, this);
+	_eventDispatcher->addEventListenerWithSceneGraphPriority(this->keyInputListener, this);
 }
 
 void CirclePackingScene::initImages()
@@ -96,31 +335,50 @@ void CirclePackingScene::initImages()
 		{
 		case IMAGE_INDEX::CPP:
 		{
-			initImageAndSprite("Images/C++.png");
+			initImageAndSprite("Images/C++.png", BUTTON_TAG::CPP);
 		}
 			break;
 		case IMAGE_INDEX::CAT:
 		{
-			initImageAndSprite("Images/Shrek Cat.png");
+			initImageAndSprite("Images/Shrek Cat.png", BUTTON_TAG::CAT);
 		}
 			break;
 		case IMAGE_INDEX::THE_SCREAM:
 		{
-			initImageAndSprite("Images/TheScream.png");
+			initImageAndSprite("Images/TheScream.png", BUTTON_TAG::THE_SCREAM);
 		}
 			break;
 		case IMAGE_INDEX::GRADIENT:
 		{
-			initImageAndSprite("Images/Gradient.png");
+			initImageAndSprite("Images/Gradient.png", BUTTON_TAG::GRADIENT);
 		}
 			break;
 		default:
 			break;
 		}
 	}
+
+	int index = 0;
+	auto winSize = cocos2d::Director::getInstance()->getVisibleSize();
+	cocos2d::Vec2 pos = cocos2d::Vec2(this->imageSelectPanelBg->getBoundingBox().size.width * 0.5f, (winSize.height * 0.5f) - 10.0f);
+	for (auto icon : this->imageSpritesIconButtons)
+	{
+		float iconHeight = icon->getBoundingBox().size.height;
+		if (index == 0)
+		{
+			pos.y -= iconHeight * 0.5f;
+		}
+		else
+		{
+			float prevIconHeight = this->imageSpritesIconButtons.at(index - 1)->getBoundingBox().size.height;
+			pos.y -= ((prevIconHeight * 0.5f) + (iconHeight * 0.5f) + 15.0f);
+		}
+		icon->setPosition(pos);
+		index++;
+	}
 }
 
-void CirclePackingScene::initImageAndSprite(const std::string & imageName)
+void CirclePackingScene::initImageAndSprite(const std::string& imageName, const BUTTON_TAG buttonTag)
 {
 	this->images.back()->initWithImageFile(imageName);
 
@@ -128,6 +386,7 @@ void CirclePackingScene::initImageAndSprite(const std::string & imageName)
 	tex->initWithImage(this->images.back());
 	tex->autorelease();
 
+	//Sprite
 	cocos2d::Sprite* sprite = cocos2d::Sprite::createWithTexture(tex);
 	sprite->retain();
 	sprite->setAnchorPoint(cocos2d::Vec2(0, 0));
@@ -136,9 +395,16 @@ void CirclePackingScene::initImageAndSprite(const std::string & imageName)
 	auto winSizeHalf = winSize * 0.5f;
 	sprite->setPosition(cocos2d::Vec2(winSizeHalf - sizeHalf));
 	sprite->setVisible(false);
-
-	this->addChild(sprite, SPRITE_Z_ORDER::BEHIND_CIRCLES);
+	this->addChild(sprite, static_cast<int>(SPRITE_Z_ORDER::BEHIND_CIRCLES));
 	this->imageSprites.push_back(sprite);
+
+	// Icon Buttons
+	cocos2d::ui::Button* button = cocos2d::ui::Button::create(imageName);
+	button->setScale(100.0f / sprite->getContentSize().width);
+	button->setActionTag(buttonTag);
+	button->addClickEventListener(CC_CALLBACK_1(CirclePackingScene::onButtonPressed, this));
+	this->imageSelectNode->addChild(button);
+	this->imageSpritesIconButtons.push_back(button);
 }
 
 void CirclePackingScene::findCircleSpawnPoint(const IMAGE_INDEX imageIndex)
@@ -255,7 +521,7 @@ void CirclePackingScene::findCircleSpawnPoint(const IMAGE_INDEX imageIndex)
 		int newSize = size / 10 * 8;
 		this->maxCircles = newSize;
 		
-		std::random_shuffle(std::begin(points), std::end(points));
+		std::shuffle(std::begin(points), std::end(points), std::mt19937(std::random_device{}()));
 		points.resize(newSize);
 
 		for (int i = 0; i < newSize; i++)
@@ -300,6 +566,7 @@ void CirclePackingScene::initCircles()
 
 const bool CirclePackingScene::moveAllGrownCircles()
 {
+	this->growingCircleCount = 0;
 	bool grownCircleFound = false;
 	auto it = this->activeCircles.begin();
 	for (;it != this->activeCircles.end();)
@@ -313,6 +580,10 @@ const bool CirclePackingScene::moveAllGrownCircles()
 			// Move all grown circle back to list
 			this->activeCircles.splice(this->activeCircles.end(), this->activeCircles, it);
 			grownCircleFound = true;
+		}
+		else
+		{
+			this->growingCircleCount++;
 		}
 
 		it++;
@@ -336,11 +607,25 @@ void CirclePackingScene::spawnCircles(const int spawnRate)
 			// flag
 			bool inCircle = false;
 
-			for (auto& activeCircle : this->activeCircles)
+			// Query quad tree
+			cocos2d::Rect queryingArea = cocos2d::Rect::ZERO;
+			queryingArea.origin = spawnPoint.point;
+			const float pad = 50.0f;
+			queryingArea.origin.x -= pad;
+			queryingArea.origin.y -= pad;
+			queryingArea.size.width += pad * 2.0f;
+			queryingArea.size.height += pad * 2.0f;
+
+			std::list<ECS::Entity*> nearCircles;
+
+			this->quadTree->queryAllEntities(queryingArea, nearCircles);
+
+			for (auto activeCircle : nearCircles)
 			{
 				auto dataComp = activeCircle->getComponent<CirclePackingData*>(CIRCLE_PACKING_DATA);
 				float distance = dataComp->position.distance(spawnPoint.point);
-				if (distance <= dataComp->radius)
+				float pad = 2.0f;
+				if (distance <= (dataComp->radius + pad))
 				{
 					// Spawn point is already covered by another circle. 
 					inCircle = true;
@@ -364,6 +649,16 @@ void CirclePackingScene::spawnCircles(const int spawnRate)
 			this->activeCircles.splice(this->activeCircles.begin(), this->freshCircles, it_front);
 			// pop spawn point
 			this->circleSpawnPointsWithColor.pop();
+			// update sprite comp
+			auto spriteComp = (*it_front)->getComponent<ECS::Sprite*>(SPRITE);
+			if (spriteComp)
+			{
+				spriteComp->sprite->setScale(0.02f);
+				spriteComp->sprite->setPosition(spawnPoint.point);
+				spriteComp->sprite->setColor(cocos2d::Color3B(spawnPoint.color));
+				spriteComp->sprite->setOpacity(spawnPoint.color.a * 255.0f);
+				spriteComp->sprite->setVisible(true);
+			}
 			// inc count
 			count++;
 		}
@@ -376,6 +671,11 @@ void CirclePackingScene::resetCircles()
 	{
 		auto dataComp = circle->getComponent<CirclePackingData*>(CIRCLE_PACKING_DATA);
 		dataComp->deactivate();
+		auto spriteComp = circle->getComponent<ECS::Sprite*>(SPRITE);
+		if (spriteComp)
+		{
+			spriteComp->sprite->setVisible(false);
+		}
 	}
 
 	this->freshCircles.splice(this->freshCircles.begin(), this->activeCircles);
@@ -393,6 +693,10 @@ cocos2d::Vec2 CirclePackingScene::pixelToPoint(const int x, const int y, const i
 
 void CirclePackingScene::runCirclePacking(const IMAGE_INDEX imageIndex)
 {
+	// Delete quadTree
+	releaseQuadTree();
+	// Reset counter
+	this->growingCircleCount = 0;
 	// Reset existing circles
 	this->resetCircles();
 	// clear draw buffer
@@ -408,6 +712,8 @@ void CirclePackingScene::runCirclePacking(const IMAGE_INDEX imageIndex)
 	initCircles();
 	// update image name label
 	this->setImageNameLabel();
+	// Re-initialize QuadTree
+	initQuadTree();
 }
 
 void CirclePackingScene::setImageNameLabel()
@@ -443,22 +749,6 @@ void CirclePackingScene::setImageNameLabel()
 	}
 }
 
-void CirclePackingScene::updateFPS(const float delta)
-{
-	this->fpsElapsedTime += delta;
-	if (this->fpsElapsedTime > 1.0f)
-	{
-		this->fpsElapsedTime -= 1.0f;
-		fps++;
-		fpsLabel->setString("FPS: " + std::to_string(fps) + " (" + std::to_string(delta).substr(0, 5) + "ms)");
-		fps = 0;
-	}
-	else
-	{
-		fps++;
-	}
-}
-
 ECS::Entity* CirclePackingScene::createNewEntity()
 {
 	Entity* newEntity = new Entity();
@@ -466,6 +756,11 @@ ECS::Entity* CirclePackingScene::createNewEntity()
 	// attach component and return
 	auto circlePackingData = new CirclePackingData(cocos2d::Vec2::ZERO, 0, cocos2d::Color4F::WHITE);
 	newEntity->components[CIRCLE_PACKING_DATA] = circlePackingData;
+
+	auto spriteComp = new ECS::Sprite(*this, "circle_100.png");
+	spriteComp->sprite->setScale(0.02f);	//radius 50.0f to 1.0f
+	spriteComp->sprite->setVisible(false);
+	newEntity->components[SPRITE] = spriteComp;
 
 	return newEntity;
 }
@@ -482,35 +777,10 @@ void CirclePackingScene::insertEntitiesToQuadTree()
 {
 	this->quadTree->clear();
 
-	auto it = this->activeCircles.begin();
-	for (; it != this->activeCircles.end();)
+	// Need to insert all active circles
+	for (auto activeCircle : this->activeCircles)
 	{
-		// Remove if entities is dead
-		if ((*it)->alive == false)
-		{
-			delete (*it);
-			it = this->activeCircles.erase(it);
-			continue;
-		}
-
-		if (pause)
-		{
-			// if simulation is paused, don't update entitie's position
-			it++;
-			continue;
-		}
-
-		// Re-insert to quadtree
-		this->quadTree->insert(*it);
-
-		// Reset color to white. Only boids
-		if ((*it)->getComponent<ECS::FlockingData*>(FLOCKING_DATA)->type == ECS::FlockingData::TYPE::BOID)
-		{
-			(*it)->getComponent<ECS::Sprite*>(SPRITE)->sprite->setColor(cocos2d::Color3B::WHITE);
-		}
-
-		// next
-		it++;
+		this->quadTree->insert(activeCircle);
 	}
 }
 
@@ -523,123 +793,73 @@ void CirclePackingScene::releaseQuadTree()
 	}
 }
 
-void CirclePackingScene::onEnter()
+void CirclePackingScene::onButtonPressed(cocos2d::Ref * sender)
 {
-	cocos2d::Scene::onEnter();
+	cocos2d::ui::Button* button = dynamic_cast<cocos2d::ui::Button*>(sender);
+	const BUTTON_TAG tag = static_cast<BUTTON_TAG>(button->getActionTag());
 
-	initInputListeners();
-
-	this->pause = false;
-}
-
-void CirclePackingScene::update(float delta)
-{
-	if (this->pause)
+	switch (tag)
 	{
-		return;
+	case BUTTON_TAG::CPP:
+		this->runCirclePacking(IMAGE_INDEX::CPP);
+		break;
+	case BUTTON_TAG::CAT:
+		this->runCirclePacking(IMAGE_INDEX::CAT);
+		break;
+	case BUTTON_TAG::THE_SCREAM:
+		this->runCirclePacking(IMAGE_INDEX::THE_SCREAM);
+		break;
+	case BUTTON_TAG::GRADIENT:
+		this->runCirclePacking(IMAGE_INDEX::GRADIENT);
+		break;
+	default:
+		break;
 	}
-
-	updateFPS(delta);
-
-	// Modify time by multiplier
-	delta *= this->simulateSpeedMultiplier;
-
-	// check current image
-	if (this->currentImageIndex == IMAGE_INDEX::NONE) return;
-
-	// Spawn circles
-	spawnCircles(this->circleSpawnRate);
-
-	// Update growth
-	for (auto& circle : this->activeCircles)
-	{
-		auto dataComp = circle->getComponent<CirclePackingData*>(CIRCLE_PACKING_DATA);
-		if (dataComp->growing)
-		{
-			dataComp->update(delta);
-		}
-	}
-
-	// Update collision
-	auto left_it = this->activeCircles.begin();
-
-	auto size = static_cast<int>(this->activeCircles.size());
-
-	for (int i = 0; i < size; i++)
-	{
-		auto right_it = this->activeCircles.begin();
-		for (int j = 0; j < size; j++)
-		{
-			if (i != j)
-			{
-				auto leftDataComp = (*left_it)->getComponent<CirclePackingData*>(CIRCLE_PACKING_DATA);
-				auto rightDataComp = (*right_it)->getComponent<CirclePackingData*>(CIRCLE_PACKING_DATA);
-				if (leftDataComp->growing || rightDataComp->growing)
-				{
-					//either one of circle must be growing. If both are not growing, don't need to check
-					float distance = leftDataComp->position.distance(rightDataComp->position);
-					float minDistance = leftDataComp->radius + rightDataComp->radius;
-					if (distance <= minDistance)
-					{
-						// These two circle touched each other. Stop growing
-						leftDataComp->growing = false;
-						rightDataComp->growing = false;
-					}
-				}
-			}
-
-			right_it++;
-		}
-
-		left_it++;
-	}
-
-	// Move all grown circles to another list
-	bool resetAllGrownDrawNode = this->moveAllGrownCircles();
-
-	// Clear all buffer
-	this->growingDrawNode->clear();
-
-	if (resetAllGrownDrawNode)
-	{
-		this->allGrownCircleDrawNode->clear();
-	}
-
-	// Draw dot
-	for (auto& activeCircle : this->activeCircles)
-	{
-		auto dataComp = activeCircle->getComponent<CirclePackingData*>(CIRCLE_PACKING_DATA);
-		if (dataComp->growing)
-		{
-			this->growingDrawNode->drawDot(dataComp->position, dataComp->radius, dataComp->color);
-		}
-		else
-		{
-			this->allGrownCircleDrawNode->drawDot(dataComp->position, dataComp->radius, dataComp->color);
-		}
-	}
-}
-
-void CirclePackingScene::initInputListeners()
-{
-	this->mouseInputListener = EventListenerMouse::create();
-	this->mouseInputListener->onMouseMove = CC_CALLBACK_1(CirclePackingScene::onMouseMove, this);
-	this->mouseInputListener->onMouseDown = CC_CALLBACK_1(CirclePackingScene::onMouseDown, this);
-	this->mouseInputListener->onMouseUp = CC_CALLBACK_1(CirclePackingScene::onMouseUp, this);
-	this->mouseInputListener->onMouseScroll = CC_CALLBACK_1(CirclePackingScene::onMouseScroll, this);
-	_eventDispatcher->addEventListenerWithSceneGraphPriority(this->mouseInputListener, this);
-
-	this->keyInputListener = EventListenerKeyboard::create();
-	this->keyInputListener->onKeyPressed = CC_CALLBACK_2(CirclePackingScene::onKeyPressed, this);
-	this->keyInputListener->onKeyReleased = CC_CALLBACK_2(CirclePackingScene::onKeyReleased, this);
-	_eventDispatcher->addEventListenerWithSceneGraphPriority(this->keyInputListener, this);
 }
 
 void CirclePackingScene::onMouseMove(cocos2d::Event* event) 
 {
-	//auto mouseEvent = static_cast<EventMouse*>(event);
-	//float x = mouseEvent->getCursorX();
-	//float y = mouseEvent->getCursorY();
+	auto mouseEvent = static_cast<EventMouse*>(event);
+	cocos2d::Vec2 point = cocos2d::Vec2(mouseEvent->getCursorX(), mouseEvent->getCursorY());
+
+	if (0 < point.x && point.x < 30.0f)
+	{
+		// In detection range
+		if (!this->viewingImageSelectPanel)
+		{
+			// Not viewing image select panel
+			this->viewingImageSelectPanel = true;
+			this->imageSelectNode->setVisible(true);
+		}
+		//else, already viewing. do nothing
+
+		// hide insturction if visible
+		if (this->imageSelectInstructionLabel->isVisible())
+		{
+			this->imageSelectInstructionLabel->setVisible(false);
+		}
+
+		if (this->leftArrow->isVisible())
+		{
+			this->leftArrow->setVisible(false);
+		}
+	}
+	else if (point.x > 120.0f)
+	{
+		// Out of panel range
+		if (this->viewingImageSelectPanel)
+		{
+			// viewing panel. hide
+			this->viewingImageSelectPanel = false;
+			this->imageSelectNode->setVisible(false);
+		}
+	}
+	else if(point.x < 0 || point.y < 0 || point.y > cocos2d::Director::getInstance()->getVisibleSize().height)
+	{
+		// out of window. exit
+		this->viewingImageSelectPanel = false;
+		this->imageSelectNode->setVisible(false);
+	}
 }
 
 void CirclePackingScene::onMouseDown(cocos2d::Event* event) 
