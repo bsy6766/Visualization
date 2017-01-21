@@ -9,9 +9,12 @@ Cocos2d-X 3.13<br>
 
 C++
 
+## Performance
+Performance of each algorithm are different. Some algorithm, Quad Tree for example, limits the size of total entities, but some algorithm aren't like Circle Packing.<br> I am trying to make the program to run at 60fps, which it does on my machine, but I am more focusing on implementing algorithm than optimization at this moment.<br>
+
 ## Platform
 Win32<br>
-OSX(Planned)<br>
+OSX(Working)<br>
 Linux(Planned)<br>
 
 ## How to run on your machine
@@ -136,8 +139,21 @@ This program uses Quad Tree like the QuadTree project in this repo to optimize c
 <details>
 <summary><b>Circle Packing</b></summary>
 #### Note
-Visualizes Circle Packing in 2D.<br>
+Visualizes animated Circle Packing in 2D.<br>
 Reads image and picks random position to spawn circle and circle grows until it reaches maximum size or touches other circle.<br>
+
+#### Preview (Expand/Collapse)
+<details> 
+  <summary>Circle Packing preview gif</summary>
+   ![Circle Packing Preview](https://github.com/bsy6766/Visualization/blob/master/gifs/CirclePacking.gif)
+</details>
+
+#### Circle
+All circles that spawns on screen grows in fixed rate. If circle collides(touches) with another circle, both circles stop growing.<br>
+Circle's position is 'sort-of' random. The algorithm collects all possible spawn point in image and then randomly polls the position.<br>
+
+#### Usage
+To run algorithm, place your mouse pointer near the left edge of screen to show image lists. Some images have different purpose, such as alpha channel testing, but they all run same circle packing algorithm.
 </details>
 
 ----
@@ -151,8 +167,9 @@ Visualizes dot and cross product
 Used [Rubik](https://www.fontsquirrel.com/fonts/rubik) by Hubert & Fischer
 
 ## ChangeLog
-v0.4 Fixed Bugs<br>
-v0.3 Replaced ECS<br>
+v0.5 Added Circle Packing visualization.<br>
+v0.4 Fixed Bugs.<br>
+v0.3 Replaced ECS.<br>
 v0.2 Added Flocking Algorithm visualization.<br>
 v0.1 Added QuadTree visualization.<br>
 v0.0 Project started.<br>
