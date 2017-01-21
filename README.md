@@ -6,7 +6,7 @@ This project uses my own implementation of ECS (Entity Component System).<br>
 **There are preview GIF for each algorithm below on Algorithm section**
 
 ## Engine & Language
-Cocos2d-X 3.13<br>
+Cocos2d-X 3.13 ~ 3.14.1<br>
 > Why Cocos2d-X? Because Cocos2d-X is the engine that I'm most used to it compared to others, works great for 2D, cross-platform and opensource. Also it's free!<br>
 
 C++
