@@ -12,6 +12,7 @@ using namespace ECS;
 //The maximum/minimum level of tree it can sub divide.
 #define MAX_LEVEL 10
 #define MIN_LEVEL 5
+#define DEFAULT_LEVEL 6
 //If set to 1, clear() will delete sub quadtree instances. If set to 0, clear() will not delete sub quadtree and reuse whenever it needs
 #define CLEAN_UP_SUB_DIV 1
 

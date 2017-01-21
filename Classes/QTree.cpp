@@ -5,7 +5,12 @@ int QTree::CurrentMaxLevelSet = 6;
 cocos2d::Node* QTree::lineNode = nullptr;
 
 QTree::QTree(const cocos2d::Rect& boundary, int level) : nw(nullptr), ne(nullptr), sw(nullptr), se(nullptr), boundary(boundary), leaf(true), level(level), xAxis(nullptr), yAxis(nullptr), clean(true)
-{}
+{
+	if (this->level == 0)
+	{
+		QTree::CurrentMaxLevelSet = DEFAULT_LEVEL;
+	}
+}
 
 QTree::~QTree()
 {
@@ -14,6 +19,10 @@ QTree::~QTree()
 	if(yAxis != nullptr)
 		yAxis->removeFromParentAndCleanup(true);
 	clear();
+	if (this->level == 0)
+	{
+		QTree::CurrentMaxLevelSet = DEFAULT_LEVEL;
+	}
 }
 
 void QTree::clear()
@@ -174,8 +183,8 @@ void QTree::subDivide()
 	//sub divide only happen when there is more than 1 object.
 	this->leaf = false;
 
-	float width = this->boundary.size.width / 2.0f;
-	float height = this->boundary.size.height / 2.0f;
+	float width = this->boundary.size.width * 0.5f;
+	float height = this->boundary.size.height * 0.5f;
 
 	//top left 
 	if(nw == nullptr)
@@ -242,7 +251,7 @@ bool QTree::insert(Entity* entity)
 		if (leaf)
 		{
 			//don't have sub. check max level
-			if (this->level < MAX_LEVEL)
+			if (this->level < QTree::CurrentMaxLevelSet)
 			{
 				//not max level yet. subdivide. objects existing this node should be repositioned to new subs
 				if (this->datas.size() < CAPACITY)
