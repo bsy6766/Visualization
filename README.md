@@ -1,27 +1,39 @@
 # Visualization
 Visualizes simple game techniques for 2D or anything I found interesting.<br>
 Although these are made for 2D, some techniques can be expanded to 3D (i.e. QuadTree to OcTree or 3D flocking with additional axis)<br>
-This project uses my own implementation of ECS (Entity Component System).
+This project uses my own implementation of ECS (Entity Component System).<br>
+<br>
+**There are preview GIF for each algorithm below on Algorithm section**
 
 ## Engine & Language
-Cocos2d-X 3.13<br>
+Cocos2d-X 3.13 ~ 3.14.1<br>
 > Why Cocos2d-X? Because Cocos2d-X is the engine that I'm most used to it compared to others, works great for 2D, cross-platform and opensource. Also it's free!<br>
 
 C++
 
 ## Performance
-Performance of each algorithm are different. Some algorithm, Quad Tree for example, limits the size of total entities, but some algorithm aren't like Circle Packing.<br> I am trying to make the program to run at 60fps, which it does on my machine, but I am more focusing on implementing algorithm than optimization at this moment.<br>
+Performance of each algorithm are different. Some algorithm, Quad Tree for example, limits the size of total entities, but some algorithm can have more than 10000 entities like Circle Packing.<br> I am trying to make the program to run at 60fps, which it does on my machine, but I am more focusing on implementing algorithm than optimization at this moment.<br>
 
-## Platform
-Win32<br>
-OSX(Working)<br>
-Linux(Planned)<br>
+## Working/Tested Platforms
+Windows 10<br>
+Mac OS X Sierra<br>
+Ubuntu 16.04<br>
 
 ## How to run on your machine
+#### Download Links
 <details>
-<summary><b>Download Link (Win32)</b></summary>
-Executable are available [**here**](https://drive.google.com/open?id=0BxL3wp7rb67tNmNvdXZ1emJXMTg). Download the zip file and open it with your archieve tool. Then run Visualization.exe.<br>
+<summary><b>Win32 (v0.5)</b></summary>
+Executable is available [**here**](https://drive.google.com/open?id=0BxL3wp7rb67tNmNvdXZ1emJXMTg). Download the zip file and open it with your archieve tool. Then run Visualization.exe.<br>
 **Note: For Windows, you need Visual c++ Redistributable to run the program. Error message will tell you which DLL you are missing. Google the name of DLL for solution. Also, program might won't open if anti-virus blocks it.**
+</details>
+<details>
+<summary><b>Mac OS X (v0.5)</b></summary>
+Application is available [**here**](https://drive.google.com/open?id=0BxL3wp7rb67tTDJNZGNXQ2wtSkk). Download the zip file and open it with your archieve tool. Then run Visualization.exe.<br>
+**Note: Haven't tested on any other OS X versions than Sierra. Please open issue if there is any problem.**
+</details>
+<details>
+<summary><b>~~Linux~~</b></summary>
+In progress
 </details>
 
 ## How to build on your machine
@@ -36,7 +48,7 @@ Executable are available [**here**](https://drive.google.com/open?id=0BxL3wp7rb6
 </details>
 
 
-## Features (Press traingle to expand/collapse)
+## Algorithms (Press traingle to expand/collapse)
 <details>
 <summary><b>QuadTree</b></summary>
 #### Note
