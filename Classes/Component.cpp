@@ -17,6 +17,7 @@ void DirectionVector::setNewDirVec()
 	float radianAngle = angle * M_PI / 180.0f;
 
 	this->dirVec = cocos2d::Vec2(cosf(radianAngle), sinf(radianAngle));
+	this->dirVec.normalize();
 }
 
 const float ECS::DirectionVector::getAngle()

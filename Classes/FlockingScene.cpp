@@ -379,8 +379,7 @@ void FlockingScene::updateFlockingAlgorithm(const float delta)
 			if (entityDirVecComp->smoothSteer)
 			{
 				// Steer boid's direction smooothly
-				auto newDirVec = entityDirVecComp->dirVec;
-				auto diffVec = finalVec - newDirVec;
+				auto diffVec = finalVec - entityDirVecComp->dirVec;
 				diffVec *= (delta * ECS::FlockingData::steerSpeed);
 				entityDirVecComp->dirVec += diffVec;
 			}
@@ -389,6 +388,8 @@ void FlockingScene::updateFlockingAlgorithm(const float delta)
 				// Steer instantly
 				entityDirVecComp->dirVec = finalVec;
 			}
+
+			entityDirVecComp->dirVec.normalize();
 
 			// update position
 			auto movedDir = entityDirVecComp->dirVec * ECS::FlockingData::movementSpeed;
