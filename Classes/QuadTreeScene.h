@@ -116,12 +116,12 @@ private:
 	void checkBoundary(ECS::Sprite& spriteComp, bool& flipX, bool& flipY);
 	// Flips direction
 	void flipDirVec(const bool flipX, const bool flipY, cocos2d::Vec2& dirVec);
-	// Updates labels with number
-	void updateLabels();
 	// Resolves collision between two entities.
 	void resolveCollisions(ECS::Sprite& entitySpriteComp, ECS::Sprite& nearEntitySpriteComp, ECS::DirectionVector& entityDirVecComp, ECS::DirectionVector& nearEntityDirVecComp);
 	// Reassigns entitiy id to keep id less than 1000 (because of duplication check).
 	void reassignEntityIds();
+    // Toggle color
+    void toggleColor(const bool enabled, LabelsNode::TYPE type, const int index, const bool playAnimation = true);
 public:
 	//simple creator func
 	static QuadTreeScene* createScene();

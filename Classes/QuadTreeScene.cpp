@@ -446,21 +446,6 @@ void QuadTreeScene::flipDirVec(const bool flipX, const bool flipY, cocos2d::Vec2
 	}
 }
 
-void QuadTreeScene::updateLabels()
-{
-    
-/*
-	collisionChecksCountLabel->setString("Collision check: " + std::to_string(collisionChecksCount));
-	if (duplicationCheck)
-		collisionCheckWithOutRepeatCountLabel->setString("Collision check w/o duplication: " + std::to_string(collisionCheckWithOutRepeatCount));
-
-	bruteforceChecksCount = entityCount * entityCount;
-	bruteforceChecksCountLabel->setString("Brute-froce collision check: " + std::to_string(bruteforceChecksCount));
-
-	quadtreeLevelLabel->setString("Quadtree max level: " + std::to_string(this->quadTree->getCurrentLevelSetting()));
- */
-}
-
 void QuadTreeScene::resolveCollisions(ECS::Sprite & entitySpriteComp, ECS::Sprite & nearEntitySpriteComp, ECS::DirectionVector& entityDirVecComp, ECS::DirectionVector& nearEntityDirVecComp)
 {
 	auto eBB = entitySpriteComp.sprite->getBoundingBox();
@@ -529,6 +514,18 @@ void QuadTreeScene::reassignEntityIds()
 		entity->id = counter;
 		counter++;
 	}
+}
+
+void QuadTreeScene::toggleColor(const bool enabled, LabelsNode::TYPE type, const int index, const bool playAniamtion)
+{
+    if(enabled)
+    {
+        this->labelsNode->setColor(type, index, cocos2d::Color3B::GREEN, playAniamtion);
+    }
+    else
+    {
+        this->labelsNode->setColor(type, index, cocos2d::Color3B::WHITE, playAniamtion);
+    }
 }
 
 void QuadTreeScene::initInputListeners()
@@ -684,28 +681,14 @@ void QuadTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 	{
 		// Toggle pause simulation. Still counts fps and entity
 		pause = !pause;
-		if (pause)
-        {
-            this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::SPACE), cocos2d::Color3B::GREEN);
-		}
-		else
-        {
-            this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::SPACE), cocos2d::Color3B::WHITE);
-		}
+        this->toggleColor(pause, LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::SPACE));
 	}
 
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_R)
 	{
 		// Toggle collision resolution
-		collisionResolve = !collisionResolve;
-        if (collisionResolve)
-        {
-            this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::COL_RESOLVE), cocos2d::Color3B::GREEN);
-        }
-        else
-        {
-            this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::COL_RESOLVE), cocos2d::Color3B::WHITE);
-        }
+        collisionResolve = !collisionResolve;
+        this->toggleColor(collisionResolve, LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::COL_RESOLVE));
 	}
 
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_C)
@@ -757,14 +740,7 @@ void QuadTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 	{
 		// Toggle quadtree grid
 		showGrid = !showGrid;
-        if (showGrid)
-        {
-            this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::GRID), cocos2d::Color3B::GREEN);
-        }
-        else
-        {
-            this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::GRID), cocos2d::Color3B::WHITE);
-        }
+        this->toggleColor(showGrid, LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::GRID));
 	}
 
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_D)
@@ -773,14 +749,14 @@ void QuadTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 		duplicationCheck = !duplicationCheck;
         if(duplicationCheck)
         {
-            this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::DUPL_CHECK), cocos2d::Color3B::GREEN);
             this->labelsNode->setColor(LabelsNode::TYPE::CUSTOM, static_cast<int>(CUSTOM_LABEL_INDEX::COLLISION_WO_DUP_CHECK), cocos2d::Color3B::WHITE, false);
         }
         else
         {
-            this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::DUPL_CHECK), cocos2d::Color3B::WHITE);
             this->labelsNode->setColor(LabelsNode::TYPE::CUSTOM, static_cast<int>(CUSTOM_LABEL_INDEX::COLLISION_WO_DUP_CHECK), cocos2d::Color3B::GRAY, false);
         }
+        
+        this->toggleColor(duplicationCheck, LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::DUPL_CHECK));
 	}
 }
 
