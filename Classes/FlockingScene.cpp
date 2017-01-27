@@ -459,7 +459,7 @@ void FlockingScene::initEntitiesAndQTree()
 	}
 
 	// Init quadtree with initial boundary
-	this->quadTree = new QTree(this->displayBoundary, 0);
+	this->quadTree = new QuadTree(this->displayBoundary, 0);
 }
 
 ECS::Entity * FlockingScene::createNewEntity()

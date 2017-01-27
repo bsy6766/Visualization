@@ -3,10 +3,9 @@
 
 #include "cocos2d.h"
 #include "ui/CocosGUI.h"
-#include "QTree.h"
+#include "QuadTree.h"
 #include "ECS.h"
 #include "Component.h"
-#include "QTreeLineNode.h"
 
 class FlockingScene : public cocos2d::Scene
 {
@@ -103,7 +102,7 @@ private:
 	};
 
 	// Quadtree to optimize collision check
-	QTree* quadTree;
+	QuadTree* quadTree;
 
 	// Flags
 	bool pause;
