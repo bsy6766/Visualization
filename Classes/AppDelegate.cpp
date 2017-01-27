@@ -3,11 +3,6 @@
 
 USING_NS_CC;
 
-static cocos2d::Size designResolutionSize = cocos2d::Size(480, 320);
-static cocos2d::Size smallResolutionSize = cocos2d::Size(480, 320);
-static cocos2d::Size mediumResolutionSize = cocos2d::Size(1024, 768);
-static cocos2d::Size largeResolutionSize = cocos2d::Size(2048, 1536);
-
 AppDelegate::AppDelegate()
 {
 }
@@ -37,9 +32,12 @@ bool AppDelegate::applicationDidFinishLaunching() {
     // initialize director
     auto director = Director::getInstance();
     auto glview = director->getOpenGLView();
+
+	cocos2d::Size windowSize = cocos2d::Size(1280.0f, 720.0f);
+
     if(!glview) {
 #if (CC_TARGET_PLATFORM == CC_PLATFORM_WIN32) || (CC_TARGET_PLATFORM == CC_PLATFORM_MAC) || (CC_TARGET_PLATFORM == CC_PLATFORM_LINUX)
-		glview = GLViewImpl::createWithRect("Visualization", cocos2d::Rect(0, 0, 960, 540));
+		glview = GLViewImpl::createWithRect("Visualization", cocos2d::Rect(cocos2d::Vec2::ZERO, windowSize));
 #else
         glview = GLViewImpl::create("Visualization");
 #endif
@@ -53,7 +51,7 @@ bool AppDelegate::applicationDidFinishLaunching() {
     director->setAnimationInterval(1.0f / 60);
 
     // Set the design resolution
-    glview->setDesignResolutionSize(960, 540, ResolutionPolicy::NO_BORDER);
+    glview->setDesignResolutionSize(windowSize.width, windowSize.height, ResolutionPolicy::NO_BORDER);
 	director->setContentScaleFactor(1.0f);
 
     register_all_packages();
