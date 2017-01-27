@@ -3,7 +3,7 @@
 
 #include "cocos2d.h"
 #include "ui/CocosGUI.h"
-#include "QTree.h"
+#include "QuadTree.h"
 #include "ECS.h"
 #include <memory>
 
@@ -99,7 +99,7 @@ private:
 	int growingCircleCount;
 
 	// Quadtree to optimize collision check
-	QTree* quadTree;
+	QuadTree* quadTree;
 
 	enum class IMAGE_INDEX
 	{

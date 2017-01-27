@@ -766,7 +766,7 @@ void CirclePackingScene::initQuadTree()
 	if (this->currentImageIndex == IMAGE_INDEX::NONE) return;
 
 	// Init quadtree with initial boundary
-	this->quadTree = new QTree(this->imageSprites.at(static_cast<int>(this->currentImageIndex))->getBoundingBox(), 0);
+	this->quadTree = new QuadTree(this->imageSprites.at(static_cast<int>(this->currentImageIndex))->getBoundingBox(), 0);
 }
 
 void CirclePackingScene::insertEntitiesToQuadTree()
