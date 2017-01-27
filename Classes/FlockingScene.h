@@ -21,12 +21,9 @@ private:
 	//Mouse events
 	void onMouseMove(cocos2d::Event* event);
 	void onMouseDown(cocos2d::Event* event);
-	void onMouseUp(cocos2d::Event* event);
-	void onMouseScroll(cocos2d::Event* event);
 
 	//keyboard events
 	void onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::Event* event);
-	void onKeyReleased(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::Event* event);
 
 	//cocos2d virtuals
 	virtual bool init() override;
@@ -41,57 +38,56 @@ private:
 	cocos2d::Label* backLabel;
 	cocos2d::Rect displayBoundary;
 	cocos2d::Node* areaNode;
-	cocos2d::Node* blackArea;
     cocos2d::Vec2 curMousePosition;
     DisplayBoundaryBoxNode* displayBoundaryBoxNode;
-
-	// Labels
-	cocos2d::Label* weightLabel;
-
-	cocos2d::Label* alignmentLabel;
-	cocos2d::Label* alignmentWeightLabel;
-	cocos2d::ui::Button* leftAlignmentButton;
-	cocos2d::ui::Button* rightAlignmentButton;
-
-	cocos2d::Label* cohesionLabel;
-	cocos2d::Label* cohesionWeightLabel;
-	cocos2d::ui::Button* leftCohesionButton;
-	cocos2d::ui::Button* rightCohesionButton;
-
-	cocos2d::Label* separationLabel;
-	cocos2d::Label* separationWeightLabel;
-	cocos2d::ui::Button* leftSeparationButton;
-	cocos2d::ui::Button* rightSeparationButton;
-
-	cocos2d::Label* avoidLabel;
-	cocos2d::Label* avoidWeightLabel;
-	cocos2d::ui::Button* leftAvoidButton;
-	cocos2d::ui::Button* rightAvoidButton;
-
-	cocos2d::Label* entityCountLabel;
-	cocos2d::Label* fpsLabel;
-	std::vector<cocos2d::Label*> usageLabels;	
-	
-	enum USAGE_KEY
+    LabelsNode* labelsNode;
+    ButtonModifierNode* buttonModifierNode;
+    
+    // Enum for labels
+    enum class CUSTOM_LABEL_INDEX
+    {
+        ENTITIES,
+        WEIGHTS,
+    };
+    
+	enum class USAGE_KEY
 	{
+        NONE,
 		SPACE = 1,
 		CLEAR,
 		ADD_TEN,
 		REMOVE_TEN,
         MAX_KEYBOARD_USAGE,
+	};
+    
+    enum class USAGE_MOUSE_OVER_AND_KEY
+    {
+        NONE,
         ADD_OBSTACLE,
         REMOVE_OBSTACLE,
-        MAX_MOUSE_HOVER_AND_KEY,
-		ADD_ONE,
-		TRACK,
-		REMOVE_ONE,
-		MAX_MOUSE_USAGE
-	};
+        MAX_MOUSE_HOVER_AND_KEY_USAGE,
+    };
+    
+    enum class USAGE_MOUSE
+    {
+        NONE,
+        ADD_ONE,
+        TRACK,
+        REMOVE_ONE,
+        ADD_OBSTACLE,
+        REMOVE_OBSTACLE,
+        MAX_MOUSE_USAGE
+    };
+    
+    enum class WEIGHT_INDEX
+    {
+        ALIGNMENT,
+        COHESION,
+        SEPARATION,
+        AVOID,
+    };
 
-	// UI animation
-	cocos2d::ActionInterval* clickAnimation;
-
-	enum ACTION_TAG
+	enum class ACTION_TAG
 	{
 		ALIGNMENT_LEFT,
 		ALIGNMENT_RIGHT,
@@ -116,10 +112,6 @@ private:
 	// Flags
 	bool pause;
 
-	// FPS
-	float fpsElapsedTime;
-	int fps;
-
 	// Entities
 	std::list<ECS::Entity*> entities;
 
@@ -141,8 +133,6 @@ private:
 	void resetQTreeAndPurge();
 	// Update flocking algorithm
 	void updateFlockingAlgorithm(const float delta);
-	// Update FPS label
-	void updateFPS(const float delta);
 
 	// Flocking algorithm
 	/**
@@ -177,11 +167,9 @@ private:
 	*	It's similar to Separation, but weighted by distance
 	*/
 	const cocos2d::Vec2 getAvoid(Entity* boid, std::list<Entity*>& nearAvoids);
-
-	// UI callbacks
-	void onButtonPressed(cocos2d::Ref* sender);
-	// Play UI animation
-	void playUIAnimation(const USAGE_KEY usageKey);
+    
+    // Button click call back
+    void onButtonPressed(cocos2d::Ref* sender);
 public:
 	//simple creator func
 	static FlockingScene* createScene();

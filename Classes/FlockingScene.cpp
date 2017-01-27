@@ -15,7 +15,8 @@ bool FlockingScene::init()
 	{
 		return false;
 	}
-
+    
+    // init id counter to 0
 	ECS::Entity::idCounter = 0;
     
     // Init mouse point
@@ -26,150 +27,96 @@ bool FlockingScene::init()
 
     auto winSize = cocos2d::Director::getInstance()->getVisibleSize();
     
-    // Get boundary.
-    this->displayBoundary = cocos2d::Rect(0, 0, 650, 650);
-
-	std::string fontPath = "fonts/Rubik-Medium.ttf";
-    
+    // init display boundary box node which draws outer line of simulation display box
     this->displayBoundaryBoxNode = DisplayBoundaryBoxNode::createNode();
     this->displayBoundaryBoxNode->setPosition(cocos2d::Vec2::ZERO);
+    this->displayBoundaryBoxNode->displayBoundary = cocos2d::Rect(0, 0, 650, 650);
     this->displayBoundaryBoxNode->drawDisplayBoundaryBox();
-    this->displayBoundaryBoxNode->displayBoundary = this->displayBoundary;
+    this->displayBoundary = this->displayBoundaryBoxNode->displayBoundary;
     this->displayBoundaryBoxNode->retain();
     this->displayBoundaryBoxNode->drawNode->setLocalZOrder(static_cast<int>(Z_ORDER::BOX));
     this->addChild(this->displayBoundaryBoxNode);
 
+    // Intialize area node where entities get rendered
 	this->areaNode = cocos2d::Node::create();
 	this->areaNode->setPosition(cocos2d::Vec2::ZERO);
 	this->areaNode->retain();
 	this->addChild(this->areaNode);
-
-	// init action
-	this->clickAnimation = cocos2d::Sequence::create(cocos2d::ScaleTo::create(0, 0.85f), cocos2d::DelayTime::create(0.25f), cocos2d::ScaleTo::create(0, 1.0f), nullptr);
-	this->clickAnimation->retain();
-
-    /*
-	this->blackArea = cocos2d::Sprite::createWithSpriteFrameName("dot.png");
-	this->blackArea->setColor(cocos2d::Color3B::BLACK);
-	this->blackArea->setScaleX(winSize.height * 0.5f);
-	this->blackArea->setScaleY(winSize.height);
-	this->blackArea->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->blackArea->setPosition(cocos2d::Vec2(winSize.height, winSize.height * 0.5f));
-	this->addChild(this->blackArea);
-     */
-
-	this->backLabel = cocos2d::Label::createWithTTF("BACK(ESC)", fontPath, 20);
-	this->backLabel->setPosition(cocos2d::Vec2(winSize.width - 60.0f, 20.0f));
-	this->addChild(this->backLabel);
-
+    
+    // Init labels node
+    this->labelsNode = LabelsNode::createNode();
+    this->addChild(this->labelsNode);
+    
+    // Init custom labels
     float labelX = winSize.height - 10.0f;
-    float numberLabelY = winSize.height - 40.0f;
-
-	entityCountLabel = cocos2d::Label::createWithTTF("Entities: " + std::to_string(this->entities.size()), fontPath, 25);
-	entityCountLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	entityCountLabel->setPosition(cocos2d::Vec2(labelX, numberLabelY));
-    this->addChild(entityCountLabel);
+    float labelY = winSize.height - 30.0f;
+    this->labelsNode->customLabelStartPos = cocos2d::Vec2(labelX, labelY);
     
-    float weightLabelY = numberLabelY - 15.0f;
-    float leftButtonX = winSize.height + 160.0f;
-    float weightLabelX = leftButtonX + 30.0f;
-    float rightButtonX = leftButtonX + 60.0f;
-    float weightLabelYOffset = 25.0f;
-    float buttonYOffset = 25.0f;
-
-	this->weightLabel = cocos2d::Label::createWithTTF("WEIGHTS (Click buttons to modify)", fontPath, 25);
-	this->weightLabel->setAnchorPoint(cocos2d::Vec2(0, 1.0f));
-	this->weightLabel->setPosition(cocos2d::Vec2(labelX, weightLabelY));
-	this->addChild(this->weightLabel);
+    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Entities: 0", 25);
+    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Eights (Click buttons to modify weights)", 25);
     
-    weightLabelY -= 20.0f;
-
-	this->alignmentLabel = cocos2d::Label::createWithTTF("ALIGNMENT", fontPath, 20);
-	this->alignmentLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->alignmentLabel->setPosition(cocos2d::Vec2(labelX, weightLabelY - weightLabelYOffset));
-	this->addChild(this->alignmentLabel);
-
-	this->alignmentWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingData::ALIGNMENT_WEIGHT).substr(0, 3), fontPath, 20);
-	this->alignmentWeightLabel->setPosition(cocos2d::Vec2(weightLabelX, weightLabelY - weightLabelYOffset));
-	this->addChild(this->alignmentWeightLabel);
-
-	this->leftAlignmentButton = cocos2d::ui::Button::create("leftButton.png", "leftSelectedButton.png", "leftDisabledButton.png", cocos2d::ui::Widget::TextureResType::PLIST);
-	this->leftAlignmentButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
-	this->leftAlignmentButton->setActionTag(ACTION_TAG::ALIGNMENT_LEFT);
-	this->leftAlignmentButton->setPosition(cocos2d::Vec2(leftButtonX, weightLabelY - buttonYOffset));
-	this->addChild(this->leftAlignmentButton);
-
-	this->rightAlignmentButton = cocos2d::ui::Button::create("rightButton.png", "rightSelectedButton.png", "rightDisabledButton.png", cocos2d::ui::Widget::TextureResType::PLIST);
-	this->rightAlignmentButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
-	this->rightAlignmentButton->setActionTag(ACTION_TAG::ALIGNMENT_RIGHT);
-	this->rightAlignmentButton->setPosition(cocos2d::Vec2(rightButtonX, weightLabelY - buttonYOffset));
-	this->addChild(this->rightAlignmentButton);
-
-
-	this->cohesionLabel = cocos2d::Label::createWithTTF("COHESION", fontPath, 20);
-	this->cohesionLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->cohesionLabel->setPosition(cocos2d::Vec2(labelX, weightLabelY - (weightLabelYOffset * 2.0f)));
-	this->addChild(this->cohesionLabel);
-
-	this->cohesionWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingData::COHENSION_WEIGHT).substr(0, 3), fontPath, 20);
-	this->cohesionWeightLabel->setPosition(cocos2d::Vec2(weightLabelX, weightLabelY - (weightLabelYOffset * 2.0f)));
-	this->addChild(this->cohesionWeightLabel);
-
-	this->leftCohesionButton = cocos2d::ui::Button::create("leftButton.png", "leftSelectedButton.png", "leftDisabledButton.png", cocos2d::ui::Widget::TextureResType::PLIST);
-	this->leftCohesionButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
-	this->leftCohesionButton->setActionTag(ACTION_TAG::COHESION_LEFT);
-	this->leftCohesionButton->setPosition(cocos2d::Vec2(leftButtonX, weightLabelY - (buttonYOffset * 2.0f)));
-	this->addChild(this->leftCohesionButton);
-
-	this->rightCohesionButton = cocos2d::ui::Button::create("rightButton.png", "rightSelectedButton.png", "rightDisabledButton.png", cocos2d::ui::Widget::TextureResType::PLIST);
-	this->rightCohesionButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
-	this->rightCohesionButton->setActionTag(ACTION_TAG::COHESION_RIGHT);
-	this->rightCohesionButton->setPosition(cocos2d::Vec2(rightButtonX, weightLabelY - (buttonYOffset * 2.0f)));
-	this->addChild(this->rightCohesionButton);
-
-
-	this->separationLabel = cocos2d::Label::createWithTTF("SEPARATION", fontPath, 20);
-	this->separationLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->separationLabel->setPosition(cocos2d::Vec2(labelX, weightLabelY - (weightLabelYOffset * 3.0f)));
-	this->addChild(this->separationLabel);
-
-	this->separationWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingData::SEPARATION_WEIGHT).substr(0, 3), fontPath, 20);
-	this->separationWeightLabel->setPosition(cocos2d::Vec2(weightLabelX, weightLabelY - (weightLabelYOffset * 3.0f)));
-	this->addChild(this->separationWeightLabel);
-
-	this->leftSeparationButton = cocos2d::ui::Button::create("leftButton.png", "leftSelectedButton.png", "leftDisabledButton.png", cocos2d::ui::Widget::TextureResType::PLIST);
-	this->leftSeparationButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
-	this->leftSeparationButton->setActionTag(ACTION_TAG::SEPARATION_LEFT);
-	this->leftSeparationButton->setPosition(cocos2d::Vec2(leftButtonX, weightLabelY - (buttonYOffset * 3.0f)));
-	this->addChild(this->leftSeparationButton);
-
-	this->rightSeparationButton = cocos2d::ui::Button::create("rightButton.png", "rightSelectedButton.png", "rightDisabledButton.png", cocos2d::ui::Widget::TextureResType::PLIST);
-	this->rightSeparationButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
-	this->rightSeparationButton->setActionTag(ACTION_TAG::SEPARATION_RIGHT);
-	this->rightSeparationButton->setPosition(cocos2d::Vec2(rightButtonX, weightLabelY - (buttonYOffset * 3.0f)));
-	this->addChild(this->rightSeparationButton);
-
-
-	this->avoidLabel = cocos2d::Label::createWithTTF("AVOID", fontPath, 20);
-	this->avoidLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->avoidLabel->setPosition(cocos2d::Vec2(labelX, weightLabelY - (weightLabelYOffset * 4.0f)));
-	this->addChild(this->avoidLabel);
-
-	this->avoidWeightLabel = cocos2d::Label::createWithTTF(std::to_string(ECS::FlockingData::AVOID_WEIGHT).substr(0, 3), fontPath, 20);
-	this->avoidWeightLabel->setPosition(cocos2d::Vec2(weightLabelX, weightLabelY - (weightLabelYOffset * 4.0f)));
-	this->addChild(this->avoidWeightLabel);
-
-    this->leftAvoidButton = cocos2d::ui::Button::create("leftButton.png", "leftSelectedButton.png", "leftDisabledButton.png", cocos2d::ui::Widget::TextureResType::PLIST);
-	this->leftAvoidButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
-	this->leftAvoidButton->setActionTag(ACTION_TAG::AVOID_LEFT);
-	this->leftAvoidButton->setPosition(cocos2d::Vec2(leftButtonX, weightLabelY - (buttonYOffset * 4.0f)));
-	this->addChild(this->leftAvoidButton);
-
-    this->rightAvoidButton = cocos2d::ui::Button::create("rightButton.png", "rightSelectedButton.png", "rightDisabledButton.png", cocos2d::ui::Widget::TextureResType::PLIST);
-	this->rightAvoidButton->addClickEventListener(CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
-	this->rightAvoidButton->setActionTag(ACTION_TAG::AVOID_RIGHT);
-	this->rightAvoidButton->setPosition(cocos2d::Vec2(rightButtonX, weightLabelY - (buttonYOffset * 4.0f)));
-	this->addChild(this->rightAvoidButton);
+    // Init button node
+    this->buttonModifierNode = ButtonModifierNode::createNode();
+    this->buttonModifierNode->setPosition(cocos2d::Vec2::ZERO);
+    this->buttonModifierNode->retain();
+    this->addChild(this->buttonModifierNode);
+    
+    float buttonLabelY = labelY - 60.0f;
+    
+    const std::string leftStr = "left";
+    const std::string rightStr = "right";
+    const std::string buttonStr = "Button";
+    const std::string format = ".png";
+    
+    this->buttonModifierNode->buttonLabelStartPos = cocos2d::Vec2(labelX, buttonLabelY - 10.0f);
+    
+    this->buttonModifierNode->leftButtonXOffset = 160.0f;
+    this->buttonModifierNode->valueLabelXOffset = 190.0f;
+    this->buttonModifierNode->rightButtonXOffset = 220.0f;
+    
+    this->buttonModifierNode->addButton("Alignment",
+                                        20,
+                                        ECS::FlockingData::ALIGNMENT_WEIGHT,
+                                        leftStr,
+                                        rightStr,
+                                        buttonStr,
+                                        format,
+                                        static_cast<int>(ACTION_TAG::ALIGNMENT_LEFT),
+                                        static_cast<int>(ACTION_TAG::ALIGNMENT_RIGHT),
+                                        CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
+    
+    this->buttonModifierNode->addButton("Cohesion",
+                                        20,
+                                        ECS::FlockingData::COHENSION_WEIGHT,
+                                        leftStr,
+                                        rightStr,
+                                        buttonStr,
+                                        format,
+                                        static_cast<int>(ACTION_TAG::COHESION_LEFT),
+                                        static_cast<int>(ACTION_TAG::COHESION_RIGHT),
+                                        CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
+    
+    this->buttonModifierNode->addButton("Separation",
+                                        20,
+                                        ECS::FlockingData::SEPARATION_WEIGHT,
+                                        leftStr,
+                                        rightStr,
+                                        buttonStr,
+                                        format,
+                                        static_cast<int>(ACTION_TAG::SEPARATION_LEFT),
+                                        static_cast<int>(ACTION_TAG::SEPARATION_RIGHT),
+                                        CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
+    
+    this->buttonModifierNode->addButton("Avoid",
+                                        20,
+                                        ECS::FlockingData::AVOID_WEIGHT,
+                                        leftStr,
+                                        rightStr,
+                                        buttonStr,
+                                        format,
+                                        static_cast<int>(ACTION_TAG::AVOID_LEFT),
+                                        static_cast<int>(ACTION_TAG::AVOID_RIGHT),
+                                        CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
 
 	this->lastTrackingBoidId = -1;
 
@@ -179,72 +126,30 @@ bool FlockingScene::init()
 	this->rangeChecker->setOpacity(128);
 	this->rangeChecker->setScale(ECS::FlockingData::SIGHT_RADIUS * 2.0f / 100.0f);
 	this->areaNode->addChild(rangeChecker);
-
-	fps = 0;
-	fpsElapsedTime = 0;
-
-	this->fpsLabel = cocos2d::Label::createWithTTF("FPS: " + std::to_string(cocos2d::Director::getInstance()->getFrameRate()), fontPath, 25);
-	this->fpsLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->fpsLabel->setPosition(cocos2d::Vec2(labelX, 20.0f));
-	this->addChild(this->fpsLabel);
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Keys                        (Green = enabled)", fontPath, 20));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->addChild(this->usageLabels.back());
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Space = Toggle update", fontPath, 20));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->addChild(this->usageLabels.back());
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("C = Clear all entities", fontPath, 20));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->addChild(this->usageLabels.back());
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("A = Add 10 entities", fontPath, 20));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->addChild(this->usageLabels.back());
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("E = Remove 10 entities(FIFO)", fontPath, 20));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-    this->addChild(this->usageLabels.back());
     
-    this->usageLabels.push_back(cocos2d::Label::createWithTTF("Mouse Hover and Key (Press key while hovering)", fontPath, 20));
-    this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-    this->addChild(this->usageLabels.back());
+    // init more labels
+    this->labelsNode->keyboardUsageLabelStartPos = cocos2d::Vec2(labelX, winSize.height * 0.65f);
     
-    this->usageLabels.push_back(cocos2d::Label::createWithTTF("O (hovering on box) = Add Obstacle", fontPath, 20));
-    this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-    this->addChild(this->usageLabels.back());
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Keys (Green = enabled)", 25);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Space = Toggle update", 20);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "C = Clear all entities", 20);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "A = Add 10 Boids", 20);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "E = Remove 10 Boids", 20);
     
-    this->usageLabels.push_back(cocos2d::Label::createWithTTF("O (hovering on Obstacle) = Remove Obstacle", fontPath, 19));
-    this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-    this->addChild(this->usageLabels.back());
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Mouse Click", fontPath, 20));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->addChild(this->usageLabels.back());
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Left Click (in box) = Add Boid", fontPath, 20));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->addChild(this->usageLabels.back());
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Left Click (on Boid) = Track Boid", fontPath, 20));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->addChild(this->usageLabels.back());
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Right click (on Boid) = Remove Boid", fontPath, 20));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->addChild(this->usageLabels.back());
-
-	cocos2d::Vec2 usageStartPos = cocos2d::Vec2(labelX, winSize.height * 0.65f);
-
-	auto usageLabelSize = static_cast<int>(this->usageLabels.size());
-	for (int i = 0; i < usageLabelSize; i++)
-	{
-		cocos2d::Vec2 newPos = usageStartPos;
-		newPos.y -= (20.0f * static_cast<float>(i));
-		this->usageLabels.at(i)->setPosition(newPos);
-	}
+    this->labelsNode->mouseOverAndKeyLabelStartPos = cocos2d::Vec2(labelX, (winSize.height * 0.65f) - (static_cast<float>(USAGE_KEY::MAX_KEYBOARD_USAGE) + 0.5f) * 20.0f);
+    
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE_OVER_AND_KEY, "Mouse over and key", 25);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE_OVER_AND_KEY, "O (In box) = Add Obstacle on point", 20);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE_OVER_AND_KEY, "O (On Obstacle) = Remove Obstacle", 20);
+    
+    this->labelsNode->mouseUsageLabelStartPos = cocos2d::Vec2(labelX, (winSize.height * 0.65f) - (static_cast<float>(USAGE_KEY::MAX_KEYBOARD_USAGE) + static_cast<float>(USAGE_MOUSE_OVER_AND_KEY::MAX_MOUSE_HOVER_AND_KEY_USAGE) + 1.0f) * 20.0f);
+    
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Mouse", 25);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (In box) = Add Boid", 20);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (On Boid) = Toggle Boid tracking", 20);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Right Click (On Boid) = Remove Boid)", 20);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Middle Click (In box) = Add Obstacle)", 20);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Middle Click (On Obstacle) = Remove Obstacle", 20);
 
 	// Limit max entity to 400 in this case
 	ECS::Entity::maxEntitySize = 400;
@@ -271,8 +176,9 @@ void FlockingScene::update(float delta)
 		updateFlockingAlgorithm(delta);
 	}
 
-	updateFPS(delta);
-	entityCountLabel->setString("Entities: " + std::to_string(this->entities.size()) + " / " + std::to_string(ECS::Entity::maxEntitySize));
+    this->labelsNode->updateFPSLabel(delta);
+    
+    this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::ENTITIES), "Entities: " + std::to_string(this->entities.size()) + " / " + std::to_string(ECS::Entity::maxEntitySize));
 }
 
 void FlockingScene::resetQTreeAndPurge()
@@ -428,34 +334,15 @@ void FlockingScene::updateFlockingAlgorithm(const float delta)
 	}
 }
 
-void FlockingScene::updateFPS(const float delta)
-{
-	this->fpsElapsedTime += delta;
-	if (this->fpsElapsedTime > 1.0f)
-	{
-		this->fpsElapsedTime -= 1.0f;
-		fps++;
-		fpsLabel->setString("FPS: " + std::to_string(fps) + " (" + std::to_string(delta).substr(0, 5) + "ms)");
-		fps = 0;
-	}
-	else
-	{
-		fps++;
-	}
-}
-
 void FlockingScene::initInputListeners()
 {
 	this->mouseInputListener = EventListenerMouse::create();
 	this->mouseInputListener->onMouseMove = CC_CALLBACK_1(FlockingScene::onMouseMove, this);
 	this->mouseInputListener->onMouseDown = CC_CALLBACK_1(FlockingScene::onMouseDown, this);
-	this->mouseInputListener->onMouseUp = CC_CALLBACK_1(FlockingScene::onMouseUp, this);
-	this->mouseInputListener->onMouseScroll = CC_CALLBACK_1(FlockingScene::onMouseScroll, this);
 	_eventDispatcher->addEventListenerWithSceneGraphPriority(this->mouseInputListener, this);
 
 	this->keyInputListener = EventListenerKeyboard::create();
 	this->keyInputListener->onKeyPressed = CC_CALLBACK_2(FlockingScene::onKeyPressed, this);
-	this->keyInputListener->onKeyReleased = CC_CALLBACK_2(FlockingScene::onKeyReleased, this);
 	_eventDispatcher->addEventListenerWithSceneGraphPriority(this->keyInputListener, this);
 }
 
@@ -619,7 +506,7 @@ const cocos2d::Vec2 FlockingScene::getAvoid(Entity* boid, std::list<Entity*>& ne
 void FlockingScene::onButtonPressed(cocos2d::Ref * sender)
 {
 	auto button = dynamic_cast<cocos2d::ui::Button*>(sender);
-	auto tag = button->getActionTag();
+    auto tag = static_cast<ACTION_TAG>(button->getActionTag());
 	switch (tag)
 	{
 	case ACTION_TAG::ALIGNMENT_LEFT:
@@ -631,7 +518,7 @@ void FlockingScene::onButtonPressed(cocos2d::Ref * sender)
 		{
 			ECS::FlockingData::ALIGNMENT_WEIGHT = 0;
 		}
-		this->alignmentWeightLabel->setString(std::to_string(ECS::FlockingData::ALIGNMENT_WEIGHT).substr(0, 3));
+        this->buttonModifierNode->updateValue(static_cast<int>(WEIGHT_INDEX::ALIGNMENT), ECS::FlockingData::ALIGNMENT_WEIGHT);
 		break;
 	case ACTION_TAG::ALIGNMENT_RIGHT:
 		if (ECS::FlockingData::ALIGNMENT_WEIGHT < 2.0f)
@@ -642,7 +529,7 @@ void FlockingScene::onButtonPressed(cocos2d::Ref * sender)
 		{
 			ECS::FlockingData::ALIGNMENT_WEIGHT = 2.0f;
 		}
-		this->alignmentWeightLabel->setString(std::to_string(ECS::FlockingData::ALIGNMENT_WEIGHT).substr(0, 3));
+        this->buttonModifierNode->updateValue(static_cast<int>(WEIGHT_INDEX::ALIGNMENT), ECS::FlockingData::ALIGNMENT_WEIGHT);
 		break;
 	case ACTION_TAG::COHESION_LEFT:
 		if (ECS::FlockingData::COHENSION_WEIGHT > 0.1f)
@@ -653,7 +540,7 @@ void FlockingScene::onButtonPressed(cocos2d::Ref * sender)
 		{
 			ECS::FlockingData::COHENSION_WEIGHT = 0;
 		}
-		this->cohesionWeightLabel->setString(std::to_string(ECS::FlockingData::COHENSION_WEIGHT).substr(0, 3));
+        this->buttonModifierNode->updateValue(static_cast<int>(WEIGHT_INDEX::COHESION), ECS::FlockingData::COHENSION_WEIGHT);
 		break;
 	case ACTION_TAG::COHESION_RIGHT:
 		if (ECS::FlockingData::COHENSION_WEIGHT < 2.0f)
@@ -663,8 +550,8 @@ void FlockingScene::onButtonPressed(cocos2d::Ref * sender)
 		else
 		{
 			ECS::FlockingData::COHENSION_WEIGHT = 2.0f;
-		}
-		this->cohesionWeightLabel->setString(std::to_string(ECS::FlockingData::COHENSION_WEIGHT).substr(0, 3));
+        }
+        this->buttonModifierNode->updateValue(static_cast<int>(WEIGHT_INDEX::COHESION), ECS::FlockingData::COHENSION_WEIGHT);
 		break;
 	case ACTION_TAG::SEPARATION_LEFT:
 		if (ECS::FlockingData::SEPARATION_WEIGHT > 0.1f)
@@ -674,8 +561,8 @@ void FlockingScene::onButtonPressed(cocos2d::Ref * sender)
 		else
 		{
 			ECS::FlockingData::SEPARATION_WEIGHT = 0;
-		}
-		this->separationWeightLabel->setString(std::to_string(ECS::FlockingData::SEPARATION_WEIGHT).substr(0, 3));
+        }
+        this->buttonModifierNode->updateValue(static_cast<int>(WEIGHT_INDEX::SEPARATION), ECS::FlockingData::SEPARATION_WEIGHT);
 		break;
 	case ACTION_TAG::SEPARATION_RIGHT:
 		if (ECS::FlockingData::SEPARATION_WEIGHT < 2.0f)
@@ -685,8 +572,8 @@ void FlockingScene::onButtonPressed(cocos2d::Ref * sender)
 		else
 		{
 			ECS::FlockingData::SEPARATION_WEIGHT = 2.0f;
-		}
-		this->separationWeightLabel->setString(std::to_string(ECS::FlockingData::SEPARATION_WEIGHT).substr(0, 3));
+        }
+        this->buttonModifierNode->updateValue(static_cast<int>(WEIGHT_INDEX::SEPARATION), ECS::FlockingData::SEPARATION_WEIGHT);
 		break;
 	case ACTION_TAG::AVOID_LEFT:
 		if (ECS::FlockingData::AVOID_WEIGHT > 0.1f)
@@ -696,8 +583,8 @@ void FlockingScene::onButtonPressed(cocos2d::Ref * sender)
 		else
 		{
 			ECS::FlockingData::AVOID_WEIGHT = 0;
-		}
-		this->avoidWeightLabel->setString(std::to_string(ECS::FlockingData::AVOID_WEIGHT).substr(0, 3));
+        }
+        this->buttonModifierNode->updateValue(static_cast<int>(WEIGHT_INDEX::AVOID), ECS::FlockingData::AVOID_WEIGHT);
 		break;
 	case ACTION_TAG::AVOID_RIGHT:
 		if (ECS::FlockingData::AVOID_WEIGHT < 2.0f)
@@ -707,40 +594,24 @@ void FlockingScene::onButtonPressed(cocos2d::Ref * sender)
 		else
 		{
 			ECS::FlockingData::AVOID_WEIGHT = 2.0f;
-		}
-		this->avoidWeightLabel->setString(std::to_string(ECS::FlockingData::AVOID_WEIGHT).substr(0, 3));
+        }
+        this->buttonModifierNode->updateValue(static_cast<int>(WEIGHT_INDEX::AVOID), ECS::FlockingData::AVOID_WEIGHT);
 		break;
 	default:
 		break;
 	}
 }
 
-void FlockingScene::playUIAnimation(const USAGE_KEY usageKey)
-{
-	this->usageLabels.at(static_cast<int>(usageKey))->stopAllActions();
-	this->usageLabels.at(static_cast<int>(usageKey))->setScale(1.0f);
-	this->usageLabels.at(static_cast<int>(usageKey))->runAction(this->clickAnimation);
-}
-
 void FlockingScene::onMouseMove(cocos2d::Event* event) 
 {
-	auto mouseEvent = static_cast<EventMouse*>(event);
-	float x = mouseEvent->getCursorX();
-	float y = mouseEvent->getCursorY();
     
-    const cocos2d::Vec2 point = cocos2d::Vec2(x, y);
-
-	if (this->backLabel->getBoundingBox().containsPoint(point))
-	{
-		this->backLabel->setScale(1.2f);
-	}
-	else
-	{
-		if (this->backLabel->getScale() > 1.0f)
-		{
-			this->backLabel->setScale(1.0f);
-		}
-	}
+    auto mouseEvent = static_cast<EventMouse*>(event);
+    float x = mouseEvent->getCursorX();
+    float y = mouseEvent->getCursorY();
+    
+    auto point = cocos2d::Vec2(x, y);
+    
+    this->labelsNode->updateMouseHover(point);
     
     this->curMousePosition = point;
 }
@@ -754,13 +625,12 @@ void FlockingScene::onMouseDown(cocos2d::Event* event)
 	float y = mouseEvent->getCursorY();
 
 	auto point = cocos2d::Vec2(x, y);
-
-	if (this->backLabel->getBoundingBox().containsPoint(point))
-	{
-		cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, MainScene::create(), cocos2d::Color3B::BLACK));
-
-		return;
-	}
+    
+    bool ret = this->labelsNode->updateMouseDown(point);
+    if(ret)
+    {
+        return;
+    }
 
 	if (mouseButton == 0)
 	{
@@ -782,8 +652,8 @@ void FlockingScene::onMouseDown(cocos2d::Event* event)
 						entityFlockingObjComp->tracking = false;
 						this->lastTrackingBoidId = -1;
 						this->rangeChecker->setVisible(false);
-						this->playUIAnimation(USAGE_KEY::TRACK);
-						this->usageLabels.at(static_cast<int>(USAGE_KEY::TRACK))->setColor(cocos2d::Color3B::WHITE);
+                        
+                        this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::TRACK), cocos2d::Color3B::WHITE);
 						return;
 					}
 					
@@ -799,8 +669,6 @@ void FlockingScene::onMouseDown(cocos2d::Event* event)
 							{
 								// Disable tracking on last tracking entitiy
 								auto comp = lastEntity->getComponent<ECS::FlockingData*>(FLOCKING_DATA);
-								this->playUIAnimation(USAGE_KEY::TRACK);
-								this->usageLabels.at(static_cast<int>(USAGE_KEY::TRACK))->setColor(cocos2d::Color3B::GREEN);
 								comp->tracking = false;
 								break;
 							}
@@ -812,7 +680,7 @@ void FlockingScene::onMouseDown(cocos2d::Event* event)
 
 					this->rangeChecker->setVisible(true);
 					this->rangeChecker->setPosition(entity->getComponent<ECS::Sprite*>(SPRITE)->sprite->getPosition());
-					this->playUIAnimation(USAGE_KEY::TRACK);
+                    this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::TRACK), cocos2d::Color3B::GREEN);
 					return;
 				}
 			}
@@ -821,7 +689,7 @@ void FlockingScene::onMouseDown(cocos2d::Event* event)
 			if (static_cast<int>(this->entities.size()) < ECS::Entity::maxEntitySize)
 			{
 				this->entities.push_back(createNewEntity(point));
-				this->playUIAnimation(USAGE_KEY::ADD_ONE);
+                this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::ADD_ONE), cocos2d::Color3B::WHITE);
 			}
 		}
 	}
@@ -840,7 +708,8 @@ void FlockingScene::onMouseDown(cocos2d::Event* event)
 					{
 						this->rangeChecker->setVisible(false);
 					}
-					this->playUIAnimation(USAGE_KEY::REMOVE_ONE);
+                    
+                    this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::REMOVE_ONE), cocos2d::Color3B::WHITE);
 					return;
 				}
 			}
@@ -857,31 +726,15 @@ void FlockingScene::onMouseDown(cocos2d::Event* event)
 				if (spriteComp->sprite->getPosition().distance(point) < 6.0f)
 				{
 					entity->alive = false;
-					this->playUIAnimation(USAGE_KEY::REMOVE_OBSTACLE);
+                    this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::REMOVE_OBSTACLE), cocos2d::Color3B::GREEN);
 					return;
 				}
 			}
 
 			this->entities.push_back(createNewObstacleEntity(point));
-			this->playUIAnimation(USAGE_KEY::ADD_OBSTACLE);
+            this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::ADD_OBSTACLE), cocos2d::Color3B::GREEN);
 		}
 	}
-}
-
-void FlockingScene::onMouseUp(cocos2d::Event* event) 
-{
-	//auto mouseEvent = static_cast<EventMouse*>(event);
-	//0 = left, 1 = right, 2 = middle
-	//int mouseButton = mouseEvent->getMouseButton();
-	//float x = mouseEvent->getCursorX();
-	//float y = mouseEvent->getCursorY();
-}
-
-void FlockingScene::onMouseScroll(cocos2d::Event* event) 
-{
-	//auto mouseEvent = static_cast<EventMouse*>(event);
-	//float x = mouseEvent->getScrollX();
-	//float y = mouseEvent->getScrollY();
 }
 
 void FlockingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::Event* event) 
@@ -896,14 +749,13 @@ void FlockingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 	{
 		// Terminate 
 		this->pause = !this->pause;
-		this->playUIAnimation(USAGE_KEY::SPACE);
 		if (this->pause)
-		{
-			this->usageLabels.at(USAGE_KEY::SPACE)->setColor(cocos2d::Color3B::GREEN);
+        {
+            this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::SPACE), cocos2d::Color3B::GREEN);
 		}
 		else
-		{
-			this->usageLabels.at(USAGE_KEY::SPACE)->setColor(cocos2d::Color3B::WHITE);
+        {
+            this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::SPACE), cocos2d::Color3B::WHITE);
 		}
 	}
 
@@ -912,8 +764,8 @@ void FlockingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 		// Terminate 
 		for (auto entity : this->entities)
 		{
-			entity->alive = false;
-			this->playUIAnimation(USAGE_KEY::CLEAR);
+            entity->alive = false;
+            this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::CLEAR), cocos2d::Color3B::WHITE);
 			this->rangeChecker->setVisible(false);
 		}
 	}
@@ -926,8 +778,8 @@ void FlockingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 		{
 			this->entities.push_back(createNewEntity());
 			count++;
-		}
-		this->playUIAnimation(USAGE_KEY::ADD_TEN);
+        }
+        this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::ADD_TEN), cocos2d::Color3B::WHITE);
 	}
 
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_E)
@@ -943,9 +795,10 @@ void FlockingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 				{
 					this->rangeChecker->setVisible(false);
 				}
+                count++;
 			}
-		}
-		this->playUIAnimation(USAGE_KEY::REMOVE_TEN);
+        }
+        this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::REMOVE_TEN), cocos2d::Color3B::WHITE);
 	}
     
     if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_O)
@@ -965,20 +818,15 @@ void FlockingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
                 if (spriteComp->sprite->getPosition().distance(this->curMousePosition) < 6.0f)
                 {
                     entity->alive = false;
-                    this->playUIAnimation(USAGE_KEY::REMOVE_OBSTACLE);
+                    this->labelsNode->setColor(LabelsNode::TYPE::MOUSE_OVER_AND_KEY, static_cast<int>(USAGE_MOUSE_OVER_AND_KEY::REMOVE_OBSTACLE), cocos2d::Color3B::WHITE);
                     return;
                 }
             }
             
             this->entities.push_back(createNewObstacleEntity(this->curMousePosition));
-            this->playUIAnimation(USAGE_KEY::ADD_OBSTACLE);
+            this->labelsNode->setColor(LabelsNode::TYPE::MOUSE_OVER_AND_KEY, static_cast<int>(USAGE_MOUSE_OVER_AND_KEY::ADD_OBSTACLE), cocos2d::Color3B::WHITE);
         }
     }
-}
-
-void FlockingScene::onKeyReleased(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::Event* event)
-{
-
 }
 
 void FlockingScene::releaseInputListeners()
@@ -996,6 +844,8 @@ void FlockingScene::onExit()
 	releaseInputListeners();
 
 	this->areaNode->release();
+    this->displayBoundaryBoxNode->release();
+    this->buttonModifierNode->release();
 
 	// Delete all entities
 	for (auto entity : this->entities)
