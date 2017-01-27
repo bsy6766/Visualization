@@ -37,32 +37,22 @@ private:
 	void initInputListeners();
 	void releaseInputListeners();
 
-	// Exit(Back) label
-	cocos2d::Label* backLabel;
-	
-	// Label numbers
-	int entityCount;
-	int collisionsCount;
-	int collisionChecksCount;
-	int collisionCheckWithOutRepeatCount;
-	int bruteforceChecksCount;
-	int fps;
-	float fpsElapsedTime;
-
-	// Cocos2d labels
-	cocos2d::Label* entityCountLabel;
-	cocos2d::Label* collisionChecksCountLabel;
-	cocos2d::Label* bruteforceChecksCountLabel;
-	cocos2d::Label* collisionCheckWithOutRepeatCountLabel;
-	cocos2d::Label* fpsLabel;
-	cocos2d::Label* quadtreeLevelLabel;
-
 	// Separating each usage labels for animation
 	std::vector<cocos2d::Label*> usageLabels;
 
-	enum USAGE_KEY
+    enum class CUSTOM_LABEL_INDEX
+    {
+        ENTITIES,
+        COLLISION,
+        COLLISION_WO_DUP_CHECK,
+        BRUTE_FORCE,
+        QUAD_TREE_MAX_LEVEL,
+    };
+    
+	enum class USAGE_KEY
 	{
-		SPACE = 1,
+        NONE = 0,
+		SPACE,
 		CLEAR,
 		ADD_TEN,
 		REMOVE_TEN,
@@ -72,11 +62,16 @@ private:
 		INC_QTREE_LEVEL,
 		DEC_QTREE_LEVEL,
 		MAX_KEYBOARD_USAGE,
-		ADD_ONE,
-		TRACK,
-		REMOVE_ONE,
-		MAX_MOUSE_USAGE
 	};
+    
+    enum class USAGE_MOUSE
+    {
+        NONE = 0,
+        ADD_ONE,
+        TRACK,
+        REMOVE_ONE,
+        MAX_MOUSE_USAGE
+    };
 
 	enum Z_ORDER
 	{
@@ -93,9 +88,6 @@ private:
 
 	// Tracking entity
 	int lastTrackingEntityID;
-	
-	// UI animation
-	cocos2d::ActionInterval* clickAnimation;
 
 	// Quadtree
 	QuadTree* quadTree;
@@ -104,8 +96,9 @@ private:
 	cocos2d::Node* areaNode;
 	QuadTreeLineNode* quadTreeLineNode;
     DisplayBoundaryBoxNode* displayBoundaryBoxNode;
+    LabelsNode* labelsNode;
 
-	// Boundary
+	// Boundary holder
 	cocos2d::Rect displayBoundary;
 
 	// Track all entities
@@ -115,8 +108,6 @@ private:
 	void initEntitiesAndQTree();
 	// Creates new entity with required components
 	ECS::Entity* createNewEntity();
-	// Updates FPS instead of using built in fps label
-	void updateFPS(float delta);
 	// Update each entity's position and reassign to quadtree
 	void resetQTreeAndUpdatePosition(float delta);
 	// Checks collision between entities, count number, resolve if enabled
@@ -131,8 +122,6 @@ private:
 	void resolveCollisions(ECS::Sprite& entitySpriteComp, ECS::Sprite& nearEntitySpriteComp, ECS::DirectionVector& entityDirVecComp, ECS::DirectionVector& nearEntityDirVecComp);
 	// Reassigns entitiy id to keep id less than 1000 (because of duplication check).
 	void reassignEntityIds();
-	// Play UI animation
-	void playUIAnimation(const USAGE_KEY usageKey);
 public:
 	//simple creator func
 	static QuadTreeScene* createScene();

@@ -33,9 +33,10 @@ bool FlockingScene::init()
     
     this->displayBoundaryBoxNode = DisplayBoundaryBoxNode::createNode();
     this->displayBoundaryBoxNode->setPosition(cocos2d::Vec2::ZERO);
+    this->displayBoundaryBoxNode->drawDisplayBoundaryBox();
+    this->displayBoundaryBoxNode->displayBoundary = this->displayBoundary;
     this->displayBoundaryBoxNode->retain();
     this->displayBoundaryBoxNode->drawNode->setLocalZOrder(static_cast<int>(Z_ORDER::BOX));
-    this->displayBoundaryBoxNode->drawDisplayBoundaryBox(this->displayBoundary);
     this->addChild(this->displayBoundaryBoxNode);
 
 	this->areaNode = cocos2d::Node::create();
@@ -47,6 +48,7 @@ bool FlockingScene::init()
 	this->clickAnimation = cocos2d::Sequence::create(cocos2d::ScaleTo::create(0, 0.85f), cocos2d::DelayTime::create(0.25f), cocos2d::ScaleTo::create(0, 1.0f), nullptr);
 	this->clickAnimation->retain();
 
+    /*
 	this->blackArea = cocos2d::Sprite::createWithSpriteFrameName("dot.png");
 	this->blackArea->setColor(cocos2d::Color3B::BLACK);
 	this->blackArea->setScaleX(winSize.height * 0.5f);
@@ -54,6 +56,7 @@ bool FlockingScene::init()
 	this->blackArea->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->blackArea->setPosition(cocos2d::Vec2(winSize.height, winSize.height * 0.5f));
 	this->addChild(this->blackArea);
+     */
 
 	this->backLabel = cocos2d::Label::createWithTTF("BACK(ESC)", fontPath, 20);
 	this->backLabel->setPosition(cocos2d::Vec2(winSize.width - 60.0f, 20.0f));
