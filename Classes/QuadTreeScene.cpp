@@ -67,34 +67,34 @@ bool QuadTreeScene::init()
     float labelY = winSize.height - 30.0f;
     this->labelsNode->customLabelStartPos = cocos2d::Vec2(labelX, labelY);
     
-    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "ENTITIES: 0", 25);
-    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "COLLISION CHECK: 0", 25);
-    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "COLLISION CHECK W/O DUPLICATION: 0", 25);
-    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "BRUTE FORCE CHECK: 0", 25);
-    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "QUAD TREE MAX LEVEL: 0", 25);
+    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Entities: 0", 25);
+    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Collision check: 0", 25);
+    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Collision check w/o duplication : 0", 25);
+    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Brute-Froce check: 0", 25);
+    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Quad Tree max level: 0", 25);
     
 	// init more labels
     this->labelsNode->keyboardUsageLabelStartPos = cocos2d::Vec2(labelX, winSize.height * 0.65f);
     
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "KEYS (Green = enabled)", 25);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "SPACE = TOGGLE UPDATE", 20);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "C = CLEAR", 20);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "A = ADD 10 ENTITIES", 20);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "E = REMOVE 10 ENTITIES", 20);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "G = TOGGLE QUAD TREE GRID", 20);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Keys (Green = enabled)", 25);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Space = Toggle update", 20);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "C = Clear all Entities", 20);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "A = Add 10 Entities", 20);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "E = Remove 10 Entities", 20);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "G = Toggle quad tree subdivision grid", 20);
     this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::GRID), cocos2d::Color3B::GREEN);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "D = TOGGLE DUPLICATION CHECK", 20);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "D = Toggle duplication check", 20);
     this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::DUPL_CHECK), cocos2d::Color3B::GREEN);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "R = TOGGLE COLLISION RESOLUTION", 20);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "1 = INCREASE QUAD TREE MAX LEVEL", 20);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "2 = DECREASE QUAD TREE MAX LEVEL", 20);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "R = Toggle collision resolution", 20);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "1 = Increase Quad Tree max level", 20);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "2 = Decrease Quad Tree max level", 20);
     
     this->labelsNode->mouseUsageLabelStartPos = cocos2d::Vec2(labelX, (winSize.height * 0.65f) - (10.0f/*total key usage count*/ + 0.5f) * 20.0f);
     
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "MOUSE", 25);
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "LEFT CLICK (IN BOX) = ADD ENTITY", 20);
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "LEFT CLICK (ON ENTITY) = TRACK ENTITY (TOGGLE)", 20);
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "RIGHT CLICK (IN BOX) = REMOVE ENTITY", 20);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Mouse", 25);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (In box) = Add Entity", 20);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (On Entity) = Toggle Entity tracking", 20);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Right Click (On Entity) = Remove Entity", 20);
 	
 	return true;
 }
@@ -117,7 +117,7 @@ void QuadTreeScene::initEntitiesAndQTree()
 	// Init quadtree with initial boundary
 	this->quadTree = new QuadTree(this->displayBoundary, 0);
     
-    this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::QUAD_TREE_MAX_LEVEL), "QUAD TREE MAX LEVEL: " + std::to_string(this->quadTree->getCurrentLevelSetting()));
+    this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::QUAD_TREE_MAX_LEVEL), "Quad Tree max level: " + std::to_string(this->quadTree->getCurrentLevelSetting()));
 }
 
 Entity* QuadTreeScene::createNewEntity()
@@ -179,8 +179,8 @@ void QuadTreeScene::update(float delta)
 	checkCollision();
 
     int entityCount = static_cast<int>(this->entities.size());
-    this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::ENTITIES), "ENTITIES: " + std::to_string(entityCount) + " / 1000");
-    this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::BRUTE_FORCE), "BRUTE FORCE CEHCK: " + std::to_string(entityCount * entityCount));
+    this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::ENTITIES), "Entities: " + std::to_string(entityCount) + " / 1000");
+    this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::BRUTE_FORCE), "Brute-force check: " + std::to_string(entityCount * entityCount));
 }
 
 void QuadTreeScene::resetQTreeAndUpdatePosition(float delta)
@@ -373,8 +373,8 @@ void QuadTreeScene::checkCollision()
 		}
 	}
     
-    this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::COLLISION), "COLLISION: " + std::to_string(collisionChecksCount));
-    this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::COLLISION_WO_DUP_CHECK), "COLLISION W/O DUPLICATION CHECK: " + std::to_string(collisionCheckWithOutRepeatCount));
+    this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::COLLISION), "Collision check: " + std::to_string(collisionChecksCount));
+    this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::COLLISION_WO_DUP_CHECK), "Collision check w/o duplication: " + std::to_string(collisionCheckWithOutRepeatCount));
 }
 
 void QuadTreeScene::checkBoundary(ECS::Sprite & spriteComp, bool& flipX, bool& flipY)
@@ -664,7 +664,7 @@ void QuadTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 	{
 		// Increase quadtree level
         this->quadTree->increaseLevel();
-        this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::QUAD_TREE_MAX_LEVEL), "QUAD TREE MAX LEVEL: " + std::to_string(this->quadTree->getCurrentLevelSetting()));
+        this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::QUAD_TREE_MAX_LEVEL), "Quad Tree max level: " + std::to_string(this->quadTree->getCurrentLevelSetting()));
         
         this->labelsNode->playAnimation(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::INC_QTREE_LEVEL));
 	}
@@ -672,7 +672,7 @@ void QuadTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 	{
 		// Decrease quadtree level
         this->quadTree->decreaseLevel();
-        this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::QUAD_TREE_MAX_LEVEL), "QUAD TREE MAX LEVEL: " + std::to_string(this->quadTree->getCurrentLevelSetting()));
+        this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::QUAD_TREE_MAX_LEVEL), "Quad Tree max level: " + std::to_string(this->quadTree->getCurrentLevelSetting()));
         
         this->labelsNode->playAnimation(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::DEC_QTREE_LEVEL));
 	}
