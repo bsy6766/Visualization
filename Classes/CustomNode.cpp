@@ -144,38 +144,51 @@ void LabelsNode::addLabel(LabelsNode::TYPE type, const std::string &str, const i
     auto newLabel = cocos2d::Label::createWithTTF(str, fontPath, fontSize);
     newLabel->setAnchorPoint(cocos2d::Vec2(0, 1.0f));
     
-    float size = 0;
     cocos2d::Vec2 pos = cocos2d::Vec2::ZERO;
+	float yOffSet = 0;
+	float trim = 5.0f;
     
     switch (type) {
         case TYPE::CUSTOM:
         {
-            size = static_cast<float>(this->customLabels.size());
             pos  = this->customLabelStartPos;
+			for (auto label : this->customLabels)
+			{
+				yOffSet += (label->getContentSize().height - trim);
+			}
             
             this->customLabels.push_back(newLabel);
         }
             break;
         case TYPE::KEYBOARD:
         {
-            size = static_cast<float>(this->keyboardUsageLabels.size());
             pos = this->keyboardUsageLabelStartPos;
-            
+			for (auto label : this->keyboardUsageLabels)
+			{
+				yOffSet += (label->getContentSize().height - trim);
+			}
+
             this->keyboardUsageLabels.push_back(newLabel);
         }
             break;
         case TYPE::MOUSE_OVER_AND_KEY:
         {
-            size = static_cast<float>(this->mouseOverAndKeyUsageLabels.size());
             pos = this->mouseOverAndKeyLabelStartPos;
+			for (auto label : this->mouseOverAndKeyUsageLabels)
+			{
+				yOffSet += (label->getContentSize().height - trim);
+			}
             
             this->mouseOverAndKeyUsageLabels.push_back(newLabel);
         }
             break;
         case TYPE::MOUSE:
         {
-            size = static_cast<float>(this->mouseUsageLabels.size());
             pos = this->mouseUsageLabelStartPos;
+			for (auto label : this->mouseUsageLabels)
+			{
+				yOffSet += (label->getContentSize().height - trim);
+			}
             
             this->mouseUsageLabels.push_back(newLabel);
         }
@@ -185,11 +198,7 @@ void LabelsNode::addLabel(LabelsNode::TYPE type, const std::string &str, const i
             break;
     }
                                       
-    pos.y -= (size * fontSize);
-    if(size > 0)
-    {
-        pos.y -= 5.0f;
-    }
+	pos.y -= yOffSet;
     newLabel->setPosition(pos);
     this->addChild(newLabel);
 }
