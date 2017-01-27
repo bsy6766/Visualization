@@ -50,10 +50,14 @@ private:
 	cocos2d::Node* imageSelectNode;
 	cocos2d::Sprite* imageSelectPanelBg;
 	bool viewingImageSelectPanel;
+    
+    // Stats
 	cocos2d::Label* statsLabel;
 	cocos2d::Label* runStatus;
 	cocos2d::Label* possibleCircleSpawnPointLabel;
 	cocos2d::Label* spawnedCircleCountLabel;
+    cocos2d::Label* growingCircleCountLabel;
+    cocos2d::Label* imageSizeLabel;
 
     // Images and sprites
 	std::vector<cocos2d::Image*> images;
@@ -96,6 +100,9 @@ private:
 
 	// Pause simulation
 	bool pause;
+    
+    // True if algorithm is finished
+    bool finished;
 
 	// Simulate speed multiplier. 1.0 by default. 0 = stops simulation
 	float simulateSpeedMultiplier;
@@ -162,8 +169,8 @@ private:
     // Run circle packing algorithm with specific image
 	void runCirclePacking(const IMAGE_INDEX imageIndex);
     
-    // Set image name label corresponding to image name
-	void setImageNameLabel();
+    // Set image name and sizelabel corresponding to image name
+	void setImageNameAndSizeLabel();
     
     // Update FPS.
 	void updateFPS(const float delta);

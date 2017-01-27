@@ -21,6 +21,8 @@ bool CirclePackingScene::init()
 	{
 		return false;
 	}
+    
+    this->finished = false;
 
 	// Uncomment this to activate update(float) function
 	this->scheduleUpdate();
@@ -87,7 +89,44 @@ bool CirclePackingScene::init()
 	this->imageSelectPanelBg->setColor(cocos2d::Color3B::GRAY);
 	this->imageSelectPanelBg->setOpacity(30);
 	this->imageSelectNode->addChild(this->imageSelectPanelBg);
-
+    
+    // Init stat labels
+    float statsX = winSize.width * 0.68f;
+    float statsY = winSize.height * 0.8f;
+    float statsYOFfset = 25.0f;
+    const cocos2d::Vec2 anchorPoint = cocos2d::Vec2(0, 0.5f);
+    this->statsLabel = cocos2d::Label::createWithTTF("STATS", fontPath, 30);
+    this->statsLabel->setAnchorPoint(anchorPoint);
+    this->statsLabel->setPosition(cocos2d::Vec2(statsX, statsY));
+    this->addChild(this->statsLabel);
+    
+    this->runStatus = cocos2d::Label::createWithTTF("STATUS = WAITING", fontPath, 25);
+    this->runStatus->setPosition(cocos2d::Vec2(statsX, statsY - statsYOFfset));
+    this->runStatus->setAnchorPoint(anchorPoint);
+    this->addChild(this->runStatus);
+    
+    this->possibleCircleSpawnPointLabel = cocos2d::Label::createWithTTF("POSSIBLE SPAWN POINTS = 0", fontPath, 25);
+    this->possibleCircleSpawnPointLabel->setPosition(cocos2d::Vec2(statsX, statsY - (statsYOFfset * 2.0f)));
+    this->possibleCircleSpawnPointLabel->setAnchorPoint(anchorPoint);
+    this->addChild(this->possibleCircleSpawnPointLabel);
+    
+    this->spawnedCircleCountLabel = cocos2d::Label::createWithTTF("SPAWNED CIRCLES = 0", fontPath, 25);
+    this->spawnedCircleCountLabel->setPosition(cocos2d::Vec2(statsX, statsY - (statsYOFfset * 3.0f)));
+    this->spawnedCircleCountLabel->setAnchorPoint(anchorPoint);
+    this->addChild(this->spawnedCircleCountLabel);
+    
+    this->growingCircleCountLabel = cocos2d::Label::createWithTTF("GROWING CIRCLES = 0", fontPath, 25);
+    this->growingCircleCountLabel->setPosition(cocos2d::Vec2(statsX, statsY - (statsYOFfset * 4.0f)));
+    this->growingCircleCountLabel->setAnchorPoint(anchorPoint);
+    this->addChild(this->growingCircleCountLabel);
+    
+    this->imageSizeLabel = cocos2d::Label::createWithTTF("IMAGE SIZE = (w)0, (h)0", fontPath, 25);
+    this->imageSizeLabel->setPosition(cocos2d::Vec2(statsX, statsY - (statsYOFfset * 5.0f)));
+    this->imageSizeLabel->setAnchorPoint(anchorPoint);
+    this->addChild(this->imageSizeLabel);
+    
+    
+    
 	// Init images
 	initImages();
 
@@ -125,6 +164,12 @@ void CirclePackingScene::update(float delta)
 
 	// check current image
 	if (this->currentImageIndex == IMAGE_INDEX::NONE) return;
+    
+    if(this->finished)
+    {
+        // Algorithm is finished
+        return;
+    }
 
 	// Modify time by multiplier
 	delta *= this->simulateSpeedMultiplier;
@@ -138,8 +183,19 @@ void CirclePackingScene::update(float delta)
     if(spawnedCircleCount == 0 && this->growingCircleCount == 0)
     {
         // Nothing has spawned and growing. Don't need to update
+        // Check if algoritm is finished
+        if(this->circleSpawnPointsWithColor.empty() ||  this->freshCircles.empty())
+        {
+            if(this->finished == false)
+            {
+                this->finished = true;
+                this->runStatus->setString("STATUS = FINSHED");
+            }
+        }
         return;
     }
+    
+    this->spawnedCircleCountLabel->setString("SPAWNED CIRCLES = " + std::to_string(this->activeCircles.size()));
 
 	// Update growth
 	updateCircleGrowth(delta);
@@ -152,6 +208,8 @@ void CirclePackingScene::update(float delta)
 
 	// Move all grown circles to another list
 	/*bool clearAllGrownDrawNode = */this->moveAllGrownCircles();
+    
+    this->growingCircleCountLabel->setString("GROWING CIRCLES = " + std::to_string(this->growingCircleCount));
 
 	// Draw dot
 	//updateDrawNodes(clearAllGrownDrawNode);
@@ -651,7 +709,10 @@ const int CirclePackingScene::spawnCircles()
 			if (inCircle)
 			{
 				// Spawn point in circle. Pop this point and continue
-				this->circleSpawnPointsWithColor.pop();
+                this->circleSpawnPointsWithColor.pop();
+                
+                // update label
+                this->possibleCircleSpawnPointLabel->setString("POSSIBLE SPAWN POINT = " + std::to_string(this->circleSpawnPointsWithColor.size()));
 				continue;
 			}
 
@@ -663,7 +724,10 @@ const int CirclePackingScene::spawnCircles()
 			// Move to activeCircles
 			this->activeCircles.splice(this->activeCircles.begin(), this->freshCircles, it_front);
 			// pop spawn point
-			this->circleSpawnPointsWithColor.pop();
+            this->circleSpawnPointsWithColor.pop();
+            
+            // update label
+            this->possibleCircleSpawnPointLabel->setString("POSSIBLE SPAWN POINT = " + std::to_string(this->circleSpawnPointsWithColor.size()));
 			// update sprite comp
 			auto spriteComp = (*it_front)->getComponent<ECS::Sprite*>(SPRITE);
 			if (spriteComp)
@@ -710,6 +774,8 @@ cocos2d::Vec2 CirclePackingScene::pixelToPoint(const int x, const int y, const i
 
 void CirclePackingScene::runCirclePacking(const IMAGE_INDEX imageIndex)
 {
+    // Reset flag
+    this->finished = false;
 	// Delete quadTree
 	releaseQuadTree();
 	// Reset counter
@@ -725,15 +791,18 @@ void CirclePackingScene::runCirclePacking(const IMAGE_INDEX imageIndex)
 	this->findCircleSpawnPoint(imageIndex);
 	// set max circles size
 	this->maxCircles = this->circleSpawnPointsWithColor.size();
+    this->possibleCircleSpawnPointLabel->setString("POSSIBLE SPAWN POINT = " + std::to_string(this->maxCircles));
 	// initialize circles
 	initCircles();
 	// update image name label
-	this->setImageNameLabel();
+	this->setImageNameAndSizeLabel();
 	// Re-initialize QuadTree
 	initQuadTree();
+    // Change status
+    this->runStatus->setString("STATUS = RUNNING");
 }
 
-void CirclePackingScene::setImageNameLabel()
+void CirclePackingScene::setImageNameAndSizeLabel()
 {
 	switch (this->currentImageIndex)
 	{
@@ -762,8 +831,11 @@ void CirclePackingScene::setImageNameLabel()
 	}
 		break;
 	default:
+        return;
 		break;
 	}
+    
+    this->imageSizeLabel->setString("IMAGE SIZE = (w)" + std::to_string(this->images.at(static_cast<int>(this->currentImageIndex))->getWidth()) + ", (h)" + std::to_string(this->images.at(static_cast<int>(this->currentImageIndex))->getHeight()));
 }
 
 ECS::Entity* CirclePackingScene::createNewEntity()
