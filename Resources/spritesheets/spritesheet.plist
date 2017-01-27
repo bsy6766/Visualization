@@ -15,7 +15,7 @@
                 <key>spriteSourceSize</key>
                 <string>{26,18}</string>
                 <key>textureRect</key>
-                <string>{{103,1},{26,18}}</string>
+                <string>{{103,52},{26,18}}</string>
                 <key>textureRotated</key>
                 <true/>
             </dict>
@@ -30,9 +30,9 @@
                 <key>spriteSourceSize</key>
                 <string>{15,10}</string>
                 <key>textureRect</key>
-                <string>{{103,148},{15,10}}</string>
+                <string>{{113,1},{15,10}}</string>
                 <key>textureRotated</key>
-                <false/>
+                <true/>
             </dict>
             <key>boidRangeChecker.png</key>
             <dict>
@@ -45,7 +45,7 @@
                 <key>spriteSourceSize</key>
                 <string>{100,100}</string>
                 <key>textureRect</key>
-                <string>{{1,1},{100,100}}</string>
+                <string>{{1,19},{100,100}}</string>
                 <key>textureRotated</key>
                 <false/>
             </dict>
@@ -60,7 +60,7 @@
                 <key>spriteSourceSize</key>
                 <string>{15,15}</string>
                 <key>textureRect</key>
-                <string>{{103,131},{15,15}}</string>
+                <string>{{103,148},{15,15}}</string>
                 <key>textureRotated</key>
                 <false/>
             </dict>
@@ -75,7 +75,7 @@
                 <key>spriteSourceSize</key>
                 <string>{100,100}</string>
                 <key>textureRect</key>
-                <string>{{1,103},{100,100}}</string>
+                <string>{{1,121},{100,100}}</string>
                 <key>textureRotated</key>
                 <false/>
             </dict>
@@ -90,7 +90,7 @@
                 <key>spriteSourceSize</key>
                 <string>{1,1}</string>
                 <key>textureRect</key>
-                <string>{{123,1},{1,1}}</string>
+                <string>{{125,1},{1,1}}</string>
                 <key>textureRotated</key>
                 <false/>
             </dict>
@@ -105,7 +105,7 @@
                 <key>spriteSourceSize</key>
                 <string>{15,18}</string>
                 <key>textureRect</key>
-                <string>{{103,29},{15,18}}</string>
+                <string>{{103,80},{15,18}}</string>
                 <key>textureRotated</key>
                 <true/>
             </dict>
@@ -120,7 +120,7 @@
                 <key>spriteSourceSize</key>
                 <string>{15,18}</string>
                 <key>textureRect</key>
-                <string>{{103,46},{15,18}}</string>
+                <string>{{103,97},{15,18}}</string>
                 <key>textureRotated</key>
                 <true/>
             </dict>
@@ -135,7 +135,7 @@
                 <key>spriteSourceSize</key>
                 <string>{15,18}</string>
                 <key>textureRect</key>
-                <string>{{103,97},{15,16}}</string>
+                <string>{{111,18},{15,16}}</string>
                 <key>textureRotated</key>
                 <true/>
             </dict>
@@ -150,7 +150,7 @@
                 <key>spriteSourceSize</key>
                 <string>{10,10}</string>
                 <key>textureRect</key>
-                <string>{{103,160},{10,10}}</string>
+                <string>{{103,182},{10,10}}</string>
                 <key>textureRotated</key>
                 <false/>
             </dict>
@@ -165,7 +165,7 @@
                 <key>spriteSourceSize</key>
                 <string>{15,18}</string>
                 <key>textureRect</key>
-                <string>{{103,63},{15,18}}</string>
+                <string>{{103,114},{15,18}}</string>
                 <key>textureRotated</key>
                 <true/>
             </dict>
@@ -180,7 +180,7 @@
                 <key>spriteSourceSize</key>
                 <string>{15,18}</string>
                 <key>textureRect</key>
-                <string>{{103,80},{15,18}}</string>
+                <string>{{103,131},{15,18}}</string>
                 <key>textureRotated</key>
                 <true/>
             </dict>
@@ -195,21 +195,100 @@
                 <key>spriteSourceSize</key>
                 <string>{15,18}</string>
                 <key>textureRect</key>
-                <string>{{103,114},{15,16}}</string>
+                <string>{{110,35},{15,16}}</string>
                 <key>textureRotated</key>
                 <true/>
+            </dict>
+            <key>sliderBallDisabled.png</key>
+            <dict>
+                <key>aliases</key>
+                <array/>
+                <key>spriteOffset</key>
+                <string>{0,0}</string>
+                <key>spriteSize</key>
+                <string>{15,15}</string>
+                <key>spriteSourceSize</key>
+                <string>{15,15}</string>
+                <key>textureRect</key>
+                <string>{{103,165},{15,15}}</string>
+                <key>textureRotated</key>
+                <false/>
+            </dict>
+            <key>sliderBallNormal.png</key>
+            <dict>
+                <key>aliases</key>
+                <array/>
+                <key>spriteOffset</key>
+                <string>{0,0}</string>
+                <key>spriteSize</key>
+                <string>{15,15}</string>
+                <key>spriteSourceSize</key>
+                <string>{15,15}</string>
+                <key>textureRect</key>
+                <string>{{103,148},{15,15}}</string>
+                <key>textureRotated</key>
+                <false/>
+            </dict>
+            <key>sliderBallPressed.png</key>
+            <dict>
+                <key>aliases</key>
+                <array/>
+                <key>spriteOffset</key>
+                <string>{0,0}</string>
+                <key>spriteSize</key>
+                <string>{5,15}</string>
+                <key>spriteSourceSize</key>
+                <string>{5,15}</string>
+                <key>textureRect</key>
+                <string>{{103,19},{5,15}}</string>
+                <key>textureRotated</key>
+                <false/>
+            </dict>
+            <key>sliderBar.png</key>
+            <dict>
+                <key>aliases</key>
+                <array/>
+                <key>spriteOffset</key>
+                <string>{0,0}</string>
+                <key>spriteSize</key>
+                <string>{110,8}</string>
+                <key>spriteSourceSize</key>
+                <string>{110,8}</string>
+                <key>textureRect</key>
+                <string>{{1,1},{110,8}}</string>
+                <key>textureRotated</key>
+                <false/>
+            </dict>
+            <key>sliderProgressBar.png</key>
+            <dict>
+                <key>aliases</key>
+                <array/>
+                <key>spriteOffset</key>
+                <string>{0,0}</string>
+                <key>spriteSize</key>
+                <string>{108,6}</string>
+                <key>spriteSourceSize</key>
+                <string>{108,6}</string>
+                <key>textureRect</key>
+                <string>{{1,11},{108,6}}</string>
+                <key>textureRotated</key>
+                <false/>
             </dict>
         </dict>
         <key>metadata</key>
         <dict>
             <key>format</key>
             <integer>3</integer>
+            <key>pixelFormat</key>
+            <string>RGBA8888</string>
+            <key>premultiplyAlpha</key>
+            <false/>
             <key>realTextureFileName</key>
             <string>spritesheet.png</string>
             <key>size</key>
             <string>{128,256}</string>
             <key>smartupdate</key>
-            <string>$TexturePacker:SmartUpdate:252d56d9b662a12e904c576e3e0cfd0b:7133c26d59f0828826e426db02e0eec0:1de88c2a7237d4cdf78de8d8ad4f4c7e$</string>
+            <string>$TexturePacker:SmartUpdate:6a1690c2b096ba96d91f89a7b4542f5b:93f962dbeb0a54b2ad8e9ef65ee5e004:1de88c2a7237d4cdf78de8d8ad4f4c7e$</string>
             <key>textureFileName</key>
             <string>spritesheet.png</string>
         </dict>
