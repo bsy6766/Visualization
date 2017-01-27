@@ -228,7 +228,7 @@ Entity* QuadTreeScene::createNewEntity()
 	auto spriteComp = new ECS::Sprite(*this->areaNode, "quadTreeEntityBox.png");
 	spriteComp->sprite->setScaleX(Utility::Random::randomReal<float>(0.25f, 1.0f));
 	spriteComp->sprite->setScaleY(Utility::Random::randomReal<float>(0.25f, 1.0f));
-	spriteComp->sprite->setZOrder(static_cast<int>(Z_ORDER::ENTITY));
+	spriteComp->sprite->setLocalZOrder(static_cast<int>(Z_ORDER::ENTITY));
 	newEntity->components[SPRITE] = spriteComp;
 	newEntity->components[QTREE_DATA] = new QTreeData();
 	return newEntity;
