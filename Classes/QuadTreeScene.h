@@ -40,6 +40,8 @@ private:
     // Enum for labels
     enum class CUSTOM_LABEL_INDEX
     {
+		TITLE,
+		EMPTY,
         ENTITIES,
         COLLISION,
         COLLISION_WO_DUP_CHECK,
@@ -95,6 +97,9 @@ private:
 	QuadTreeLineNode* quadTreeLineNode;
     DisplayBoundaryBoxNode* displayBoundaryBoxNode;
     LabelsNode* labelsNode;
+	cocos2d::Label* simulationSpeedLabel;
+	cocos2d::ui::Slider* simulationSpeedSlider;
+	float simulationSpeedModifier;
 
 	// Boundary holder
 	cocos2d::Rect displayBoundary;
@@ -128,6 +133,8 @@ private:
     
     // Toggle color
     void toggleColor(const bool enabled, LabelsNode::TYPE type, const int index, const bool playAnimation = true);
+
+	void onSliderClick(cocos2d::Ref* sender);
 public:
 	//simple creator func
 	static QuadTreeScene* createScene();

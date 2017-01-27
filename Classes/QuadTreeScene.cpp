@@ -67,6 +67,8 @@ bool QuadTreeScene::init()
     float labelY = winSize.height - 30.0f;
     this->labelsNode->customLabelStartPos = cocos2d::Vec2(labelX, labelY);
     
+	this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Quad Tree Visualization", 35);
+	this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, " ", 25);
     this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Entities: 0", 25);
     this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Collision check: 0", 25);
     this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Collision check w/o duplication : 0", 25);
@@ -89,12 +91,36 @@ bool QuadTreeScene::init()
     this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "1 = Increase Quad Tree max level", 20);
     this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "2 = Decrease Quad Tree max level", 20);
     
-    this->labelsNode->mouseUsageLabelStartPos = cocos2d::Vec2(labelX, (winSize.height * 0.65f) - (10.0f/*total key usage count*/ + 0.5f) * 20.0f);
+    this->labelsNode->mouseUsageLabelStartPos = cocos2d::Vec2(labelX, (winSize.height * 0.65f) - (static_cast<float>(USAGE_KEY::MAX_KEYBOARD_USAGE) + 0.5f) * 20.0f);
     
     this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Mouse", 25);
     this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (In box) = Add Entity", 20);
     this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (On Entity) = Toggle Entity tracking", 20);
     this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Right Click (On Entity) = Remove Entity", 20);
+
+	//Slider Label
+	this->simulationSpeedLabel = cocos2d::Label::createWithTTF("Simulation Speed", "fonts/Rubik-Medium.ttf", 25);
+	this->simulationSpeedLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
+	float lastLabelY = this->labelsNode->mouseUsageLabels.back()->getPosition().y;
+	this->simulationSpeedLabel->setPosition(cocos2d::Vec2(labelX, lastLabelY - 50.0f));
+	this->addChild(this->simulationSpeedLabel);
+
+	// Slider
+	this->simulationSpeedSlider = cocos2d::ui::Slider::create();
+	this->simulationSpeedSlider->loadBarTexture("sliderBar.png", cocos2d::ui::Widget::TextureResType::PLIST);
+	this->simulationSpeedSlider->loadSlidBallTextures("sliderBallNormal.png", "sliderBallPressed.png", "sliderBallDisabled.png", cocos2d::ui::Widget::TextureResType::PLIST);
+	this->simulationSpeedSlider->loadProgressBarTexture("sliderProgressBar.png", cocos2d::ui::Widget::TextureResType::PLIST);
+	this->simulationSpeedSlider->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
+	auto labelPos = this->simulationSpeedLabel->getPosition();
+	labelPos.y -= 20.0f;
+	labelPos.x += 5.0f;
+	this->simulationSpeedSlider->setPosition(labelPos);
+	this->simulationSpeedSlider->setPercent(50);	// 50% equals to default speed
+	this->simulationSpeedSlider->addClickEventListener(CC_CALLBACK_1(QuadTreeScene::onSliderClick, this));
+	this->addChild(this->simulationSpeedSlider);
+
+	// speed modifier
+	this->simulationSpeedModifier = 1.0f;
 	
 	return true;
 }
@@ -173,6 +199,9 @@ void QuadTreeScene::update(float delta)
 	{
 		return;
 	}
+
+	//Speed modifier
+	delta *= this->simulationSpeedModifier;
 
 	resetQTreeAndUpdatePosition(delta);
 
@@ -766,6 +795,25 @@ void QuadTreeScene::releaseInputListeners()
 		_eventDispatcher->removeEventListener(this->mouseInputListener);
 	if(this->keyInputListener != nullptr)
 		_eventDispatcher->removeEventListener(this->keyInputListener);
+}
+
+void QuadTreeScene::onSliderClick(cocos2d::Ref* sender)
+{
+	// Click ended. Get value
+	float percentage = static_cast<float>(this->simulationSpeedSlider->getPercent());
+	//50% = 1.0(default. So multiply by 2.
+	percentage *= 2.0f;
+	// 0% == 0, 100% = 1.0f, 200% = 2.0f
+	if (percentage == 0)
+	{
+		// 0 will make simulation stop
+		percentage = 1;
+	}
+	//. Devide by 100%
+	percentage *= 0.01f;
+
+	// apply
+	this->simulationSpeedModifier = percentage;
 }
 
 void QuadTreeScene::onExit()
