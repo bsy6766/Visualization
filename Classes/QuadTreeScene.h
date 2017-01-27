@@ -2,19 +2,19 @@
 #define QTREESCENE_H
 
 #include "cocos2d.h"
-#include "QTree.h"
+#include "QuadTree.h"
 #include "Component.h"
 #include "ECS.h"
 #include "Component.h"
-#include "QTreeLineNode.h"
+#include "QuadTreeLineNode.h"
 #include <vector>
 #include <list>
 
-class QTreeScene : public cocos2d::Scene
+class QuadTreeScene : public cocos2d::Scene
 {
 private:
 	//default constructor
-	QTreeScene() {};
+	QuadTreeScene() {};
 
 	//Input Listeners
 	cocos2d::EventListenerMouse* mouseInputListener;
@@ -78,6 +78,13 @@ private:
 		MAX_MOUSE_USAGE
 	};
 
+	enum Z_ORDER
+	{
+		LINE,
+		ENTITY,
+		BOX
+	};
+
 	// flags
 	bool pause;
 	bool showGrid;
@@ -91,11 +98,11 @@ private:
 	cocos2d::ActionInterval* clickAnimation;
 
 	// Quadtree
-	QTree* quadTree;
+	QuadTree* quadTree;
 
 	// Node
 	cocos2d::Node* areaNode;
-	QTreeLineNode* qTreeLineNode;
+	QuadTreeLineNode* quadTreeLineNode;
 
 	// Boundary
 	cocos2d::Rect displayBoundary;
@@ -127,13 +134,13 @@ private:
 	void playUIAnimation(const USAGE_KEY usageKey);
 public:
 	//simple creator func
-	static QTreeScene* createScene();
+	static QuadTreeScene* createScene();
 
 	//default destructor
-	~QTreeScene() {};
+	~QuadTreeScene() {};
 
 	//Cocos2d Macro
-	CREATE_FUNC(QTreeScene);
+	CREATE_FUNC(QuadTreeScene);
 };
 
 #endif

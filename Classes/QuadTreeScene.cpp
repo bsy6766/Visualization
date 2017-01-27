@@ -1,17 +1,17 @@
-#include "QTreeScene.h"
+#include "QuadTreeScene.h"
 #include "MainScene.h"
 #include "Utility.h"
 
 USING_NS_CC;
 using namespace ECS;
 
-QTreeScene* QTreeScene::createScene()
+QuadTreeScene* QuadTreeScene::createScene()
 {
-	QTreeScene* newQTreeScene = QTreeScene::create();
+	QuadTreeScene* newQTreeScene = QuadTreeScene::create();
 	return newQTreeScene;
 }
 
-bool QTreeScene::init()
+bool QuadTreeScene::init()
 {
 	if (!cocos2d::Scene::init())
 	{
@@ -29,10 +29,13 @@ bool QTreeScene::init()
 	this->areaNode->retain();
 	this->addChild(this->areaNode);
 
-	this->qTreeLineNode = QTreeLineNode::createNode();
-	this->qTreeLineNode->setPosition(cocos2d::Vec2::ZERO);
-	this->qTreeLineNode->retain();
-	this->addChild(this->qTreeLineNode);
+	this->quadTreeLineNode = QuadTreeLineNode::createNode();
+	this->quadTreeLineNode->setPosition(cocos2d::Vec2::ZERO);
+	this->quadTreeLineNode->retain();
+	this->addChild(this->quadTreeLineNode);
+	this->quadTreeLineNode->dispalyBoundaryDrawNode->setLocalZOrder(static_cast<int>(Z_ORDER::BOX));
+	this->quadTreeLineNode->drawDisplayBoundaryBox(this->displayBoundary);
+	this->quadTreeLineNode->quadTreeSubDivisionDrawNode->setLocalZOrder(static_cast<int>(Z_ORDER::LINE));
 
 	// init flags
 	pause = false;
@@ -179,7 +182,7 @@ bool QTreeScene::init()
 	return true;
 }
 
-void QTreeScene::initEntitiesAndQTree()
+void QuadTreeScene::initEntitiesAndQTree()
 {
 	// Create 40 entities at start
 	const int initialEntityCount = 40;
@@ -193,12 +196,13 @@ void QTreeScene::initEntitiesAndQTree()
 	} 
 
 	// Store lineNode pointer to quadtree for visualization
-	QTree::lineNode = this->qTreeLineNode;
+	//QuadTree::lineNode = this->qTreeLineNode;
+	QuadTree::lineDrawNode = this->quadTreeLineNode->quadTreeSubDivisionDrawNode;
 	// Init quadtree with initial boundary
-	this->quadTree = new QTree(this->displayBoundary, 0);
+	this->quadTree = new QuadTree(this->displayBoundary, 0);
 }
 
-Entity* QTreeScene::createNewEntity()
+Entity* QuadTreeScene::createNewEntity()
 {
 	Entity* newEntity = new Entity();
 	if (newEntity->id >= Entity::maxEntitySize)
@@ -224,12 +228,13 @@ Entity* QTreeScene::createNewEntity()
 	auto spriteComp = new ECS::Sprite(*this->areaNode, "quadTreeEntityBox.png");
 	spriteComp->sprite->setScaleX(Utility::Random::randomReal<float>(0.25f, 1.0f));
 	spriteComp->sprite->setScaleY(Utility::Random::randomReal<float>(0.25f, 1.0f));
+	spriteComp->sprite->setZOrder(static_cast<int>(Z_ORDER::ENTITY));
 	newEntity->components[SPRITE] = spriteComp;
 	newEntity->components[QTREE_DATA] = new QTreeData();
 	return newEntity;
 }
 
-void QTreeScene::onEnter()
+void QuadTreeScene::onEnter()
 {
 	cocos2d::Scene::onEnter();
 
@@ -240,7 +245,7 @@ void QTreeScene::onEnter()
 	this->scheduleUpdate();
 }
 
-void QTreeScene::update(float delta)
+void QuadTreeScene::update(float delta)
 {
 	// Updates fps count and time 
 	updateFPS(delta);
@@ -258,7 +263,7 @@ void QTreeScene::update(float delta)
 	updateLabels();
 }
 
-void QTreeScene::updateFPS(float delta)
+void QuadTreeScene::updateFPS(float delta)
 {
 	this->fpsElapsedTime += delta;
 	if (this->fpsElapsedTime > 1.0f)
@@ -274,7 +279,7 @@ void QTreeScene::updateFPS(float delta)
 	}
 }
 
-void QTreeScene::resetQTreeAndUpdatePosition(float delta)
+void QuadTreeScene::resetQTreeAndUpdatePosition(float delta)
 {
 	if (!pause)
 	{
@@ -344,11 +349,13 @@ void QTreeScene::resetQTreeAndUpdatePosition(float delta)
 	if (showGrid)
 	{
 		// Show grids
+		QuadTree::lineDrawNode->clear();
+
 		this->quadTree->showLines();
 	}
 }
 
-void QTreeScene::checkCollision()
+void QuadTreeScene::checkCollision()
 {
 	// If simulation is paused, no need to check collision
 	if (pause) return;
@@ -464,7 +471,7 @@ void QTreeScene::checkCollision()
 	}
 }
 
-void QTreeScene::checkBoundary(ECS::Sprite & spriteComp, bool& flipX, bool& flipY)
+void QuadTreeScene::checkBoundary(ECS::Sprite & spriteComp, bool& flipX, bool& flipY)
 {
 	// Get boundary
 	const auto bb = spriteComp.sprite->getBoundingBox();
@@ -509,7 +516,7 @@ void QTreeScene::checkBoundary(ECS::Sprite & spriteComp, bool& flipX, bool& flip
 
 }
 
-void QTreeScene::flipDirVec(const bool flipX, const bool flipY, cocos2d::Vec2& dirVec)
+void QuadTreeScene::flipDirVec(const bool flipX, const bool flipY, cocos2d::Vec2& dirVec)
 {
 	if (flipX)
 	{
@@ -533,7 +540,7 @@ void QTreeScene::flipDirVec(const bool flipX, const bool flipY, cocos2d::Vec2& d
 	}
 }
 
-void QTreeScene::updateLabels()
+void QuadTreeScene::updateLabels()
 {
 	entityCount = this->entities.size();
 	entityCountLabel->setString("Entities: " + std::to_string(entityCount) + " / 1000");
@@ -548,7 +555,7 @@ void QTreeScene::updateLabels()
 	quadtreeLevelLabel->setString("Quadtree max level: " + std::to_string(this->quadTree->getCurrentLevelSetting()));
 }
 
-void QTreeScene::resolveCollisions(ECS::Sprite & entitySpriteComp, ECS::Sprite & nearEntitySpriteComp, ECS::DirectionVector& entityDirVecComp, ECS::DirectionVector& nearEntityDirVecComp)
+void QuadTreeScene::resolveCollisions(ECS::Sprite & entitySpriteComp, ECS::Sprite & nearEntitySpriteComp, ECS::DirectionVector& entityDirVecComp, ECS::DirectionVector& nearEntityDirVecComp)
 {
 	auto eBB = entitySpriteComp.sprite->getBoundingBox();
 	auto nBB = nearEntitySpriteComp.sprite->getBoundingBox();
@@ -608,7 +615,7 @@ void QTreeScene::resolveCollisions(ECS::Sprite & entitySpriteComp, ECS::Sprite &
 	flipDirVec(flipX, flipY, nearEntityDirVecComp.dirVec);
 }
 
-void QTreeScene::reassignEntityIds()
+void QuadTreeScene::reassignEntityIds()
 {
 	int counter = 0;
 	for (auto entity : this->entities)
@@ -618,26 +625,26 @@ void QTreeScene::reassignEntityIds()
 	}
 }
 
-void QTreeScene::playUIAnimation(const USAGE_KEY usageKey)
+void QuadTreeScene::playUIAnimation(const USAGE_KEY usageKey)
 {
 	this->usageLabels.at(static_cast<int>(usageKey))->stopAllActions();
 	this->usageLabels.at(static_cast<int>(usageKey))->setScale(1.0f);
 	this->usageLabels.at(static_cast<int>(usageKey))->runAction(this->clickAnimation);
 }
 
-void QTreeScene::initInputListeners()
+void QuadTreeScene::initInputListeners()
 {
 	this->mouseInputListener = EventListenerMouse::create();
-	this->mouseInputListener->onMouseMove = CC_CALLBACK_1(QTreeScene::onMouseMove, this);
-	this->mouseInputListener->onMouseDown = CC_CALLBACK_1(QTreeScene::onMouseDown, this);
+	this->mouseInputListener->onMouseMove = CC_CALLBACK_1(QuadTreeScene::onMouseMove, this);
+	this->mouseInputListener->onMouseDown = CC_CALLBACK_1(QuadTreeScene::onMouseDown, this);
 	_eventDispatcher->addEventListenerWithSceneGraphPriority(this->mouseInputListener, this);
 
 	this->keyInputListener = EventListenerKeyboard::create();
-	this->keyInputListener->onKeyPressed = CC_CALLBACK_2(QTreeScene::onKeyPressed, this);
+	this->keyInputListener->onKeyPressed = CC_CALLBACK_2(QuadTreeScene::onKeyPressed, this);
 	_eventDispatcher->addEventListenerWithSceneGraphPriority(this->keyInputListener, this);
 }
 
-void QTreeScene::onMouseMove(cocos2d::Event* event) 
+void QuadTreeScene::onMouseMove(cocos2d::Event* event) 
 {
 	auto mouseEvent = static_cast<EventMouse*>(event);
 	float x = mouseEvent->getCursorX();
@@ -656,7 +663,7 @@ void QTreeScene::onMouseMove(cocos2d::Event* event)
 	}
 }
 
-void QTreeScene::onMouseDown(cocos2d::Event* event) 
+void QuadTreeScene::onMouseDown(cocos2d::Event* event) 
 {
 	auto mouseEvent = static_cast<EventMouse*>(event);
 	//0 = left, 1 = right, 2 = middle
@@ -762,7 +769,7 @@ void QTreeScene::onMouseDown(cocos2d::Event* event)
 	}
 }
 
-void QTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::Event* event) 
+void QuadTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::Event* event) 
 {
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_ESCAPE)
 	{
@@ -890,7 +897,7 @@ void QTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
 	}
 }
 
-void QTreeScene::releaseInputListeners()
+void QuadTreeScene::releaseInputListeners()
 {
 	if(this->mouseInputListener != nullptr)
 		_eventDispatcher->removeEventListener(this->mouseInputListener);
@@ -898,12 +905,12 @@ void QTreeScene::releaseInputListeners()
 		_eventDispatcher->removeEventListener(this->keyInputListener);
 }
 
-void QTreeScene::onExit()
+void QuadTreeScene::onExit()
 {
 	cocos2d::Scene::onExit();
 	releaseInputListeners();
 	this->areaNode->release();
-	this->qTreeLineNode->release();
+	this->quadTreeLineNode->release();
 
 	// Delete all entities
 	for (auto entity : this->entities)
