@@ -43,7 +43,7 @@ bool CirclePackingScene::init()
 
 	// Set number of circles to spawn at start and every tick
 	this->initialCircleCount = 10;
-	this->circleSpawnRate = 5;
+	this->circleSpawnRate = 2;
 
 	auto winSize = cocos2d::Director::getInstance()->getVisibleSize();
 
@@ -133,19 +133,25 @@ void CirclePackingScene::update(float delta)
 	insertEntitiesToQuadTree();
 
 	// Spawn circles
-	spawnCircles(this->circleSpawnRate);
+	int spawnedCircleCount = spawnCircles();
+    
+    if(spawnedCircleCount == 0 && this->growingCircleCount == 0)
+    {
+        // Nothing has spawned and growing. Don't need to update
+        return;
+    }
 
 	// Update growth
-	updateCircleRadius(delta);
+	updateCircleGrowth(delta);
 
 	// Reset QuadTree
 	insertEntitiesToQuadTree();
 
 	// Update growth
-	updateCircleGrowthWithCollision();
+	updateCircleCollisionResolution();
 
 	// Move all grown circles to another list
-	bool clearAllGrownDrawNode = this->moveAllGrownCircles();
+	/*bool clearAllGrownDrawNode = */this->moveAllGrownCircles();
 
 	// Draw dot
 	//updateDrawNodes(clearAllGrownDrawNode);
@@ -167,7 +173,7 @@ void CirclePackingScene::updateFPS(const float delta)
 	}
 }
 
-void CirclePackingScene::updateCircleRadius(const float delta)
+void CirclePackingScene::updateCircleGrowth(const float delta)
 {
 	for (auto& circle : this->activeCircles)
 	{
@@ -186,22 +192,23 @@ void CirclePackingScene::updateCircleRadius(const float delta)
 	}
 }
 
-void CirclePackingScene::updateCircleGrowthWithCollision()
+void CirclePackingScene::updateCircleCollisionResolution()
 {
 	if (this->growingCircleCount <= 0)
 	{
 		// No circles are growing at this moment
 		return;
 	}
-
-	auto size = static_cast<int>(this->activeCircles.size());
-
+    
+    int size = static_cast<int>(this->activeCircles.size());
+    int totalComparisonCount = 0;
+    
 	for (auto activeCircle : this->activeCircles)
 	{
 		// Create query box
 		auto leftSpriteComp = activeCircle->getComponent<ECS::Sprite*>(SPRITE);
 		cocos2d::Rect queryBox = leftSpriteComp->sprite->getBoundingBox();
-		float pad = 20.0f;
+		float pad = 30.0f;
 		queryBox.origin.x -= pad;
 		queryBox.origin.y -= pad;
 		queryBox.size.width += pad * 2.0f;
@@ -214,6 +221,8 @@ void CirclePackingScene::updateCircleGrowthWithCollision()
 		{
 			continue;
 		}
+        
+        totalComparisonCount += static_cast<int>(nearCircles.size());
 
 		for (auto nearCircle : nearCircles)
 		{
@@ -588,15 +597,25 @@ const bool CirclePackingScene::moveAllGrownCircles()
 	return grownCircleFound;
 }
 
-void CirclePackingScene::spawnCircles(const int spawnRate)
+const int CirclePackingScene::spawnCircles()
 {
 	int count = 0;
+    int attempt = 0;
 	// Both spawn point and fresh circles must not be empty
 	if (!this->circleSpawnPointsWithColor.empty() && !this->freshCircles.empty())
 	{
 		// Run until spawn point exists and fill spawn rate
-		while (count < spawnRate && this->circleSpawnPointsWithColor.size() > 0)
+		while (count < this->circleSpawnRate && this->circleSpawnPointsWithColor.size() > 0)
 		{
+            // increment attempt counter
+            attempt++;
+            
+            if(attempt > this->MAXIMUM_SPAWN_ATTEMPT)
+            {
+                // If this function attempted 30 times to spawn point, end it.
+                return count;
+            }
+            
 			// get first spawn point
 			auto spawnPoint = this->circleSpawnPointsWithColor.front();
 
@@ -620,7 +639,7 @@ void CirclePackingScene::spawnCircles(const int spawnRate)
 			{
 				auto dataComp = activeCircle->getComponent<CirclePackingData*>(CIRCLE_PACKING_DATA);
 				float distance = dataComp->position.distance(spawnPoint.point);
-				float pad = 2.0f;
+                float pad = CirclePackingData::initialRadius * 0.5f;
 				if (distance <= (dataComp->radius + pad))
 				{
 					// Spawn point is already covered by another circle. 
@@ -659,6 +678,8 @@ void CirclePackingScene::spawnCircles(const int spawnRate)
 			count++;
 		}
 	}
+    
+    return count;
 }
 
 void CirclePackingScene::resetCircles()
