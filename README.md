@@ -169,18 +169,26 @@ To run algorithm, place your mouse pointer near the left edge of screen to show 
 </details>
 
 ----
-## In Progress
+## Planned
+### Ear clipping polygon triangulation
+Polygon generation/draw with ear clipping algorithm
 ### A* pathfinding
 Visualizes A* pathfinding step by step
-## Planned
 ### Vector Math 
-Visualizes dot and cross product
+Visualizes dot and cross product (i.e. Patrol detects player if player is in his sight range with angle)
 ### Audio spectrum
 Visualizes music in to several different form of graphs
 
 ----
 ## Font
 Used [Rubik](https://www.fontsquirrel.com/fonts/rubik) by Hubert & Fischer
+
+##Todo List
+- Record time how long each algorithm takes to compute every frame and display with fps.
+- Increase size of window
+- Test build on linux
+- Replace current ECS (composite) with new ECS (data oriented)
+
 
 ## ChangeLog
 v0.5 Added Circle Packing visualization.<br>
