@@ -1,31 +1,36 @@
-#include "QTree.h"
+#include "QuadTree.h"
 #include "Component.h"
 
-int QTree::CurrentMaxLevelSet = 6;
-cocos2d::Node* QTree::lineNode = nullptr;
+int QuadTree::CurrentMaxLevelSet = 6;
+//cocos2d::Node* QuadTree::lineNode = nullptr;
+cocos2d::DrawNode* QuadTree::lineDrawNode = nullptr;
 
-QTree::QTree(const cocos2d::Rect& boundary, int level) : nw(nullptr), ne(nullptr), sw(nullptr), se(nullptr), boundary(boundary), leaf(true), level(level), xAxis(nullptr), yAxis(nullptr), clean(true)
+QuadTree::QuadTree(const cocos2d::Rect& boundary, int level) 
+: nw(nullptr)
+, ne(nullptr)
+, sw(nullptr)
+, se(nullptr)
+, boundary(boundary)
+, leaf(true)
+, level(level)
+, clean(true)
 {
 	if (this->level == 0)
 	{
-		QTree::CurrentMaxLevelSet = DEFAULT_LEVEL;
+		QuadTree::CurrentMaxLevelSet = DEFAULT_LEVEL;
 	}
 }
 
-QTree::~QTree()
+QuadTree::~QuadTree()
 {
-	if(xAxis != nullptr)
-		xAxis->removeFromParentAndCleanup(true);
-	if(yAxis != nullptr)
-		yAxis->removeFromParentAndCleanup(true);
 	clear();
 	if (this->level == 0)
 	{
-		QTree::CurrentMaxLevelSet = DEFAULT_LEVEL;
+		QuadTree::CurrentMaxLevelSet = DEFAULT_LEVEL;
 	}
 }
 
-void QTree::clear()
+void QuadTree::clear()
 {
 	if (this->clean)
 		return;
@@ -88,22 +93,14 @@ void QTree::clear()
 	// Must be leaf on fresh
 	this->leaf = true;
 
-	if (xAxis != nullptr)
-		xAxis->setOpacity(0);
-	if (yAxis != nullptr)
-		yAxis->setOpacity(0);
-
 	this->clean = true;
 }
 
-void QTree::showLines()
+void QuadTree::showLines()
 {
 	if (this->leaf == false)
 	{
-		this->initLines();
-
-		xAxis->setOpacity(255);
-		yAxis->setOpacity(255);
+		this->drawLines();
 	}
 
 	if (nw != nullptr)
@@ -127,57 +124,41 @@ void QTree::showLines()
 	}
 }
 
-void QTree::initLines()
+void QuadTree::drawLines()
 {
-	float midX = this->boundary.getMidX();
-	float midY = this->boundary.getMidY();
-	auto pos = cocos2d::Vec2(midX, midY);
+	cocos2d::Vec2 center = cocos2d::Vec2(this->boundary.getMidX(), this->boundary.getMidY());
+	cocos2d::Vec2 centerTop = cocos2d::Vec2(center.x, this->boundary.getMaxY());
+	cocos2d::Vec2 centerBottom = cocos2d::Vec2(center.x, this->boundary.getMinY());
+	cocos2d::Vec2 centerLeft = cocos2d::Vec2(this->boundary.getMinX(), center.y);
+	cocos2d::Vec2 centerRight = cocos2d::Vec2(this->boundary.getMaxX(), center.y);
 
-	if (xAxis == nullptr)
-	{
-		xAxis = cocos2d::Sprite::createWithSpriteFrameName("dot.png");
-		xAxis->setPosition(pos);
-		xAxis->setScaleX(this->boundary.size.width);
-		xAxis->setOpacity(0);
-		xAxis->setColor(cocos2d::Color3B::YELLOW);
-		xAxis->retain();
-		QTree::lineNode->addChild(xAxis);
-	}
+	QuadTree::lineDrawNode->setLineWidth(1.0f);
+	QuadTree::lineDrawNode->drawLine(centerTop, centerBottom, cocos2d::Color4F::YELLOW);
+	QuadTree::lineDrawNode->drawLine(centerLeft, centerRight, cocos2d::Color4F::YELLOW);
+}
 
-	if (yAxis == nullptr)
+void QuadTree::increaseLevel()
+{
+	if (QuadTree::CurrentMaxLevelSet < MAX_LEVEL)
 	{
-		yAxis = cocos2d::Sprite::createWithSpriteFrameName("dot.png");
-		yAxis->setPosition(pos);
-		yAxis->setScaleY(this->boundary.size.height);
-		yAxis->setOpacity(0);
-		yAxis->setColor(cocos2d::Color3B::YELLOW);
-		yAxis->retain();
-		QTree::lineNode->addChild(yAxis);
+		QuadTree::CurrentMaxLevelSet += 1;
 	}
 }
 
-void QTree::increaseLevel()
+void QuadTree::decreaseLevel()
 {
-	if (QTree::CurrentMaxLevelSet < MAX_LEVEL)
+	if (QuadTree::CurrentMaxLevelSet > MIN_LEVEL)
 	{
-		QTree::CurrentMaxLevelSet += 1;
+		QuadTree::CurrentMaxLevelSet -= 1;
 	}
 }
 
-void QTree::decreaseLevel()
+const int QuadTree::getCurrentLevelSetting()
 {
-	if (QTree::CurrentMaxLevelSet > MIN_LEVEL)
-	{
-		QTree::CurrentMaxLevelSet -= 1;
-	}
+	return QuadTree::CurrentMaxLevelSet;
 }
 
-const int QTree::getCurrentLevelSetting()
-{
-	return QTree::CurrentMaxLevelSet;
-}
-
-void QTree::subDivide()
+void QuadTree::subDivide()
 {
 	//cocos2d::log("Subdividing on level %d", this->level);
 	//sub divide only happen when there is more than 1 object.
@@ -188,19 +169,19 @@ void QTree::subDivide()
 
 	//top left 
 	if(nw == nullptr)
-		nw = new QTree(cocos2d::Rect(this->boundary.getMinX(), this->boundary.getMidY(), width, height), this->level + 1);
+		nw = new QuadTree(cocos2d::Rect(this->boundary.getMinX(), this->boundary.getMidY(), width, height), this->level + 1);
 
 	//top right
 	if (ne == nullptr)
-		ne = new QTree(cocos2d::Rect(this->boundary.getMidX(), this->boundary.getMidY(), width, height), this->level + 1);
+		ne = new QuadTree(cocos2d::Rect(this->boundary.getMidX(), this->boundary.getMidY(), width, height), this->level + 1);
 
 	//bot left
 	if (sw == nullptr)
-		sw = new QTree(cocos2d::Rect(this->boundary.getMinX(), this->boundary.getMinY(), width, height), this->level + 1);
+		sw = new QuadTree(cocos2d::Rect(this->boundary.getMinX(), this->boundary.getMinY(), width, height), this->level + 1);
 
 	//bot right
 	if (se == nullptr)
-		se = new QTree(cocos2d::Rect(this->boundary.getMidX(), this->boundary.getMinY(), width, height), this->level + 1);
+		se = new QuadTree(cocos2d::Rect(this->boundary.getMidX(), this->boundary.getMinY(), width, height), this->level + 1);
 
 	//so...replace the object
 	std::list<Entity*> remainingData;
@@ -239,11 +220,12 @@ void QTree::subDivide()
 	remainingData.clear();
 }
 
-bool QTree::insert(Entity* entity)
+bool QuadTree::insert(Entity* entity)
 {
 	if (this->clean)
 		clean = false;
 
+	// Note: The line below is specifically made for this project. 
 	auto bb = dynamic_cast<ECS::Sprite*>(entity->components[SPRITE])->sprite->getBoundingBox();
 	if (this->boundary.intersectsRect(bb))
 	{
@@ -251,10 +233,10 @@ bool QTree::insert(Entity* entity)
 		if (leaf)
 		{
 			//don't have sub. check max level
-			if (this->level < QTree::CurrentMaxLevelSet)
+			if (this->level < QuadTree::CurrentMaxLevelSet)
 			{
 				//not max level yet. subdivide. objects existing this node should be repositioned to new subs
-				if (this->datas.size() < CAPACITY)
+				if (this->datas.size() < QuadTree::MAX_ENTITY_TO_SUBDIVIDE)
 				{
 					this->datas.push_back(entity);
 					return true;
@@ -284,7 +266,6 @@ bool QTree::insert(Entity* entity)
 					{
 						//doesn't fit. remain here
 						this->datas.push_back(entity);
-						//cocos2d::log("Inserting at level %d with id %d, rect (%f, %f, %f, %f)", level, entity,  box.origin.x, box.origin.y, box.size.width, box.size.height);
 						return true;
 					}
 				}
@@ -293,7 +274,6 @@ bool QTree::insert(Entity* entity)
 			else
 			{
 				this->datas.push_back(entity);
-				//cocos2d::log("Inserting at level %d with id %d, rect (%f, %f, %f, %f)", level, entity,  box.origin.x, box.origin.y, box.size.width, box.size.height);
 				return true;
 			}
 		}
@@ -332,12 +312,12 @@ bool QTree::insert(Entity* entity)
 	return false;
 }
 
-void QTree::setBoundary(const cocos2d::Rect & boundary)
+void QuadTree::setBoundary(const cocos2d::Rect & boundary)
 {
 	this->boundary = boundary;
 }
 
-void QTree::setLevel(const int level)
+void QuadTree::setLevel(const int level)
 {
 	if (level < 0)
 	{
@@ -346,7 +326,7 @@ void QTree::setLevel(const int level)
 	this->level = level;
 }
 
-void QTree::queryAllEntities(const cocos2d::Rect& queryingArea, std::list<Entity*>& nearBoundingBoxes)
+void QuadTree::queryAllEntities(const cocos2d::Rect& queryingArea, std::list<Entity*>& nearBoundingBoxes)
 {
 	if (this->boundary.intersectsRect(queryingArea))
 	{
