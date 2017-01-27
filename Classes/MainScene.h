@@ -16,17 +16,13 @@ private:
 	//Mouse events
 	void onMouseMove(cocos2d::Event* event);
 	void onMouseDown(cocos2d::Event* event);
-	void onMouseUp(cocos2d::Event* event);
-	void onMouseScroll(cocos2d::Event* event);
 
 	//keyboard events
 	void onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::Event* event);
-	void onKeyReleased(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::Event* event);
 
 	//cocos2d virtuals
 	virtual bool init() override;
 	virtual void onEnter() override;
-	virtual void update(float delta) override;
 	virtual void onExit() override;
 
 	std::vector<cocos2d::Label*> labels;
@@ -43,6 +39,9 @@ private:
 		QUAD_TREE = 0,
 		FLOCKING,
 		CIRCLE_PACKING,
+        RECT_PACKING,
+        A_STAR_PATHFINDING,
+        EAR_CLIPPING,
 		EXIT
 	};
 
