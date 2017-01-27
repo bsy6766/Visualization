@@ -14,7 +14,7 @@ class QuadTreeScene : public cocos2d::Scene
 {
 private:
 	//default constructor
-	QuadTreeScene() {};
+	QuadTreeScene() = default;
 
 	//Input Listeners
 	cocos2d::EventListenerMouse* mouseInputListener;
@@ -37,9 +37,7 @@ private:
 	void initInputListeners();
 	void releaseInputListeners();
 
-	// Separating each usage labels for animation
-	std::vector<cocos2d::Label*> usageLabels;
-
+    // Enum for labels
     enum class CUSTOM_LABEL_INDEX
     {
         ENTITIES,
@@ -106,20 +104,28 @@ private:
 
 	// Initialize entities and quad tree
 	void initEntitiesAndQTree();
+    
 	// Creates new entity with required components
 	ECS::Entity* createNewEntity();
+    
 	// Update each entity's position and reassign to quadtree
 	void resetQTreeAndUpdatePosition(float delta);
+    
 	// Checks collision between entities, count number, resolve if enabled
 	void checkCollision();
+    
 	// Checks if box is out of boundary. Sets bool to true if box need to flip direction
 	void checkBoundary(ECS::Sprite& spriteComp, bool& flipX, bool& flipY);
+    
 	// Flips direction
 	void flipDirVec(const bool flipX, const bool flipY, cocos2d::Vec2& dirVec);
+    
 	// Resolves collision between two entities.
 	void resolveCollisions(ECS::Sprite& entitySpriteComp, ECS::Sprite& nearEntitySpriteComp, ECS::DirectionVector& entityDirVecComp, ECS::DirectionVector& nearEntityDirVecComp);
+    
 	// Reassigns entitiy id to keep id less than 1000 (because of duplication check).
 	void reassignEntityIds();
+    
     // Toggle color
     void toggleColor(const bool enabled, LabelsNode::TYPE type, const int index, const bool playAnimation = true);
 public:
