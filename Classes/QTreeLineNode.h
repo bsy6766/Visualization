@@ -20,6 +20,8 @@ private:
 	//cocos2d virtual
 	virtual bool init() override;
 
+	// Draw node
+	cocos2d::DrawNode* lineDrawNode;
 public:
 	//simple creator func
 	static QTreeLineNode* createNode();
