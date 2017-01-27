@@ -24,11 +24,19 @@ bool FlockingScene::init()
 	// Uncomment this to activate update(float) function
 	this->scheduleUpdate();
 
-	auto winSize = cocos2d::Director::getInstance()->getVisibleSize();
-
-	this->displayBoundary = cocos2d::Rect(0, 0, winSize.height, winSize.height);
+    auto winSize = cocos2d::Director::getInstance()->getVisibleSize();
+    
+    // Get boundary.
+    this->displayBoundary = cocos2d::Rect(0, 0, 650, 650);
 
 	std::string fontPath = "fonts/Rubik-Medium.ttf";
+    
+    this->displayBoundaryBoxNode = DisplayBoundaryBoxNode::createNode();
+    this->displayBoundaryBoxNode->setPosition(cocos2d::Vec2::ZERO);
+    this->displayBoundaryBoxNode->retain();
+    this->displayBoundaryBoxNode->drawNode->setLocalZOrder(static_cast<int>(Z_ORDER::BOX));
+    this->displayBoundaryBoxNode->drawDisplayBoundaryBox(this->displayBoundary);
+    this->addChild(this->displayBoundaryBoxNode);
 
 	this->areaNode = cocos2d::Node::create();
 	this->areaNode->setPosition(cocos2d::Vec2::ZERO);
@@ -51,24 +59,27 @@ bool FlockingScene::init()
 	this->backLabel->setPosition(cocos2d::Vec2(winSize.width - 60.0f, 20.0f));
 	this->addChild(this->backLabel);
 
-	float labelX = winSize.height + 5.0f;
+    float labelX = winSize.height - 10.0f;
+    float numberLabelY = winSize.height - 40.0f;
 
 	entityCountLabel = cocos2d::Label::createWithTTF("Entities: " + std::to_string(this->entities.size()), fontPath, 25);
 	entityCountLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	entityCountLabel->setPosition(cocos2d::Vec2(labelX, winSize.height - 20.0f));
-	this->addChild(entityCountLabel);
+	entityCountLabel->setPosition(cocos2d::Vec2(labelX, numberLabelY));
+    this->addChild(entityCountLabel);
+    
+    float weightLabelY = numberLabelY - 15.0f;
+    float leftButtonX = winSize.height + 160.0f;
+    float weightLabelX = leftButtonX + 30.0f;
+    float rightButtonX = leftButtonX + 60.0f;
+    float weightLabelYOffset = 25.0f;
+    float buttonYOffset = 25.0f;
 
 	this->weightLabel = cocos2d::Label::createWithTTF("WEIGHTS (Click buttons to modify)", fontPath, 25);
 	this->weightLabel->setAnchorPoint(cocos2d::Vec2(0, 1.0f));
-	this->weightLabel->setPosition(cocos2d::Vec2(labelX, winSize.height - 35.0f));
+	this->weightLabel->setPosition(cocos2d::Vec2(labelX, weightLabelY));
 	this->addChild(this->weightLabel);
-
-	float weightLabelY = winSize.height - 50.0f;
-	float leftButtonX = winSize.height + 160.0f;
-	float weightLabelX = leftButtonX + 30.0f;
-	float rightButtonX = leftButtonX + 60.0f;
-	float weightLabelYOffset = 25.0f;
-	float buttonYOffset = 25.0f;
+    
+    weightLabelY -= 20.0f;
 
 	this->alignmentLabel = cocos2d::Label::createWithTTF("ALIGNMENT", fontPath, 20);
 	this->alignmentLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));

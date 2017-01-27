@@ -5,6 +5,7 @@
 #include "ui/CocosGUI.h"
 #include "QuadTree.h"
 #include "ECS.h"
+#include "CustomNode.h"
 #include "Component.h"
 
 class FlockingScene : public cocos2d::Scene
@@ -42,6 +43,7 @@ private:
 	cocos2d::Node* areaNode;
 	cocos2d::Node* blackArea;
     cocos2d::Vec2 curMousePosition;
+    DisplayBoundaryBoxNode* displayBoundaryBoxNode;
 
 	// Labels
 	cocos2d::Label* weightLabel;
@@ -100,6 +102,13 @@ private:
 		AVOID_LEFT,
 		AVOID_RIGHT
 	};
+    
+    enum Z_ORDER
+    {
+        BOID,
+        OBSTACLE,
+        BOX
+    };
 
 	// Quadtree to optimize collision check
 	QuadTree* quadTree;

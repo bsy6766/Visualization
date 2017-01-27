@@ -6,7 +6,7 @@
 #include "Component.h"
 #include "ECS.h"
 #include "Component.h"
-#include "QuadTreeLineNode.h"
+#include "CustomNode.h"
 #include <vector>
 #include <list>
 
@@ -103,6 +103,7 @@ private:
 	// Node
 	cocos2d::Node* areaNode;
 	QuadTreeLineNode* quadTreeLineNode;
+    DisplayBoundaryBoxNode* displayBoundaryBoxNode;
 
 	// Boundary
 	cocos2d::Rect displayBoundary;

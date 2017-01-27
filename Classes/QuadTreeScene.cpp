@@ -21,7 +21,10 @@ bool QuadTreeScene::init()
 	ECS::Entity::idCounter = 0;
 
 	// Limit max entity to 400 in this case
-	ECS::Entity::maxEntitySize = 1000;
+    ECS::Entity::maxEntitySize = 1000;
+    
+    // Get boundary.
+    this->displayBoundary = cocos2d::Rect(0, 0, 650, 650);
 	
 	//init node
 	this->areaNode = cocos2d::Node::create();
@@ -31,11 +34,19 @@ bool QuadTreeScene::init()
 
 	this->quadTreeLineNode = QuadTreeLineNode::createNode();
 	this->quadTreeLineNode->setPosition(cocos2d::Vec2::ZERO);
-	this->quadTreeLineNode->retain();
-	this->addChild(this->quadTreeLineNode);
-	this->quadTreeLineNode->dispalyBoundaryDrawNode->setLocalZOrder(static_cast<int>(Z_ORDER::BOX));
-	this->quadTreeLineNode->drawDisplayBoundaryBox(this->displayBoundary);
-	this->quadTreeLineNode->quadTreeSubDivisionDrawNode->setLocalZOrder(static_cast<int>(Z_ORDER::LINE));
+    this->quadTreeLineNode->retain();
+    this->quadTreeLineNode->drawNode->setLocalZOrder(static_cast<int>(Z_ORDER::LINE));
+    this->addChild(this->quadTreeLineNode);
+    
+    
+    this->displayBoundaryBoxNode = DisplayBoundaryBoxNode::createNode();
+    this->displayBoundaryBoxNode->setPosition(cocos2d::Vec2::ZERO);
+    this->displayBoundaryBoxNode->retain();
+    this->displayBoundaryBoxNode->drawNode->setLocalZOrder(static_cast<int>(Z_ORDER::BOX));
+    this->addChild(this->displayBoundaryBoxNode);
+    this->displayBoundaryBoxNode->drawDisplayBoundaryBox(this->displayBoundary);
+    
+
 
 	// init flags
 	pause = false;
@@ -52,9 +63,6 @@ bool QuadTreeScene::init()
 	// init action
 	this->clickAnimation = cocos2d::Sequence::create(cocos2d::ScaleTo::create(0, 0.85f), cocos2d::DelayTime::create(0.25f), cocos2d::ScaleTo::create(0, 1.0f), nullptr);
 	this->clickAnimation->retain();
-
-	// Get boundary
-	this->displayBoundary = cocos2d::Rect(0, 0, winSize.height, winSize.height);
 
 	const std::string fontPath = "fonts/Rubik-Medium.ttf";
 
@@ -73,8 +81,8 @@ bool QuadTreeScene::init()
 	fpsElapsedTime = 0;
 
 	// Label x
-	float labelX = winSize.height + 5.0f;
-	float numberLabelY = winSize.height - 20.0f;
+	float labelX = winSize.height - 10.0f;
+	float numberLabelY = winSize.height - 40.0f;
 	float numberLabelYOffset = 24.0f;
 	float numberLabelFontSize = 23;
 
@@ -197,7 +205,7 @@ void QuadTreeScene::initEntitiesAndQTree()
 
 	// Store lineNode pointer to quadtree for visualization
 	//QuadTree::lineNode = this->qTreeLineNode;
-	QuadTree::lineDrawNode = this->quadTreeLineNode->quadTreeSubDivisionDrawNode;
+	QuadTree::lineDrawNode = this->quadTreeLineNode->drawNode;
 	// Init quadtree with initial boundary
 	this->quadTree = new QuadTree(this->displayBoundary, 0);
 }
@@ -911,6 +919,7 @@ void QuadTreeScene::onExit()
 	releaseInputListeners();
 	this->areaNode->release();
 	this->quadTreeLineNode->release();
+    this->displayBoundaryBoxNode->release();
 
 	// Delete all entities
 	for (auto entity : this->entities)
