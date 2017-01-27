@@ -118,37 +118,25 @@ bool LabelsNode::init()
 
 const bool LabelsNode::isValidIndex(TYPE type, const int index)
 {
-    bool ret = false;
+    int size = 0;
     switch (type) {
         case TYPE::CUSTOM:
-        {
-            if(index >= 0 || index < static_cast<int>(this->customLabels.size()))
-            {
-                ret = true;
-            }
-        }
+            size = static_cast<int>(this->customLabels.size());
             break;
         case TYPE::KEYBOARD:
-        {
-            if(index >= 0 || index < static_cast<int>(this->keyboardUsageLabels.size()))
-            {
-                ret = true;
-            }
-        }
+            size = static_cast<int>(this->keyboardUsageLabels.size());
+            break;
+        case TYPE::MOUSE_OVER_AND_KEY:
+            size = static_cast<int>(this->mouseOverAndKeyUsageLabels.size());
             break;
         case TYPE::MOUSE:
-        {
-            if(index >= 0 || index < static_cast<int>(this->mouseUsageLabels.size()))
-            {
-                ret = true;
-            }
-        }
+            size = static_cast<int>(this->mouseUsageLabels.size());
             break;
         default:
             break;
     }
     
-    return ret;
+    return (size > 0 && index >= 0 && index < size);
 }
 
 void LabelsNode::addLabel(LabelsNode::TYPE type, const std::string &str, const int fontSize)
@@ -174,6 +162,14 @@ void LabelsNode::addLabel(LabelsNode::TYPE type, const std::string &str, const i
             pos = this->keyboardUsageLabelStartPos;
             
             this->keyboardUsageLabels.push_back(newLabel);
+        }
+            break;
+        case TYPE::MOUSE_OVER_AND_KEY:
+        {
+            size = static_cast<float>(this->mouseOverAndKeyUsageLabels.size());
+            pos = this->mouseOverAndKeyLabelStartPos;
+            
+            this->mouseOverAndKeyUsageLabels.push_back(newLabel);
         }
             break;
         case TYPE::MOUSE:
@@ -220,6 +216,11 @@ void LabelsNode::setColor(TYPE type, const int index, cocos2d::Color3B color, co
             {
                 this->keyboardUsageLabels.at(index)->setColor(color);
                 
+            }
+                break;
+            case TYPE::MOUSE_OVER_AND_KEY:
+            {
+                this->mouseOverAndKeyUsageLabels.at(index)->setColor(color);
             }
                 break;
             case TYPE::MOUSE:
@@ -301,6 +302,13 @@ void LabelsNode::playAnimation(TYPE type, const int index)
                 this->keyboardUsageLabels.at(index)->runAction(this->labelAnimation->clone());
             }
                 break;
+            case TYPE::MOUSE_OVER_AND_KEY:
+            {
+                this->mouseOverAndKeyUsageLabels.at(index)->stopAllActions();
+                this->mouseOverAndKeyUsageLabels.at(index)->setScale(1.0f);
+                this->mouseOverAndKeyUsageLabels.at(index)->runAction(this->labelAnimation->clone());
+            }
+                break;
             case TYPE::MOUSE:
             {
                 this->mouseUsageLabels.at(index)->stopAllActions();
@@ -319,4 +327,107 @@ void LabelsNode::onExit()
 {
     cocos2d::Node::onExit();
     this->labelAnimation->retain();
+}
+
+
+
+
+
+const std::string ButtonModifierNode::fontPath = "fonts/Rubik-Medium.ttf";
+
+ButtonModifierNode* ButtonModifierNode::createNode()
+{
+    ButtonModifierNode* newNode = ButtonModifierNode::create();
+    return newNode;
+}
+
+bool ButtonModifierNode::init()
+{
+    if (!cocos2d::Node::init())
+    {
+        return false;
+    }
+    
+    this->buttonLabelStartPos = cocos2d::Vec2::ZERO;
+    this->rightButtonXOffset = 0;
+    this->leftButtonXOffset = 0;
+    this->valueLabelXOffset = 0;
+    
+    return true;
+}
+
+const bool ButtonModifierNode::isValidIndex(TYPE type, const int index)
+{
+    int size = 0;
+    switch (type) {
+        case TYPE::LABEL:
+            size = static_cast<int>(this->buttonLabels.size());
+            break;
+        case TYPE::VALUE:
+            size = static_cast<int>(this->valueLabels.size());
+            break;
+        case TYPE::LEFT_BUTTON:
+            size = static_cast<int>(this->leftButtons.size());
+            break;
+        case TYPE::RIGHT_BUTTON:
+            size = static_cast<int>(this->rightButtons.size());
+            break;
+        default:
+            break;
+    }
+    
+    return (size > 0 && index >= 0 && index < size);
+}
+
+void ButtonModifierNode::addButton(const std::string& labelStr, const int fontSize, const float value, const std::string& leftButtonSpriteNamePrefix, const std::string& rightButtonSpriteNamePrefix, const std::string& buttonSpriteNameSuffix, const std::string& format, const int leftActionTag, const int rightActionTag, const cocos2d::ui::AbstractCheckButton::ccWidgetClickCallback& callback)
+{
+    // Butotn label
+    auto newButtonLabel = cocos2d::Label::createWithTTF(labelStr, fontPath, fontSize);
+    newButtonLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
+    auto labelPos = this->buttonLabelStartPos;
+    labelPos.y -= (static_cast<float>(this->buttonLabels.size()) * (fontSize + 5.0f));
+    newButtonLabel->setPosition(labelPos);
+    this->addChild(newButtonLabel);
+    this->buttonLabels.push_back(newButtonLabel);
+    
+    // Value lable
+    auto newValueLabel = cocos2d::Label::createWithTTF(std::to_string(value).substr(0, 3), fontPath, fontSize);
+    auto valuePos = this->buttonLabelStartPos;
+    valuePos.x += this->valueLabelXOffset;
+    valuePos.y -= (static_cast<float>(this->valueLabels.size()) * (fontSize + 5.0f));
+    newValueLabel->setPosition(valuePos);
+    this->addChild(newValueLabel);
+    this->valueLabels.push_back(newValueLabel);
+    
+    const std::string suffix = buttonSpriteNameSuffix + format;
+    
+    // Left button
+    auto leftButton = cocos2d::ui::Button::create(leftButtonSpriteNamePrefix + suffix, leftButtonSpriteNamePrefix + "Selected" + suffix, leftButtonSpriteNamePrefix + "Disabled" + suffix, cocos2d::ui::Widget::TextureResType::PLIST);
+    auto leftButtonPos = this->buttonLabelStartPos;
+    leftButtonPos.x += this->leftButtonXOffset;
+    leftButtonPos.y -= (static_cast<float>(this->leftButtons.size()) * (fontSize + 5.0f));
+    leftButton->setPosition(leftButtonPos);
+    leftButton->addClickEventListener(callback);
+    leftButton->setActionTag(leftActionTag);
+    this->addChild(leftButton);
+    this->leftButtons.push_back(leftButton);
+    
+    // Right button
+    auto rightButton = cocos2d::ui::Button::create(rightButtonSpriteNamePrefix + suffix, rightButtonSpriteNamePrefix + "Selected" + suffix, rightButtonSpriteNamePrefix + "Disabled" + suffix, cocos2d::ui::Widget::TextureResType::PLIST);
+    auto rightButtonPos = this->buttonLabelStartPos;
+    rightButtonPos.x += this->rightButtonXOffset;
+    rightButtonPos.y -= (static_cast<float>(this->rightButtons.size()) * (fontSize + 5.0f));
+    rightButton->setPosition(rightButtonPos);
+    rightButton->addClickEventListener(callback);
+    rightButton->setActionTag(rightActionTag);
+    this->addChild(rightButton);
+    this->rightButtons.push_back(rightButton);
+}
+
+void ButtonModifierNode::updateValue(const int index, const float value)
+{
+    if(isValidIndex(TYPE::VALUE, index))
+    {
+        this->valueLabels.at(index)->setString(std::to_string(value).substr(0, 3));
+    }
 }

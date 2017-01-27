@@ -2,6 +2,7 @@
 #define CUSTOM_NODE_H
 
 #include "cocos2d.h"
+#include "ui/CocosGUI.h"
 #include <string>
 #include <vector>
 
@@ -93,6 +94,7 @@ private:
     {
         CUSTOM,
         KEYBOARD,
+        MOUSE_OVER_AND_KEY,
         MOUSE
     };
     
@@ -122,6 +124,8 @@ private:
     // Input usage labels
     std::vector<cocos2d::Label*> keyboardUsageLabels;
     cocos2d::Vec2 keyboardUsageLabelStartPos;
+    std::vector<cocos2d::Label*> mouseOverAndKeyUsageLabels;
+    cocos2d::Vec2 mouseOverAndKeyLabelStartPos;
     std::vector<cocos2d::Label*> mouseUsageLabels;
     cocos2d::Vec2 mouseUsageLabelStartPos;
     
@@ -154,6 +158,62 @@ public:
     void updateLabel(const int index, const std::string& str);
     void setColor(TYPE type, const int index, cocos2d::Color3B color, const bool playAnimation = true);
     void playAnimation(TYPE type, const int index);
+};
+
+/**
+ *	@class ButtonModifierNode
+ *	@brief Inherits cocos2d Node.
+ *
+ *	Purpose of this class is to create a label with two button modifier and value for flocking scene
+ */
+
+class ButtonModifierNode : public cocos2d::Node
+{
+private:
+    friend class FlockingScene;
+    
+    // font path
+    static const std::string fontPath;
+    
+    //Default contructor
+    ButtonModifierNode() = default;
+    
+    //cocos2d virtual
+    virtual bool init() override;
+    
+    // Type
+    enum class TYPE
+    {
+        LABEL,
+        VALUE,
+        LEFT_BUTTON,
+        RIGHT_BUTTON
+    };
+    
+    std::vector<cocos2d::Label*> buttonLabels;
+    std::vector<cocos2d::Label*> valueLabels;
+    std::vector<cocos2d::ui::Button*> leftButtons;
+    std::vector<cocos2d::ui::Button*> rightButtons;
+    
+    cocos2d::Vec2 buttonLabelStartPos;
+    float leftButtonXOffset;
+    float rightButtonXOffset;
+    float valueLabelXOffset;
+    
+    const bool isValidIndex(TYPE type, const int index);
+public:
+    //simple creator func
+    static ButtonModifierNode* createNode();
+    
+    //Default destructor
+    ~ButtonModifierNode() = default;
+    
+    //Cocos2d Macro
+    CREATE_FUNC(ButtonModifierNode);
+    
+    // Add button
+    void addButton(const std::string& labelStr, const int fontSize, const float value, const std::string& leftButtonSpriteNamePrefix, const std::string& rightButtonSpriteNamePrefix, const std::string& buttonSpriteNameSuffix, const std::string& format, const int leftActionTag, const int rightActionTag, const cocos2d::ui::AbstractCheckButton::ccWidgetClickCallback& callback);
+    void updateValue(const int index, const float value);
 };
 
 #endif
