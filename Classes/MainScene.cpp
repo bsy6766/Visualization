@@ -1,5 +1,5 @@
 #include "MainScene.h"
-#include "QTreeScene.h"
+#include "QuadTreeScene.h"
 #include "FlockingScene.h"
 #include "CirclePackingScene.h"
 #include "Utility.h"
@@ -25,9 +25,6 @@ bool MainScene::init()
 	hoveringLableIndex = -1;
 
 	Utility::Random::init();
-
-	// Uncomment this to activate update(float) function
-	//this->scheduleUpdate();
 
 	std::string fontPath = "fonts/Rubik-Medium.ttf";
 
@@ -163,7 +160,7 @@ void MainScene::onMouseDown(cocos2d::Event* event)
 			case LABEL_INDEX::QUAD_TREE:
 			{
 				// Load quad tree scene
-				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, QTreeScene::create(), cocos2d::Color3B::BLACK));
+				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, QuadTreeScene::create(), cocos2d::Color3B::BLACK));
 			}
 			break;
 			case LABEL_INDEX::FLOCKING:
