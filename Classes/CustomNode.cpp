@@ -352,7 +352,6 @@ void LabelsNode::initTitleStr(const std::string& titleString, const cocos2d::Vec
 void LabelsNode::setSharedLabelPosition(SHARED_LABEL_POS_TYPE type)
 {
 	auto winSize = cocos2d::Director::getInstance()->getVisibleSize();
-	int fontSize = 20.0f;
 
 	switch (type)
 	{

@@ -56,22 +56,16 @@ bool CirclePackingScene::init()
 	this->pause = false;
 	this->showOriginalImage = false;
 
-	// const
-	const float imagePanelWidth = 120.0f;
-
 	// Init labels node
 	this->labelsNode = LabelsNode::createNode();
 	this->labelsNode->setSharedLabelPosition(LabelsNode::SHARED_LABEL_POS_TYPE::CIRCLE_PACKING_SCENE);
 	this->addChild(this->labelsNode);
-
-	const int titleSize = 35;
 
 	// Only here, set anchorpoint x to mid
 	this->labelsNode->titleLabel->setAnchorPoint(cocos2d::Vec2(0.5f, 0.5f));
 	this->labelsNode->initTitleStr("Circle Packing", cocos2d::Vec2(winSize.width * 0.5f, winSize.height - 30.0f));
 
 	const int customLabelSize = 25;
-	const int blankLineSize = 15;
 
 	float labelX = winSize.width * 0.68f;
 	float labelY = winSize.height * 0.8f;

@@ -65,7 +65,6 @@ bool FlockingScene::init()
 
 	// Set size
 	const int customLabelSize = 25;
-	const int blankLineSize = 15;
 
     this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Entities: 0", customLabelSize);
     this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Weights (Click buttons to modify weights)", customLabelSize);
