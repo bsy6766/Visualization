@@ -38,7 +38,7 @@ bool MainScene::init()
 	this->labels.push_back(cocos2d::Label::createWithTTF("Quad Tree", fontPath, fontSize));
 	this->labels.push_back(cocos2d::Label::createWithTTF("Flocking", fontPath, fontSize));
     this->labels.push_back(cocos2d::Label::createWithTTF("Circle Packing", fontPath, fontSize));
-    //this->labels.push_back(cocos2d::Label::createWithTTF("Rect Packing", fontPath, fontSize));
+    this->labels.push_back(cocos2d::Label::createWithTTF("Rect Packing", fontPath, fontSize));
     //this->labels.push_back(cocos2d::Label::createWithTTF("A Star Pathfinding", fontPath, fontSize));
     //this->labels.push_back(cocos2d::Label::createWithTTF("Ear Clipping", fontPath, fontSize));
 	this->labels.push_back(cocos2d::Label::createWithTTF("EXIT(ESC)", fontPath, fontSize));
@@ -46,6 +46,10 @@ bool MainScene::init()
 	this->versionLabel = cocos2d::Label::createWithTTF("v0.6", fontPath, 20);
 	this->versionLabel->setPosition(winSize.width * 0.5f, 12.0f);
 	this->addChild(this->versionLabel);
+
+	this->descriptionLabel = cocos2d::Label::createWithTTF("", fontPath, 25);
+	this->descriptionLabel->setPosition(winSize.width * 0.5f, 55.0f);
+	this->addChild(this->descriptionLabel);
 	
 	int index = 0;
 	cocos2d::Vec2 start = cocos2d::Vec2(winSize.width * 0.5f, winSize.height - 120.0f);
@@ -59,6 +63,38 @@ bool MainScene::init()
 	}
 
 	return true;
+}
+
+void MainScene::setDescriptionLabel()
+{
+	if (this->hoveringLableIndex != -1)
+	{
+		MENU_INDEX menuIndex = static_cast<MENU_INDEX>(this->hoveringLableIndex);
+		switch (menuIndex)
+		{
+		case MainScene::MENU_INDEX::QUAD_TREE:
+			this->descriptionLabel->setString("Visualization collision check and resolution with Quad Tree");
+			break;
+		case MainScene::MENU_INDEX::FLOCKING:
+			this->descriptionLabel->setString("Visualization flocking algorithm");
+			break;
+		case MainScene::MENU_INDEX::CIRCLE_PACKING:
+			this->descriptionLabel->setString("Visualization circle packing based on image");
+			break;
+		case MainScene::MENU_INDEX::RECT_PACKING:
+			this->descriptionLabel->setString("Visualization rectangle packing in power of 2 square area");
+			break;
+		case MainScene::MENU_INDEX::EXIT:
+			this->descriptionLabel->setString("Exit");
+			break;
+		default:
+			break;
+		}
+	}
+	else
+	{
+		this->descriptionLabel->setString("");
+	}
 }
 
 void MainScene::onEnter()
@@ -80,6 +116,7 @@ void MainScene::checkMouseOver(const cocos2d::Vec2 mousePos)
 				this->hoveringLableIndex = index;
 				label->setScale(1.2f);
 				label->setString("> " + label->getString() + " <");
+				this->setDescriptionLabel();
 				return;
 			}
 			else if(this->hoveringLableIndex == index)
@@ -97,6 +134,7 @@ void MainScene::checkMouseOver(const cocos2d::Vec2 mousePos)
 				label->setScale(1.2f);
 				hoveringLableIndex = index;
 				label->setString("> " + label->getString() + " <");
+				this->setDescriptionLabel();
 				return;
 			}
 		}
@@ -116,6 +154,7 @@ void MainScene::checkMouseOver(const cocos2d::Vec2 mousePos)
 		std::string labelStr = this->labels.at(this->hoveringLableIndex)->getString();
 		this->labels.at(this->hoveringLableIndex)->setString(labelStr.substr(2, labelStr.size() - 4));
 		this->hoveringLableIndex = -1;
+		this->setDescriptionLabel();
 	}
 }
 
@@ -155,27 +194,28 @@ void MainScene::onMouseDown(cocos2d::Event* event)
 	{
 		if (mouseButton == 0)
 		{
-			switch (this->hoveringLableIndex)
+			MENU_INDEX menuIndex = static_cast<MENU_INDEX>(this->hoveringLableIndex);
+			switch (menuIndex)
 			{
-			case LABEL_INDEX::QUAD_TREE:
+			case MENU_INDEX::QUAD_TREE:
 			{
 				// Load quad tree scene
 				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, QuadTreeScene::create(), cocos2d::Color3B::BLACK));
 			}
 			break;
-			case LABEL_INDEX::FLOCKING:
+			case MENU_INDEX::FLOCKING:
 			{
 				// Load quad tree scene
 				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, FlockingScene::create(), cocos2d::Color3B::BLACK));
 			}
 			break;
-			case LABEL_INDEX::CIRCLE_PACKING:
+			case MENU_INDEX::CIRCLE_PACKING:
 			{
 				// Load quad tree scene
 				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, CirclePackingScene::create(), cocos2d::Color3B::BLACK));
 			}
 			break;
-			case LABEL_INDEX::EXIT:
+			case MENU_INDEX::EXIT:
 			{
 				cocos2d::Director::getInstance()->end();
 			}
