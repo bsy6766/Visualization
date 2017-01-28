@@ -42,6 +42,10 @@ bool MainScene::init()
     //this->labels.push_back(cocos2d::Label::createWithTTF("A Star Pathfinding", fontPath, fontSize));
     //this->labels.push_back(cocos2d::Label::createWithTTF("Ear Clipping", fontPath, fontSize));
 	this->labels.push_back(cocos2d::Label::createWithTTF("EXIT(ESC)", fontPath, fontSize));
+
+	this->versionLabel = cocos2d::Label::createWithTTF("v0.6", fontPath, 20);
+	this->versionLabel->setPosition(winSize.width * 0.5f, 12.0f);
+	this->addChild(this->versionLabel);
 	
 	int index = 0;
 	cocos2d::Vec2 start = cocos2d::Vec2(winSize.width * 0.5f, winSize.height - 120.0f);

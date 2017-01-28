@@ -28,6 +28,7 @@ private:
 	std::vector<cocos2d::Label*> labels;
 	int hoveringLableIndex;
 	cocos2d::Size winSize;
+	cocos2d::Label* versionLabel;
 
 	void initInputListeners();
 	void releaseInputListeners();
@@ -39,10 +40,10 @@ private:
 		QUAD_TREE = 0,
 		FLOCKING,
 		CIRCLE_PACKING,
-        RECT_PACKING,
-        A_STAR_PATHFINDING,
-        EAR_CLIPPING,
-		EXIT
+		EXIT,
+		RECT_PACKING,
+		A_STAR_PATHFINDING,
+		EAR_CLIPPING,
 	};
 
 public:
