@@ -35,7 +35,6 @@ private:
 	void releaseInputListeners();
 
 	// cocos2d
-	cocos2d::Label* backLabel;
 	cocos2d::Rect displayBoundary;
 	cocos2d::Node* areaNode;
     cocos2d::Vec2 curMousePosition;
