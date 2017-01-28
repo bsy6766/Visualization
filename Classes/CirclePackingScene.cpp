@@ -176,6 +176,8 @@ void CirclePackingScene::update(float delta)
         return;
     }
 
+	Utility::Time::start();
+
 	// Modify time by multiplier
 	delta *= this->simulationSpeedModifier;
 
@@ -195,6 +197,7 @@ void CirclePackingScene::update(float delta)
             {
                 this->finished = true;
 				this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Finished");
+				this->labelsNode->updateTimeTakenLabel("0");
             }
         }
         return;
@@ -213,6 +216,14 @@ void CirclePackingScene::update(float delta)
 
 	// Move all grown circles to another list
 	this->moveAllGrownCircles();
+
+	Utility::Time::stop();
+
+	std::string timeTakenStr = Utility::Time::getElaspedTime();	// Microseconds
+	float timeTakenF = std::stof(timeTakenStr);	// to float
+	timeTakenF *= 0.001f; // To milliseconds
+
+	this->labelsNode->updateTimeTakenLabel(std::to_string(timeTakenF).substr(0, 5));
     
 	this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::GROWING_CIRCLES), "Growing circles: " + std::to_string(this->growingCircleCount));
 }
@@ -333,13 +344,10 @@ void CirclePackingScene::initInputListeners()
 	this->mouseInputListener = EventListenerMouse::create();
 	this->mouseInputListener->onMouseMove = CC_CALLBACK_1(CirclePackingScene::onMouseMove, this);
 	this->mouseInputListener->onMouseDown = CC_CALLBACK_1(CirclePackingScene::onMouseDown, this);
-	this->mouseInputListener->onMouseUp = CC_CALLBACK_1(CirclePackingScene::onMouseUp, this);
-	this->mouseInputListener->onMouseScroll = CC_CALLBACK_1(CirclePackingScene::onMouseScroll, this);
 	_eventDispatcher->addEventListenerWithSceneGraphPriority(this->mouseInputListener, this);
 
 	this->keyInputListener = EventListenerKeyboard::create();
 	this->keyInputListener->onKeyPressed = CC_CALLBACK_2(CirclePackingScene::onKeyPressed, this);
-	this->keyInputListener->onKeyReleased = CC_CALLBACK_2(CirclePackingScene::onKeyReleased, this);
 	_eventDispatcher->addEventListenerWithSceneGraphPriority(this->keyInputListener, this);
 }
 
@@ -764,7 +772,14 @@ void CirclePackingScene::runCirclePacking(const IMAGE_INDEX imageIndex)
 	// Re-initialize QuadTree
 	initQuadTree();
     // Change status
-	this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Running");
+	if (this->pause)
+	{
+		this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Paused");
+	}
+	else
+	{
+		this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Running");
+	}
 }
 
 void CirclePackingScene::setImageNameAndSizeLabel()
@@ -895,22 +910,6 @@ void CirclePackingScene::onMouseDown(cocos2d::Event* event)
 	//float y = mouseEvent->getCursorY();
 }
 
-void CirclePackingScene::onMouseUp(cocos2d::Event* event) 
-{
-	//auto mouseEvent = static_cast<EventMouse*>(event);
-	//0 = left, 1 = right, 2 = middle
-	//int mouseButton = mouseEvent->getMouseButton();
-	//float x = mouseEvent->getCursorX();
-	//float y = mouseEvent->getCursorY();
-}
-
-void CirclePackingScene::onMouseScroll(cocos2d::Event* event) 
-{
-	//auto mouseEvent = static_cast<EventMouse*>(event);
-	//float x = mouseEvent->getScrollX();
-	//float y = mouseEvent->getScrollY();
-}
-
 void CirclePackingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::Event* event)
 {
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_ESCAPE)
@@ -944,11 +943,21 @@ void CirclePackingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, c
 		this->pause = !this->pause;
 		if (this->pause)
 		{
+			this->labelsNode->updateTimeTakenLabel("0");
 			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::PAUSE), cocos2d::Color3B::GREEN);
+			this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Paused");
 		}
 		else
 		{
 			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::PAUSE), cocos2d::Color3B::WHITE);
+			if (this->currentImageIndex == IMAGE_INDEX::NONE)
+			{
+				this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Waiting");
+			}
+			else
+			{
+				this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Running");
+			}
 		}
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_R)
@@ -982,6 +991,8 @@ void CirclePackingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, c
 			this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::POSSIBLE_SPAWN_POINTS), "Possible spawn points: 0");
 			this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::SPAWNED_CIRCLES), "Total circles: 0");
 			this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::GROWING_CIRCLES), "Growing circles: 0");
+
+			this->labelsNode->updateTimeTakenLabel("0");
 		}
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_S)
@@ -1026,11 +1037,6 @@ void CirclePackingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, c
 			delete image;
 		}
 	}
-}
-
-void CirclePackingScene::onKeyReleased(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::Event* event) 
-{
-
 }
 
 void CirclePackingScene::onSliderClick(cocos2d::Ref* sender)

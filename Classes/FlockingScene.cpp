@@ -1,5 +1,6 @@
 #include "FlockingScene.h"
 #include "MainScene.h"
+#include "Utility.h"
 
 USING_NS_CC;
 
@@ -207,10 +208,20 @@ void FlockingScene::update(float delta)
 
 	if (!pause)
 	{
+		Utility::Time::start();
+
 		resetQTreeAndPurge();
 
 		delta *= this->simulationSpeedModifier;
 		updateFlockingAlgorithm(delta);
+
+		Utility::Time::stop();
+
+		std::string timeTakenStr = Utility::Time::getElaspedTime();	// Microseconds
+		float timeTakenF = std::stof(timeTakenStr);	// to float
+		timeTakenF *= 0.001f; // To milliseconds
+
+		this->labelsNode->updateTimeTakenLabel(std::to_string(timeTakenF).substr(0, 5));
 	}
     
     this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::ENTITIES), "Entities: " + std::to_string(this->entities.size()) + " / " + std::to_string(ECS::Entity::maxEntitySize));
@@ -784,6 +795,7 @@ void FlockingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 		this->pause = !this->pause;
 		if (this->pause)
         {
+			this->labelsNode->updateTimeTakenLabel("0");
             this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::PAUSE), cocos2d::Color3B::GREEN);
 		}
 		else
@@ -799,6 +811,7 @@ void FlockingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
             entity->alive = false;
             this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::CLEAR), cocos2d::Color3B::WHITE);
 			this->rangeChecker->setVisible(false);
+			this->labelsNode->updateTimeTakenLabel("0");
 		}
 	}
 
@@ -838,8 +851,12 @@ void FlockingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 
 		for (auto entity : this->entities)
 		{
-			auto dirVecComp = entity->getComponent<DirectionVector*>(DIRECTION_VECTOR);
-			dirVecComp->smoothSteer = this->smoothSteering;
+			auto dataComp = entity->getComponent<FlockingData*>(FLOCKING_DATA);
+			if (dataComp->type == FlockingData::TYPE::BOID)
+			{
+				auto dirVecComp = entity->getComponent<DirectionVector*>(DIRECTION_VECTOR);
+				dirVecComp->smoothSteer = this->smoothSteering;
+			}
 		}
 
 		if (this->smoothSteering)

@@ -199,8 +199,11 @@ void QuadTreeScene::update(float delta)
 	// Skip entire update process if entities is empty
 	if (this->entities.empty())
 	{
+		this->labelsNode->updateTimeTakenLabel("0");
 		return;
 	}
+
+	Utility::Time::start();
 
 	//Speed modifier
 	delta *= this->simulationSpeedModifier;
@@ -208,6 +211,14 @@ void QuadTreeScene::update(float delta)
 	resetQTreeAndUpdatePosition(delta);
 
 	checkCollision();
+
+	Utility::Time::stop();
+
+	std::string timeTakenStr = Utility::Time::getElaspedTime();	// Microseconds
+	float timeTakenF = std::stof(timeTakenStr);	// to float
+	timeTakenF *= 0.001f; // To milliseconds
+
+	this->labelsNode->updateTimeTakenLabel(std::to_string(timeTakenF).substr(0, 5));
 
     int entityCount = static_cast<int>(this->entities.size());
     this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::ENTITIES), "Entities: " + std::to_string(entityCount) + " / 1000");
@@ -712,6 +723,10 @@ void QuadTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 	{
 		// Toggle pause simulation. Still counts fps and entity
 		pause = !pause;
+		if (pause)
+		{
+			this->labelsNode->updateTimeTakenLabel("0");
+		}
         this->toggleColor(pause, LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::PAUSE));
 	}
 
@@ -731,6 +746,8 @@ void QuadTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 		}
         
         this->labelsNode->playAnimation(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::CLEAR));
+
+		this->labelsNode->updateTimeTakenLabel("0");
 	}
 
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_A)
