@@ -2,6 +2,7 @@
 #include "QuadTreeScene.h"
 #include "FlockingScene.h"
 #include "CirclePackingScene.h"
+#include "RectPackingScene.h"
 #include "Utility.h"
 
 USING_NS_CC;
@@ -82,7 +83,7 @@ void MainScene::setDescriptionLabel()
 			this->descriptionLabel->setString("Visualization circle packing based on image");
 			break;
 		case MainScene::MENU_INDEX::RECT_PACKING:
-			this->descriptionLabel->setString("Visualization rectangle packing in power of 2 square area");
+			this->descriptionLabel->setString("Visualization rectangle packing in power of 2 sized square area");
 			break;
 		case MainScene::MENU_INDEX::EXIT:
 			this->descriptionLabel->setString("Exit");
@@ -202,24 +203,30 @@ void MainScene::onMouseDown(cocos2d::Event* event)
 				// Load quad tree scene
 				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, QuadTreeScene::create(), cocos2d::Color3B::BLACK));
 			}
-			break;
+				break;
 			case MENU_INDEX::FLOCKING:
 			{
 				// Load quad tree scene
 				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, FlockingScene::create(), cocos2d::Color3B::BLACK));
 			}
-			break;
+				break;
 			case MENU_INDEX::CIRCLE_PACKING:
 			{
 				// Load quad tree scene
 				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, CirclePackingScene::create(), cocos2d::Color3B::BLACK));
 			}
-			break;
+				break;
+			case MENU_INDEX::RECT_PACKING:
+			{
+				// Load quad tree scene
+				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, RectPackingScene::create(), cocos2d::Color3B::BLACK));
+			}
+				break;
 			case MENU_INDEX::EXIT:
 			{
 				cocos2d::Director::getInstance()->end();
 			}
-			break;
+				break;
 			default:
 				break;
 			}

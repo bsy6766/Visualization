@@ -1,4 +1,6 @@
 #include "RectPackingScene.h"
+#include "MainScene.h"
+#include "Utility.h"
 
 USING_NS_CC;
 
@@ -15,8 +17,11 @@ bool RectPackingScene::init()
 		return false;
 	}
 
-	// Uncomment this to activate update(float) function
-	//this->scheduleUpdate();
+	this->scheduleUpdate();
+
+	this->labelsNode = LabelsNode::createNode();
+	this->labelsNode->setSharedLabelPosition(LabelsNode::SHARED_LABEL_POS_TYPE::RECT_PACKING_SCENE);
+	this->addChild(this->labelsNode);
 
 	return true;
 }
@@ -24,13 +29,22 @@ bool RectPackingScene::init()
 void RectPackingScene::onEnter()
 {
 	cocos2d::CCScene::onEnter();
-	// Uncomment this to enable mouse and keyboard event listeners
-	//initInputListeners();
+	initInputListeners();
 }
 
 void RectPackingScene::update(float delta)
 {
+	this->labelsNode->updateFPSLabel(delta);
 
+	Utility::Time::start();
+
+	Utility::Time::stop();
+
+	std::string timeTakenStr = Utility::Time::getElaspedTime();	// Microseconds
+	float timeTakenF = std::stof(timeTakenStr);	// to float
+	timeTakenF *= 0.001f; // To milliseconds
+
+	this->labelsNode->updateTimeTakenLabel(std::to_string(timeTakenF).substr(0, 5));
 }
 
 void RectPackingScene::initInputListeners()
@@ -50,18 +64,30 @@ void RectPackingScene::initInputListeners()
 
 void RectPackingScene::onMouseMove(cocos2d::Event* event) 
 {
-	//auto mouseEvent = static_cast<EventMouse*>(event);
-	//float x = mouseEvent->getCursorX();
-	//float y = mouseEvent->getCursorY();
+	auto mouseEvent = static_cast<EventMouse*>(event);
+	float x = mouseEvent->getCursorX();
+	float y = mouseEvent->getCursorY();
+
+	auto point = cocos2d::Vec2(x, y);
+
+	this->labelsNode->updateMouseHover(point);
 }
 
 void RectPackingScene::onMouseDown(cocos2d::Event* event) 
 {
-	//auto mouseEvent = static_cast<EventMouse*>(event);
+	auto mouseEvent = static_cast<EventMouse*>(event);
 	//0 = left, 1 = right, 2 = middle
-	//int mouseButton = mouseEvent->getMouseButton();
-	//float x = mouseEvent->getCursorX();
-	//float y = mouseEvent->getCursorY();
+	int mouseButton = mouseEvent->getMouseButton();
+	float x = mouseEvent->getCursorX();
+	float y = mouseEvent->getCursorY();
+
+	auto point = cocos2d::Vec2(x, y);
+
+	bool ret = this->labelsNode->updateMouseDown(point);
+	if (ret)
+	{
+		return;
+	}
 }
 
 void RectPackingScene::onMouseUp(cocos2d::Event* event) 
@@ -82,7 +108,11 @@ void RectPackingScene::onMouseScroll(cocos2d::Event* event)
 
 void RectPackingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::Event* event) 
 {
-
+	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_ESCAPE)
+	{
+		// Terminate 
+		cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, MainScene::create(), cocos2d::Color3B::BLACK));
+	}
 }
 
 void RectPackingScene::onKeyReleased(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::Event* event) 
@@ -101,6 +131,5 @@ void RectPackingScene::releaseInputListeners()
 void RectPackingScene::onExit()
 {
 	cocos2d::CCScene::onExit();
-	// Uncomment this if you are using initInputListeners()
-	//releaseInputListeners(); 
+	releaseInputListeners(); 
 }

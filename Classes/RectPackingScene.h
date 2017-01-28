@@ -2,6 +2,7 @@
 #define RECTPACKINGSCENE_H
 
 #include "cocos2d.h"
+#include "CustomNode.h"
 
 class RectPackingScene : public cocos2d::CCScene
 {
@@ -31,6 +32,8 @@ private:
 
 	void initInputListeners();
 	void releaseInputListeners();
+
+	LabelsNode* labelsNode;
 
 public:
 	//simple creator func

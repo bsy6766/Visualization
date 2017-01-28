@@ -95,7 +95,7 @@ bool LabelsNode::init()
 
 	// Init title LAbel
 	const int titleSize = 35;
-	this->titleLabel = cocos2d::Label::createWithTTF("Visualization", fontPath, titleSize);
+	this->titleLabel = cocos2d::Label::createWithTTF("", fontPath, titleSize);
 	this->titleLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(this->titleLabel);
 
@@ -360,16 +360,21 @@ void LabelsNode::setSharedLabelPosition(SHARED_LABEL_POS_TYPE type)
 	{
 		float height = 40.0f;
 		this->backLabel->setPosition(cocos2d::Vec2(winSize.width - 70.0f, height));
-		float labelX = winSize.height - 10.0f;
-		this->fpsLabel->setPosition(cocos2d::Vec2(labelX, height));
+		this->fpsLabel->setPosition(cocos2d::Vec2(winSize.height - 10.0f, height));
 	}
 		break;
 	case SHARED_LABEL_POS_TYPE::CIRCLE_PACKING_SCENE:
 	{
 		float height = 20.0f;
 		this->backLabel->setPosition(cocos2d::Vec2(winSize.width - 70.0f, height));
-		float labelX = 130.0f;
-		this->fpsLabel->setPosition(cocos2d::Vec2(labelX, height));
+		this->fpsLabel->setPosition(cocos2d::Vec2(130.0f, height));
+	}
+	break;
+	case SHARED_LABEL_POS_TYPE::RECT_PACKING_SCENE:
+	{
+		float height = 20.0f;
+		this->backLabel->setPosition(cocos2d::Vec2(winSize.width - 70.0f, height));
+		this->fpsLabel->setPosition(cocos2d::Vec2(10.0f, height));
 	}
 	break;
 	default:

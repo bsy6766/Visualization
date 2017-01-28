@@ -89,6 +89,7 @@ private:
 	friend class QuadTreeScene;
 	friend class FlockingScene;
 	friend class CirclePackingScene;
+	friend class RectPackingScene;
 
 	enum class TYPE
 	{
@@ -124,6 +125,7 @@ private:
 		QUADTREE_SCENE,
 		FLOCKING_SCENE,
 		CIRCLE_PACKING_SCENE,
+		RECT_PACKING_SCENE,
 		FREE,
 	};
 
