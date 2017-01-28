@@ -29,22 +29,25 @@ private:
 	int hoveringLableIndex;
 	cocos2d::Size winSize;
 	cocos2d::Label* versionLabel;
+	cocos2d::Label* descriptionLabel;
 
 	void initInputListeners();
 	void releaseInputListeners();
 
 	void checkMouseOver(const cocos2d::Vec2 mousePos);
 
-	enum LABEL_INDEX
+	enum class MENU_INDEX
 	{
 		QUAD_TREE = 0,
 		FLOCKING,
 		CIRCLE_PACKING,
-		EXIT,
 		RECT_PACKING,
-		A_STAR_PATHFINDING,
-		EAR_CLIPPING,
+		EXIT,
+		//A_STAR_PATHFINDING,
+		//EAR_CLIPPING,
 	};
+
+	void setDescriptionLabel();
 
 public:
 	//simple creator func
