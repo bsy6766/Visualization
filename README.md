@@ -22,12 +22,12 @@ Ubuntu 16.04<br>
 ## How to run on your machine
 #### Download Links
 <details>
-<summary><b>Win32 (v0.5)</b></summary>
+<summary><b>Win32</b></summary>
 Executable is available [**here**](https://drive.google.com/open?id=0BxL3wp7rb67tNmNvdXZ1emJXMTg). Download the zip file and open it with your archieve tool. Then run Visualization.exe.<br>
 **Note: For Windows, you need Visual c++ Redistributable to run the program. Error message will tell you which DLL you are missing. Google the name of DLL for solution. Also, program might won't open if anti-virus blocks it.**
 </details>
 <details>
-<summary><b>Mac OS X (v0.5)</b></summary>
+<summary><b>Mac OS X</b></summary>
 Application is available [**here**](https://drive.google.com/open?id=0BxL3wp7rb67tTDJNZGNXQ2wtSkk). Download the zip file and open it with your archieve tool. Then run Visualization.exe.<br>
 **Note: Haven't tested on any other OS X versions than Sierra. Please open issue if there is any problem.**
 </details>
@@ -189,10 +189,10 @@ Used [Rubik](https://www.fontsquirrel.com/fonts/rubik) by Hubert & Fischer
 
 
 ## ChangeLog
-v0.6 Refined<br>
-v0.5 Added Circle Packing visualization.<br>
+v0.6 Refined (Released: Windows, OSX)<br>
+v0.5 Added Circle Packing visualization. (Released: Windows, OSX)<br>
 v0.4 Fixed Bugs.<br>
-v0.3 Replaced ECS.<br>
-v0.2 Added Flocking Algorithm visualization.<br>
+v0.3 Replaced ECS. (Released: Windows)<br>
+v0.2 Added Flocking Algorithm visualization. (Released: Windows)<br>
 v0.1 Added QuadTree visualization.<br>
 v0.0 Project started.<br>

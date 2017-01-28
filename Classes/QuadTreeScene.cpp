@@ -76,7 +76,6 @@ bool QuadTreeScene::init()
 
 	// Set size
 	const int customLabelSize = 25;
-	const int blankLineSize = 15;
     
 	// Init custom labels
     this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Entities: 0", customLabelSize);
