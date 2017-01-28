@@ -4,7 +4,9 @@
 #include "cocos2d.h"
 #include <random>
 #include <string>
-#include <functional>	//std::hash
+#include <sstream>
+#include <functional>	// std::hash
+#include <chrono>		// time
 
 namespace Utility
 {
@@ -129,6 +131,30 @@ namespace Utility
 			generator.seed(seedNumber);
 		}
 
+	};
+
+	class Time
+	{
+	private:
+		static std::chrono::steady_clock::time_point begin;
+		static std::chrono::steady_clock::time_point end;
+	public:
+		static inline void start()
+		{
+			Time::begin = std::chrono::steady_clock::now();
+		}
+
+		static inline void stop()
+		{
+			Time::end = std::chrono::steady_clock::now();
+		}
+
+		static const std::string getElaspedTime()
+		{
+			std::stringstream ss;
+			ss << std::chrono::duration_cast<std::chrono::microseconds>(Time::end - Time::begin).count();
+			return ss.str();
+		}
 	};
 
 	/**
