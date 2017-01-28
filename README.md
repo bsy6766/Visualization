@@ -162,7 +162,7 @@ Reads image and picks random position to spawn circle and circle grows until it 
 
 #### Circle
 All circles that spawns on screen grows in fixed rate. If circle collides(touches) with another circle, both circles stop growing.<br>
-Circle's position is 'sort-of' random. The algorithm collects all possible spawn point in image and then randomly polls the position.<br>
+Circle's position is 'sort-of' random. The algorithm collects all possible spawn point in image and then randomly polls the position.
 
 #### Usage
 To run algorithm, place your mouse pointer near the left edge of screen to show image lists. Some images have different purpose, such as alpha channel testing, but they all run same circle packing algorithm.
@@ -184,13 +184,12 @@ Visualizes music in to several different form of graphs
 Used [Rubik](https://www.fontsquirrel.com/fonts/rubik) by Hubert & Fischer
 
 ##Todo List
-- Record time how long each algorithm takes to compute every frame and display with fps.
-- Increase size of window
 - Test build on linux
 - Replace current ECS (composite) with new ECS (data oriented)
 
 
 ## ChangeLog
+v0.6 Refined<br>
 v0.5 Added Circle Packing visualization.<br>
 v0.4 Fixed Bugs.<br>
 v0.3 Replaced ECS.<br>
