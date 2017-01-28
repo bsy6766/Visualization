@@ -6,7 +6,7 @@
 #include "Component.h"
 #include "ECS.h"
 #include "Component.h"
-#include "QuadTreeLineNode.h"
+#include "CustomNode.h"
 #include <vector>
 #include <list>
 
@@ -14,7 +14,7 @@ class QuadTreeScene : public cocos2d::Scene
 {
 private:
 	//default constructor
-	QuadTreeScene() {};
+	QuadTreeScene() = default;
 
 	//Input Listeners
 	cocos2d::EventListenerMouse* mouseInputListener;
@@ -37,32 +37,21 @@ private:
 	void initInputListeners();
 	void releaseInputListeners();
 
-	// Exit(Back) label
-	cocos2d::Label* backLabel;
-	
-	// Label numbers
-	int entityCount;
-	int collisionsCount;
-	int collisionChecksCount;
-	int collisionCheckWithOutRepeatCount;
-	int bruteforceChecksCount;
-	int fps;
-	float fpsElapsedTime;
-
-	// Cocos2d labels
-	cocos2d::Label* entityCountLabel;
-	cocos2d::Label* collisionChecksCountLabel;
-	cocos2d::Label* bruteforceChecksCountLabel;
-	cocos2d::Label* collisionCheckWithOutRepeatCountLabel;
-	cocos2d::Label* fpsLabel;
-	cocos2d::Label* quadtreeLevelLabel;
-
-	// Separating each usage labels for animation
-	std::vector<cocos2d::Label*> usageLabels;
-
-	enum USAGE_KEY
+    // Enum for labels
+    enum class CUSTOM_LABEL_INDEX
+    {
+        ENTITIES,
+        COLLISION,
+        COLLISION_WO_DUP_CHECK,
+        BRUTE_FORCE,
+        QUAD_TREE_MAX_LEVEL,
+		MAX_CUSTOM_LABEL
+    };
+    
+	enum class USAGE_KEY
 	{
-		SPACE = 1,
+        NONE = 0,
+		PAUSE,
 		CLEAR,
 		ADD_TEN,
 		REMOVE_TEN,
@@ -72,11 +61,16 @@ private:
 		INC_QTREE_LEVEL,
 		DEC_QTREE_LEVEL,
 		MAX_KEYBOARD_USAGE,
-		ADD_ONE,
-		TRACK,
-		REMOVE_ONE,
-		MAX_MOUSE_USAGE
 	};
+    
+    enum class USAGE_MOUSE
+    {
+        NONE = 0,
+        ADD_ONE,
+        TRACK,
+        REMOVE_ONE,
+        MAX_MOUSE_USAGE
+    };
 
 	enum Z_ORDER
 	{
@@ -93,9 +87,6 @@ private:
 
 	// Tracking entity
 	int lastTrackingEntityID;
-	
-	// UI animation
-	cocos2d::ActionInterval* clickAnimation;
 
 	// Quadtree
 	QuadTree* quadTree;
@@ -103,8 +94,12 @@ private:
 	// Node
 	cocos2d::Node* areaNode;
 	QuadTreeLineNode* quadTreeLineNode;
+    DisplayBoundaryBoxNode* displayBoundaryBoxNode;
+    LabelsNode* labelsNode;
+	SliderLabelNode* sliderLabelNode;
+	float simulationSpeedModifier;
 
-	// Boundary
+	// Boundary holder
 	cocos2d::Rect displayBoundary;
 
 	// Track all entities
@@ -112,26 +107,33 @@ private:
 
 	// Initialize entities and quad tree
 	void initEntitiesAndQTree();
+    
 	// Creates new entity with required components
 	ECS::Entity* createNewEntity();
-	// Updates FPS instead of using built in fps label
-	void updateFPS(float delta);
+    
 	// Update each entity's position and reassign to quadtree
 	void resetQTreeAndUpdatePosition(float delta);
+    
 	// Checks collision between entities, count number, resolve if enabled
 	void checkCollision();
+    
 	// Checks if box is out of boundary. Sets bool to true if box need to flip direction
 	void checkBoundary(ECS::Sprite& spriteComp, bool& flipX, bool& flipY);
+    
 	// Flips direction
 	void flipDirVec(const bool flipX, const bool flipY, cocos2d::Vec2& dirVec);
-	// Updates labels with number
-	void updateLabels();
+    
 	// Resolves collision between two entities.
 	void resolveCollisions(ECS::Sprite& entitySpriteComp, ECS::Sprite& nearEntitySpriteComp, ECS::DirectionVector& entityDirVecComp, ECS::DirectionVector& nearEntityDirVecComp);
+    
 	// Reassigns entitiy id to keep id less than 1000 (because of duplication check).
 	void reassignEntityIds();
-	// Play UI animation
-	void playUIAnimation(const USAGE_KEY usageKey);
+    
+    // Toggle color
+    void toggleColor(const bool enabled, LabelsNode::TYPE type, const int index, const bool playAnimation = true);
+
+	// On slider finishes click on slider
+	void onSliderClick(cocos2d::Ref* sender);
 public:
 	//simple creator func
 	static QuadTreeScene* createScene();

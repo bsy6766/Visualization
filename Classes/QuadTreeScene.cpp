@@ -21,21 +21,30 @@ bool QuadTreeScene::init()
 	ECS::Entity::idCounter = 0;
 
 	// Limit max entity to 400 in this case
-	ECS::Entity::maxEntitySize = 1000;
+    ECS::Entity::maxEntitySize = 1000;
 	
-	//init node
+	// init area node where entity boxes get rendered
 	this->areaNode = cocos2d::Node::create();
 	this->areaNode->setPosition(cocos2d::Vec2::ZERO);
 	this->areaNode->retain();
 	this->addChild(this->areaNode);
 
+    // init quad tree line node which draws quad tree subdivision lines
 	this->quadTreeLineNode = QuadTreeLineNode::createNode();
 	this->quadTreeLineNode->setPosition(cocos2d::Vec2::ZERO);
-	this->quadTreeLineNode->retain();
-	this->addChild(this->quadTreeLineNode);
-	this->quadTreeLineNode->dispalyBoundaryDrawNode->setLocalZOrder(static_cast<int>(Z_ORDER::BOX));
-	this->quadTreeLineNode->drawDisplayBoundaryBox(this->displayBoundary);
-	this->quadTreeLineNode->quadTreeSubDivisionDrawNode->setLocalZOrder(static_cast<int>(Z_ORDER::LINE));
+    this->quadTreeLineNode->retain();
+    this->quadTreeLineNode->drawNode->setLocalZOrder(static_cast<int>(Z_ORDER::LINE));
+    this->addChild(this->quadTreeLineNode);
+    
+    // init display boundary box node which draws outer line of simulation display box
+    this->displayBoundaryBoxNode = DisplayBoundaryBoxNode::createNode();
+    this->displayBoundaryBoxNode->setPosition(cocos2d::Vec2::ZERO);
+    this->displayBoundaryBoxNode->displayBoundary = cocos2d::Rect(0, 0, 650, 650);
+    this->displayBoundaryBoxNode->drawDisplayBoundaryBox();
+    this->displayBoundary = this->displayBoundaryBoxNode->displayBoundary;
+    this->displayBoundaryBoxNode->retain();
+    this->displayBoundaryBoxNode->drawNode->setLocalZOrder(static_cast<int>(Z_ORDER::BOX));
+    this->addChild(this->displayBoundaryBoxNode);
 
 	// init flags
 	pause = false;
@@ -48,137 +57,72 @@ bool QuadTreeScene::init()
 	
 	// Get window size
 	auto winSize = cocos2d::Director::getInstance()->getVisibleSize();
+    
+    // Init labels node
+    this->labelsNode = LabelsNode::createNode();
+	this->labelsNode->setSharedLabelPosition(LabelsNode::SHARED_LABEL_POS_TYPE::QUADTREE_SCENE);
+    this->addChild(this->labelsNode);
 
-	// init action
-	this->clickAnimation = cocos2d::Sequence::create(cocos2d::ScaleTo::create(0, 0.85f), cocos2d::DelayTime::create(0.25f), cocos2d::ScaleTo::create(0, 1.0f), nullptr);
-	this->clickAnimation->retain();
+	// Starting pos
+	float labelX = winSize.height - 10.0f;
+	float labelY = winSize.height - 45.0f;
 
-	// Get boundary
-	this->displayBoundary = cocos2d::Rect(0, 0, winSize.height, winSize.height);
+	// Set title
+	this->labelsNode->initTitleStr("Quad Tree", cocos2d::Vec2(labelX, labelY));
+	labelY -= 50.0f;
 
-	const std::string fontPath = "fonts/Rubik-Medium.ttf";
+	// Init custom labels
+	this->labelsNode->customLabelStartPos = cocos2d::Vec2(labelX, labelY);
 
-	// Init label
-	this->backLabel = cocos2d::Label::createWithTTF("BACK(ESC)", fontPath, 20);
-	this->backLabel->setPosition(cocos2d::Vec2(winSize.width - 60.0f, 20.0f));
-	this->addChild(this->backLabel);
+	// Set size
+	const int customLabelSize = 25;
+    
+	// Init custom labels
+    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Entities: 0", customLabelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Collision check: 0", customLabelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Collision check w/o duplication : 0", customLabelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Brute-Froce check: 0", customLabelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Quad Tree max level: 0", customLabelSize);
+    
+	// Calculate next label block y
+	const float customLastY = this->labelsNode->customLabels.back()->getBoundingBox().getMinY();
+	const float blockGap = 22.0f;
 
-	// init numbers
-	entityCount = 0;
-	collisionsCount = 0;
-	collisionChecksCount = 0;
-	bruteforceChecksCount = 0;
-	collisionCheckWithOutRepeatCount = 0;
-	fps = 0;
-	fpsElapsedTime = 0;
+	this->labelsNode->keyboardUsageLabelStartPos = cocos2d::Vec2(labelX, customLastY - blockGap);
 
-	// Label x
-	float labelX = winSize.height + 5.0f;
-	float numberLabelY = winSize.height - 20.0f;
-	float numberLabelYOffset = 24.0f;
-	float numberLabelFontSize = 23;
+	const int headerSize = 25;
+	const int labelSize = 20;
+    
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Keys (Green = enabled)", headerSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Space:  Toggle update", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "C:  Clear all Entities", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "A:  Add 10 Entities", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "E:  Remove 10 Entities", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "G:  Toggle quad tree subdivision grid", labelSize);
+    this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::GRID), cocos2d::Color3B::GREEN);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "D:  Toggle duplication check", labelSize);
+    this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::DUPL_CHECK), cocos2d::Color3B::GREEN);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "R:  Toggle collision resolution", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "1:  Increase Quad Tree max level", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "2:  Decrease Quad Tree max level", labelSize);
+    
+	const float keysLastY = this->labelsNode->keyboardUsageLabels.back()->getBoundingBox().getMinY();
+    this->labelsNode->mouseUsageLabelStartPos = cocos2d::Vec2(labelX, keysLastY - blockGap);
+    
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Mouse", headerSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (In box):  Add Entity", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (On Entity):  Toggle Entity tracking", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Right Click (On Entity):  Remove Entity", labelSize);
 
-	// init more labels
-	entityCountLabel = cocos2d::Label::createWithTTF("Entities: " + std::to_string(entityCount) , fontPath, numberLabelFontSize);
-	entityCountLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	entityCountLabel->setPosition(cocos2d::Vec2(labelX, numberLabelY));
-	this->addChild(entityCountLabel);
-	
-	collisionChecksCountLabel = cocos2d::Label::createWithTTF("Collision check: " + std::to_string(collisionChecksCount), fontPath, numberLabelFontSize);
-	collisionChecksCountLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	collisionChecksCountLabel->setPosition(cocos2d::Vec2(labelX, numberLabelY - numberLabelYOffset));
-	this->addChild(collisionChecksCountLabel);
+	// speed modifier
+	this->simulationSpeedModifier = 1.0f;
 
-	collisionCheckWithOutRepeatCountLabel = cocos2d::Label::createWithTTF("Collision check w/o duplication: " + std::to_string(bruteforceChecksCount), fontPath, numberLabelFontSize);
-	collisionCheckWithOutRepeatCountLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	collisionCheckWithOutRepeatCountLabel->setPosition(cocos2d::Vec2(labelX, numberLabelY - (numberLabelYOffset * 2.0f)));
-	this->addChild(collisionCheckWithOutRepeatCountLabel);
+	this->sliderLabelNode = SliderLabelNode::createNode();
+	const float mouseLastY = this->labelsNode->mouseUsageLabels.back()->getBoundingBox().getMinY();
+	this->sliderLabelNode->sliderStartPos = cocos2d::Vec2(labelX, mouseLastY - blockGap);
+	this->sliderLabelNode->addSlider("Simulation Speed", "Slider", 50, CC_CALLBACK_1(QuadTreeScene::onSliderClick, this));
+	this->addChild(this->sliderLabelNode);
 
-	bruteforceChecksCountLabel = cocos2d::Label::createWithTTF("Brute-froce collision check: " + std::to_string(bruteforceChecksCount), fontPath, numberLabelFontSize);
-	bruteforceChecksCountLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	bruteforceChecksCountLabel->setPosition(cocos2d::Vec2(labelX, numberLabelY - (numberLabelYOffset * 3.0f)));
-	this->addChild(bruteforceChecksCountLabel);
-
-	quadtreeLevelLabel = cocos2d::Label::createWithTTF("Quadtree max level: " + std::to_string(0), fontPath, numberLabelFontSize);
-	quadtreeLevelLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	quadtreeLevelLabel->setPosition(cocos2d::Vec2(labelX, numberLabelY - (numberLabelYOffset * 4.0f)));
-	this->addChild(quadtreeLevelLabel);
-
-	fpsLabel = cocos2d::Label::createWithTTF("FPS: " + std::to_string(cocos2d::Director::getInstance()->getFrameRate()), fontPath, numberLabelFontSize);
-	fpsLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	fpsLabel->setPosition(cocos2d::Vec2(labelX, 18.0f));
-	this->addChild(fpsLabel);
-
-	float controlFontSize = 20;
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Keys                        (Green = enabled)", fontPath, controlFontSize));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->addChild(this->usageLabels.back());
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Space = Toggle update", fontPath, controlFontSize));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->addChild(this->usageLabels.back());
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("C = Clear all entities", fontPath, controlFontSize));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->addChild(this->usageLabels.back());
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("A = Add 10 entities", fontPath, controlFontSize));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->addChild(this->usageLabels.back());
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("E = Remove 10 entities(FIFO)", fontPath, controlFontSize));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->addChild(this->usageLabels.back());
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("G = Toggle quadtree grid", fontPath, controlFontSize));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->usageLabels.back()->setColor(cocos2d::Color3B::GREEN);
-	this->addChild(this->usageLabels.back());
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("D = Toggle duplication check", fontPath, controlFontSize));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->usageLabels.back()->setColor(cocos2d::Color3B::GREEN);
-	this->addChild(this->usageLabels.back());
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("R = Toggle collision resolve", fontPath, controlFontSize));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->addChild(this->usageLabels.back());
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("1 = Increase quadtree max level", fontPath, controlFontSize));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->addChild(this->usageLabels.back());
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("2 = Decrease quadtree max level", fontPath, controlFontSize));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->addChild(this->usageLabels.back());
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Mouse", fontPath, controlFontSize));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->addChild(this->usageLabels.back());
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Left Click (in box) = Add entity", fontPath, controlFontSize));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->addChild(this->usageLabels.back());
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Left Click (on Entity) = Track entity", fontPath, controlFontSize));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->addChild(this->usageLabels.back());
-
-	this->usageLabels.push_back(cocos2d::Label::createWithTTF("Right click (on entity) = Remove entity", fontPath, controlFontSize));
-	this->usageLabels.back()->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	this->addChild(this->usageLabels.back());
-
-	cocos2d::Vec2 usageStartPos = cocos2d::Vec2(labelX, winSize.height * 0.65f);
-
-	auto usageLabelSize = static_cast<int>(this->usageLabels.size());
-	for (int i = 0; i < usageLabelSize; i++)
-	{
-		cocos2d::Vec2 newPos = usageStartPos;
-		newPos.y -= (20.0f * static_cast<float>(i));
-		this->usageLabels.at(i)->setPosition(newPos);
-	}
-	
 	return true;
 }
 
@@ -196,10 +140,11 @@ void QuadTreeScene::initEntitiesAndQTree()
 	} 
 
 	// Store lineNode pointer to quadtree for visualization
-	//QuadTree::lineNode = this->qTreeLineNode;
-	QuadTree::lineDrawNode = this->quadTreeLineNode->quadTreeSubDivisionDrawNode;
+	QuadTree::lineDrawNode = this->quadTreeLineNode->drawNode;
 	// Init quadtree with initial boundary
 	this->quadTree = new QuadTree(this->displayBoundary, 0);
+    
+    this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::QUAD_TREE_MAX_LEVEL), "Quad Tree max level: " + std::to_string(this->quadTree->getCurrentLevelSetting()));
 }
 
 Entity* QuadTreeScene::createNewEntity()
@@ -228,7 +173,7 @@ Entity* QuadTreeScene::createNewEntity()
 	auto spriteComp = new ECS::Sprite(*this->areaNode, "quadTreeEntityBox.png");
 	spriteComp->sprite->setScaleX(Utility::Random::randomReal<float>(0.25f, 1.0f));
 	spriteComp->sprite->setScaleY(Utility::Random::randomReal<float>(0.25f, 1.0f));
-	spriteComp->sprite->setZOrder(static_cast<int>(Z_ORDER::ENTITY));
+	spriteComp->sprite->setLocalZOrder(static_cast<int>(Z_ORDER::ENTITY));
 	newEntity->components[SPRITE] = spriteComp;
 	newEntity->components[QTREE_DATA] = new QTreeData();
 	return newEntity;
@@ -248,35 +193,35 @@ void QuadTreeScene::onEnter()
 void QuadTreeScene::update(float delta)
 {
 	// Updates fps count and time 
-	updateFPS(delta);
+    this->labelsNode->updateFPSLabel(delta);
 
 	// Skip entire update process if entities is empty
 	if (this->entities.empty())
 	{
+		this->labelsNode->updateTimeTakenLabel("0");
 		return;
 	}
+
+	Utility::Time::start();
+
+	//Speed modifier
+	delta *= this->simulationSpeedModifier;
 
 	resetQTreeAndUpdatePosition(delta);
 
 	checkCollision();
 
-	updateLabels();
-}
+	Utility::Time::stop();
 
-void QuadTreeScene::updateFPS(float delta)
-{
-	this->fpsElapsedTime += delta;
-	if (this->fpsElapsedTime > 1.0f)
-	{
-		this->fpsElapsedTime -= 1.0f;
-		fps++;
-		fpsLabel->setString("FPS: " + std::to_string(fps) + " (" + std::to_string(delta).substr(0, 5) + "ms)");
-		fps = 0;
-	}
-	else
-	{
-		fps++;
-	}
+	std::string timeTakenStr = Utility::Time::getElaspedTime();	// Microseconds
+	float timeTakenF = std::stof(timeTakenStr);	// to float
+	timeTakenF *= 0.001f; // To milliseconds
+
+	this->labelsNode->updateTimeTakenLabel(std::to_string(timeTakenF).substr(0, 5));
+
+    int entityCount = static_cast<int>(this->entities.size());
+    this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::ENTITIES), "Entities: " + std::to_string(entityCount) + " / 1000");
+    this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::BRUTE_FORCE), "Brute-force check: " + std::to_string(entityCount * entityCount));
 }
 
 void QuadTreeScene::resetQTreeAndUpdatePosition(float delta)
@@ -345,12 +290,11 @@ void QuadTreeScene::resetQTreeAndUpdatePosition(float delta)
 		// next
 		it++;
 	}
-
+    
+    QuadTree::lineDrawNode->clear();
 	if (showGrid)
 	{
 		// Show grids
-		QuadTree::lineDrawNode->clear();
-
 		this->quadTree->showLines();
 	}
 }
@@ -361,8 +305,8 @@ void QuadTreeScene::checkCollision()
 	if (pause) return;
 
 	// Reset counters
-	collisionChecksCount = 0;
-	collisionCheckWithOutRepeatCount = 0;
+	int collisionChecksCount = 0;
+	int collisionCheckWithOutRepeatCount = 0;
 
 	for (auto entity : this->entities)
 	{
@@ -469,6 +413,9 @@ void QuadTreeScene::checkCollision()
 			entitySpriteComp->sprite->setColor(cocos2d::Color3B::BLUE);
 		}
 	}
+    
+    this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::COLLISION), "Collision check: " + std::to_string(collisionChecksCount));
+    this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::COLLISION_WO_DUP_CHECK), "Collision check w/o duplication: " + std::to_string(collisionCheckWithOutRepeatCount));
 }
 
 void QuadTreeScene::checkBoundary(ECS::Sprite & spriteComp, bool& flipX, bool& flipY)
@@ -538,21 +485,6 @@ void QuadTreeScene::flipDirVec(const bool flipX, const bool flipY, cocos2d::Vec2
 			dirVec.x *= Utility::Random::random_minus_1_1();
 		}
 	}
-}
-
-void QuadTreeScene::updateLabels()
-{
-	entityCount = this->entities.size();
-	entityCountLabel->setString("Entities: " + std::to_string(entityCount) + " / 1000");
-
-	collisionChecksCountLabel->setString("Collision check: " + std::to_string(collisionChecksCount));
-	if (duplicationCheck)
-		collisionCheckWithOutRepeatCountLabel->setString("Collision check w/o duplication: " + std::to_string(collisionCheckWithOutRepeatCount));
-
-	bruteforceChecksCount = entityCount * entityCount;
-	bruteforceChecksCountLabel->setString("Brute-froce collision check: " + std::to_string(bruteforceChecksCount));
-
-	quadtreeLevelLabel->setString("Quadtree max level: " + std::to_string(this->quadTree->getCurrentLevelSetting()));
 }
 
 void QuadTreeScene::resolveCollisions(ECS::Sprite & entitySpriteComp, ECS::Sprite & nearEntitySpriteComp, ECS::DirectionVector& entityDirVecComp, ECS::DirectionVector& nearEntityDirVecComp)
@@ -625,11 +557,16 @@ void QuadTreeScene::reassignEntityIds()
 	}
 }
 
-void QuadTreeScene::playUIAnimation(const USAGE_KEY usageKey)
+void QuadTreeScene::toggleColor(const bool enabled, LabelsNode::TYPE type, const int index, const bool playAniamtion)
 {
-	this->usageLabels.at(static_cast<int>(usageKey))->stopAllActions();
-	this->usageLabels.at(static_cast<int>(usageKey))->setScale(1.0f);
-	this->usageLabels.at(static_cast<int>(usageKey))->runAction(this->clickAnimation);
+    if(enabled)
+    {
+        this->labelsNode->setColor(type, index, cocos2d::Color3B::GREEN, playAniamtion);
+    }
+    else
+    {
+        this->labelsNode->setColor(type, index, cocos2d::Color3B::WHITE, playAniamtion);
+    }
 }
 
 void QuadTreeScene::initInputListeners()
@@ -649,18 +586,8 @@ void QuadTreeScene::onMouseMove(cocos2d::Event* event)
 	auto mouseEvent = static_cast<EventMouse*>(event);
 	float x = mouseEvent->getCursorX();
 	float y = mouseEvent->getCursorY();
-
-	if (this->backLabel->getBoundingBox().containsPoint(cocos2d::Vec2(x, y)))
-	{
-		this->backLabel->setScale(1.2f);
-	}
-	else
-	{
-		if (this->backLabel->getScale() > 1.0f)
-		{
-			this->backLabel->setScale(1.0f);
-		}
-	}
+    
+    this->labelsNode->updateMouseHover(cocos2d::Vec2(x, y));
 }
 
 void QuadTreeScene::onMouseDown(cocos2d::Event* event) 
@@ -673,12 +600,8 @@ void QuadTreeScene::onMouseDown(cocos2d::Event* event)
 
 	auto point = cocos2d::Vec2(x, y);
 
-	if (this->backLabel->getBoundingBox().containsPoint(point))
-	{
-		cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, MainScene::create(), cocos2d::Color3B::BLACK));
-
-		return;
-	}
+    bool ret = this->labelsNode->updateMouseDown(point);
+    if(ret) return;
 
 	if (mouseButton == 0)
 	{
@@ -705,7 +628,7 @@ void QuadTreeScene::onMouseDown(cocos2d::Event* event)
 					if (entitySpriteComp->sprite->getBoundingBox().containsPoint(point))
 					{
 						// Clicked on entitiy sprite
-						this->playUIAnimation(USAGE_KEY::TRACK);
+                        this->labelsNode->playAnimation(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::TRACK));
 
 						if (this->lastTrackingEntityID == entity->id)
 						{
@@ -748,8 +671,8 @@ void QuadTreeScene::onMouseDown(cocos2d::Event* event)
 				this->entities.push_back(newEntity);
 				auto newEntitySpriteComp = this->entities.back()->getComponent<ECS::Sprite*>(SPRITE);
 				newEntitySpriteComp->sprite->setPosition(point);
-
-				this->playUIAnimation(USAGE_KEY::ADD_ONE);
+                
+                this->labelsNode->playAnimation(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::ADD_ONE));
 			}
 
 
@@ -763,7 +686,8 @@ void QuadTreeScene::onMouseDown(cocos2d::Event* event)
 			if (entitySpriteComp->sprite->getBoundingBox().containsPoint(point))
 			{
 				entity->alive = false;
-				this->playUIAnimation(USAGE_KEY::REMOVE_ONE);
+                
+                this->labelsNode->playAnimation(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::REMOVE_ONE));
 			}
 		}
 	}
@@ -780,14 +704,18 @@ void QuadTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_1)
 	{
 		// Increase quadtree level
-		this->quadTree->increaseLevel();
-		this->playUIAnimation(USAGE_KEY::INC_QTREE_LEVEL);
+        this->quadTree->increaseLevel();
+        this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::QUAD_TREE_MAX_LEVEL), "Quad Tree max level: " + std::to_string(this->quadTree->getCurrentLevelSetting()));
+        
+        this->labelsNode->playAnimation(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::INC_QTREE_LEVEL));
 	}
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_2)
 	{
 		// Decrease quadtree level
-		this->quadTree->decreaseLevel();
-		this->playUIAnimation(USAGE_KEY::DEC_QTREE_LEVEL);
+        this->quadTree->decreaseLevel();
+        this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::QUAD_TREE_MAX_LEVEL), "Quad Tree max level: " + std::to_string(this->quadTree->getCurrentLevelSetting()));
+        
+        this->labelsNode->playAnimation(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::DEC_QTREE_LEVEL));
 	}
 
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_SPACE)
@@ -796,28 +724,16 @@ void QuadTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 		pause = !pause;
 		if (pause)
 		{
-			this->usageLabels.at(static_cast<int>(USAGE_KEY::SPACE))->setColor(cocos2d::Color3B::GREEN);
+			this->labelsNode->updateTimeTakenLabel("0");
 		}
-		else
-		{
-			this->usageLabels.at(static_cast<int>(USAGE_KEY::SPACE))->setColor(cocos2d::Color3B::WHITE);
-		}
-		this->playUIAnimation(USAGE_KEY::SPACE);
+        this->toggleColor(pause, LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::PAUSE));
 	}
 
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_R)
 	{
 		// Toggle collision resolution
-		collisionResolve = !collisionResolve;
-		if (collisionResolve)
-		{
-			this->usageLabels.at(static_cast<int>(USAGE_KEY::COL_RESOLVE))->setColor(cocos2d::Color3B::GREEN);
-		}
-		else
-		{
-			this->usageLabels.at(static_cast<int>(USAGE_KEY::COL_RESOLVE))->setColor(cocos2d::Color3B::WHITE);
-		}
-		this->playUIAnimation(USAGE_KEY::COL_RESOLVE);
+        collisionResolve = !collisionResolve;
+        this->toggleColor(collisionResolve, LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::COL_RESOLVE));
 	}
 
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_C)
@@ -827,7 +743,10 @@ void QuadTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 		{
 			entity->alive = false;
 		}
-		this->playUIAnimation(USAGE_KEY::CLEAR);
+        
+        this->labelsNode->playAnimation(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::CLEAR));
+
+		this->labelsNode->updateTimeTakenLabel("0");
 	}
 
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_A)
@@ -843,7 +762,8 @@ void QuadTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 				spriteComp->setRandomPosInBoundary(this->displayBoundary);
 			}
 		}
-		this->playUIAnimation(USAGE_KEY::ADD_TEN);
+        
+        this->labelsNode->playAnimation(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::ADD_TEN));
 	}
 
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_E)
@@ -858,42 +778,32 @@ void QuadTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 			}
 			entity->alive = false;
 			count++;
-		}
-		this->playUIAnimation(USAGE_KEY::REMOVE_TEN);
+        }
+        
+        this->labelsNode->playAnimation(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::REMOVE_TEN));
 	}
 
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_G)
 	{
 		// Toggle quadtree grid
 		showGrid = !showGrid;
-		if (showGrid)
-		{
-			this->usageLabels.at(static_cast<int>(USAGE_KEY::GRID))->setColor(cocos2d::Color3B::GREEN);
-		}
-		else
-		{
-			this->usageLabels.at(static_cast<int>(USAGE_KEY::GRID))->setColor(cocos2d::Color3B::WHITE);
-		}
-		this->playUIAnimation(USAGE_KEY::GRID);
+        this->toggleColor(showGrid, LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::GRID));
 	}
 
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_D)
 	{
 		// Toggle duplication check
 		duplicationCheck = !duplicationCheck;
-		collisionCheckWithOutRepeatCount = 0;
-		collisionCheckWithOutRepeatCountLabel->setString("Collision check w/o duplication: " + std::to_string(collisionCheckWithOutRepeatCount));
-		if (duplicationCheck)
-		{
-			collisionCheckWithOutRepeatCountLabel->setColor(cocos2d::Color3B::WHITE);
-			this->usageLabels.at(static_cast<int>(USAGE_KEY::DUPL_CHECK))->setColor(cocos2d::Color3B::GREEN);
-		}
-		else
-		{
-			collisionCheckWithOutRepeatCountLabel->setColor(cocos2d::Color3B::GRAY);
-			this->usageLabels.at(static_cast<int>(USAGE_KEY::DUPL_CHECK))->setColor(cocos2d::Color3B::WHITE);
-		}
-		this->playUIAnimation(USAGE_KEY::DUPL_CHECK);
+        if(duplicationCheck)
+        {
+            this->labelsNode->setColor(LabelsNode::TYPE::CUSTOM, static_cast<int>(CUSTOM_LABEL_INDEX::COLLISION_WO_DUP_CHECK), cocos2d::Color3B::WHITE, false);
+        }
+        else
+        {
+            this->labelsNode->setColor(LabelsNode::TYPE::CUSTOM, static_cast<int>(CUSTOM_LABEL_INDEX::COLLISION_WO_DUP_CHECK), cocos2d::Color3B::GRAY, false);
+        }
+        
+        this->toggleColor(duplicationCheck, LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::DUPL_CHECK));
 	}
 }
 
@@ -905,12 +815,32 @@ void QuadTreeScene::releaseInputListeners()
 		_eventDispatcher->removeEventListener(this->keyInputListener);
 }
 
+void QuadTreeScene::onSliderClick(cocos2d::Ref* sender)
+{
+	// Click ended. Get value
+	float percentage = static_cast<float>(this->sliderLabelNode->sliderLabels.back().slider->getPercent());
+	//50% = 1.0(default. So multiply by 2.
+	percentage *= 2.0f;
+	// 0% == 0, 100% = 1.0f, 200% = 2.0f
+	if (percentage == 0)
+	{
+		// 0 will make simulation stop
+		percentage = 1;
+	}
+	//. Devide by 100%
+	percentage *= 0.01f;
+
+	// apply
+	this->simulationSpeedModifier = percentage;
+}
+
 void QuadTreeScene::onExit()
 {
 	cocos2d::Scene::onExit();
 	releaseInputListeners();
 	this->areaNode->release();
 	this->quadTreeLineNode->release();
+    this->displayBoundaryBoxNode->release();
 
 	// Delete all entities
 	for (auto entity : this->entities)
@@ -926,6 +856,4 @@ void QuadTreeScene::onExit()
 	{
 		delete quadTree;
 	}
-
-	this->clickAnimation->release();
 }

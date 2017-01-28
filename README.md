@@ -22,12 +22,12 @@ Ubuntu 16.04<br>
 ## How to run on your machine
 #### Download Links
 <details>
-<summary><b>Win32 (v0.5)</b></summary>
+<summary><b>Win32</b></summary>
 Executable is available [**here**](https://drive.google.com/open?id=0BxL3wp7rb67tNmNvdXZ1emJXMTg). Download the zip file and open it with your archieve tool. Then run Visualization.exe.<br>
 **Note: For Windows, you need Visual c++ Redistributable to run the program. Error message will tell you which DLL you are missing. Google the name of DLL for solution. Also, program might won't open if anti-virus blocks it.**
 </details>
 <details>
-<summary><b>Mac OS X (v0.5)</b></summary>
+<summary><b>Mac OS X</b></summary>
 Application is available [**here**](https://drive.google.com/open?id=0BxL3wp7rb67tTDJNZGNXQ2wtSkk). Download the zip file and open it with your archieve tool. Then run Visualization.exe.<br>
 **Note: Haven't tested on any other OS X versions than Sierra. Please open issue if there is any problem.**
 </details>
@@ -153,6 +153,8 @@ This program uses Quad Tree like the QuadTree project in this repo to optimize c
 #### Note
 Visualizes animated Circle Packing in 2D.<br>
 Reads image and picks random position to spawn circle and circle grows until it reaches maximum size or touches other circle.<br>
+My implementation doesn't pack the circles evenly in radius (Search google Circle Packing and check images with evenly spaced circles).<br>
+It picks random position and let them grow which results all different size of circles.
 
 #### Preview (Expand/Collapse)
 <details> 
@@ -162,10 +164,15 @@ Reads image and picks random position to spawn circle and circle grows until it 
 
 #### Circle
 All circles that spawns on screen grows in fixed rate. If circle collides(touches) with another circle, both circles stop growing.<br>
-Circle's position is 'sort-of' random. The algorithm collects all possible spawn point in image and then randomly polls the position.<br>
+Circle's position is 'sort-of' random. The algorithm collects all possible spawn point in image and then randomly polls the position.
 
 #### Usage
-To run algorithm, place your mouse pointer near the left edge of screen to show image lists. Some images have different purpose, such as alpha channel testing, but they all run same circle packing algorithm.
+Click the images on the left panel to run algorithm. <br>
+Press R to restart. <br>
+Press C to clear.<br>
+Press I to see original image.<br>
+Press Space to toggle update.<br>
+Press S to save circle packed image. Path: Working directory(Directory where you run the program)/CirclePacking.png<br>
 </details>
 
 ----
@@ -178,22 +185,23 @@ Visualizes A* pathfinding step by step
 Visualizes dot and cross product (i.e. Patrol detects player if player is in his sight range with angle)
 ### Audio spectrum
 Visualizes music in to several different form of graphs
+### Simplex Noise
+Ken Perlin's Simplex Noise. Generates noise image and shake.
 
 ----
 ## Font
 Used [Rubik](https://www.fontsquirrel.com/fonts/rubik) by Hubert & Fischer
 
 ##Todo List
-- Record time how long each algorithm takes to compute every frame and display with fps.
-- Increase size of window
 - Test build on linux
 - Replace current ECS (composite) with new ECS (data oriented)
 
 
 ## ChangeLog
-v0.5 Added Circle Packing visualization.<br>
+v0.6 Refined (Released: Windows, OSX)<br>
+v0.5 Added Circle Packing visualization. (Released: Windows, OSX)<br>
 v0.4 Fixed Bugs.<br>
-v0.3 Replaced ECS.<br>
-v0.2 Added Flocking Algorithm visualization.<br>
+v0.3 Replaced ECS. (Released: Windows)<br>
+v0.2 Added Flocking Algorithm visualization. (Released: Windows)<br>
 v0.1 Added QuadTree visualization.<br>
 v0.0 Project started.<br>

@@ -110,7 +110,7 @@ QTreeData::~QTreeData()
 
 
 
-float FlockingData::movementSpeed = 1.0f;
+float FlockingData::movementSpeed = 40.0f;
 float FlockingData::steerSpeed = 2.0f;
 float FlockingData::SIGHT_RADIUS = 30.0f;
 float FlockingData::COHENSION_WEIGHT = 1.0f;
@@ -124,7 +124,7 @@ FlockingData::FlockingData(const TYPE type) : Component(FLOCKING_DATA), tracking
 
 
 float CirclePackingData::maxRadius = 50.0f;
-float CirclePackingData::growthSpeed = 25.0f;
+float CirclePackingData::growthSpeed = 10.0f;
 float CirclePackingData::initialRadius = 5.0f;
 
 CirclePackingData::CirclePackingData(const cocos2d::Vec2 & position, const float radius, const cocos2d::Color4F color) : Component(CIRCLE_PACKING_DATA), alive(false), growing(false), position(position), radius(radius), color(color) {}

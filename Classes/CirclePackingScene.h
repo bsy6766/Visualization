@@ -5,6 +5,7 @@
 #include "ui/CocosGUI.h"
 #include "QuadTree.h"
 #include "ECS.h"
+#include "CustomNode.h"
 #include <memory>
 
 class CirclePackingScene : public cocos2d::Scene
@@ -20,12 +21,9 @@ private:
 	//Mouse events
 	void onMouseMove(cocos2d::Event* event);
 	void onMouseDown(cocos2d::Event* event);
-	void onMouseUp(cocos2d::Event* event);
-	void onMouseScroll(cocos2d::Event* event);
 
 	//keyboard events
 	void onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::Event* event);
-	void onKeyReleased(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::Event* event);
 
 	//cocos2d virtuals
 	virtual bool init() override;
@@ -36,24 +34,30 @@ private:
 	void initInputListeners();
 	void releaseInputListeners();
 
-	cocos2d::Label* backLabel;
-	int fps;
-	float fpsElapsedTime;
-	cocos2d::Label* fpsLabel;
-	cocos2d::DrawNode* growingDrawNode;
-	cocos2d::DrawNode* allGrownCircleDrawNode;
+    // Labels
+	LabelsNode* labelsNode;
+	SliderLabelNode* sliderLabelNode;
+	float simulationSpeedModifier;
+
+	// Enums
+	enum class CUSTOM_LABEL_INDEX
+	{
+		STATUS,
+		IMAGE_SIZE,
+		POSSIBLE_SPAWN_POINTS,
+		SPAWNED_CIRCLES,
+		GROWING_CIRCLES,
+		MAX_CUSTOM_LABEL,
+	};
+
 	cocos2d::Label* imageNameLabel;
 	cocos2d::Label* imageTestPurposeLabel;
 	cocos2d::Label* imageSelectInstructionLabel;
-	cocos2d::Sprite* leftArrow;
 	cocos2d::Node* imageSelectNode;
 	cocos2d::Sprite* imageSelectPanelBg;
-	bool viewingImageSelectPanel;
-	cocos2d::Label* statsLabel;
-	cocos2d::Label* runStatus;
-	cocos2d::Label* possibleCircleSpawnPointLabel;
-	cocos2d::Label* spawnedCircleCountLabel;
+	cocos2d::Node* circleNode;
 
+    // Images and sprites
 	std::vector<cocos2d::Image*> images;
 	std::vector<cocos2d::Sprite*> imageSprites;
 	std::vector<cocos2d::ui::Button*> imageSpritesIconButtons;
@@ -64,6 +68,16 @@ private:
 		CAT,
 		THE_SCREAM,
 		GRADIENT
+	};
+
+	enum USAGE_KEY
+	{
+		NONE,
+		PAUSE,
+		SHOW_ORIGINAL_IMAGE,
+		RESTART,
+		SAVE,
+		CLEAR,
 	};
 
 	// new circles are added on front. Growing circles are placed on front block. 
@@ -87,13 +101,19 @@ private:
 	int initialCircleCount;
 
 	// Number of circles that spawn every tick
-	int circleSpawnRate;
+    int circleSpawnRate;
+    
+    // Maximum attempt that circle spawn function can take
+    const int MAXIMUM_SPAWN_ATTEMPT = 30;
 
 	// Pause simulation
 	bool pause;
+    
+    // True if algorithm is finished
+    bool finished;
 
-	// Simulate speed multiplier. 1.0 by default. 0 = stops simulation
-	float simulateSpeedMultiplier;
+	// Show original image over circles
+	bool showOriginalImage;
 
 	// Keep track growing circle number
 	int growingCircleCount;
@@ -120,34 +140,69 @@ private:
 		ABOVE_CIRCLES
 	};
 
+    // Maximum circle that can spawn
 	int maxCircles;
+    
+    // Search offsets. @see findCircleSpawnPoint(const IMAGE_INDEX)
 	int searchSpawnPointWidthOffset;
 	int searchSpawnPointHeightOffset;
 
+    // Initialize all images
 	void initImages();
+    
+    // Initialize image and sprite
 	void initImageAndSprite(const std::string& imageName, const BUTTON_TAG buttonTag);
+    
+    // Find possible circle's spawn location on the screen for image
 	void findCircleSpawnPoint(const IMAGE_INDEX imageIndex);
+    
+    // Initialize circles.
 	void initCircles();
+    
 	// Move all grown circles to back of list. Returns true if new all grown up circles are found
 	const bool moveAllGrownCircles();
-	void spawnCircles(const int spawnRate);
+    
+    /**
+     *  Spawn circles.
+     *  @return The actual number of circles spawned on each frame
+     */
+	const int spawnCircles();
+    
+    // Deactivates active circles and merge to fresh circels list.
 	void resetCircles();
+    
+    // Convert pixel point to screen point
 	cocos2d::Vec2 pixelToPoint(const int x, const int y, const int height, const cocos2d::Vec2& spritePos);
+    
+    // Run circle packing algorithm with specific image
 	void runCirclePacking(const IMAGE_INDEX imageIndex);
-	void setImageNameLabel();
-	void updateFPS(const float delta);
-	void updateCircleRadius(const float delta);
-	void updateCircleGrowthWithCollision();
-	void updateDrawNodes(const bool clearAllGrownDrawNode);
+    
+    // Set image name and sizelabel corresponding to image name
+	void setImageNameAndSizeLabel();
+    
+    // Update active circle's radius(growth)
+	void updateCircleGrowth(const float delta);
+    
+    // Check each circle's collision and resolve the collision
+	void updateCircleCollisionResolution();
+    
+    // Create new circle entity
 	ECS::Entity* createNewEntity();
+    
 	// Initialize entities and quad tree
 	void initQuadTree();
+    
 	// Insert entities to quad tree
 	void insertEntitiesToQuadTree();
+    
 	// Reset QuadTree and remove inactive entities
 	void releaseQuadTree();
+    
 	// Button press call back
 	void onButtonPressed(cocos2d::Ref* sender);
+
+	// On slider finishes click on slider
+	void onSliderClick(cocos2d::Ref* sender);
 
 public:
 	//simple creator func
