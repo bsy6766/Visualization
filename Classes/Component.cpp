@@ -110,7 +110,7 @@ QTreeData::~QTreeData()
 
 
 
-float FlockingData::movementSpeed = 1.0f;
+float FlockingData::movementSpeed = 40.0f;
 float FlockingData::steerSpeed = 2.0f;
 float FlockingData::SIGHT_RADIUS = 30.0f;
 float FlockingData::COHENSION_WEIGHT = 1.0f;
