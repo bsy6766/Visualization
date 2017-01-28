@@ -38,9 +38,9 @@ bool MainScene::init()
 	this->labels.push_back(cocos2d::Label::createWithTTF("Quad Tree", fontPath, fontSize));
 	this->labels.push_back(cocos2d::Label::createWithTTF("Flocking", fontPath, fontSize));
     this->labels.push_back(cocos2d::Label::createWithTTF("Circle Packing", fontPath, fontSize));
-    this->labels.push_back(cocos2d::Label::createWithTTF("Rect Packing", fontPath, fontSize));
-    this->labels.push_back(cocos2d::Label::createWithTTF("A Star Pathfinding", fontPath, fontSize));
-    this->labels.push_back(cocos2d::Label::createWithTTF("Ear Clipping", fontPath, fontSize));
+    //this->labels.push_back(cocos2d::Label::createWithTTF("Rect Packing", fontPath, fontSize));
+    //this->labels.push_back(cocos2d::Label::createWithTTF("A Star Pathfinding", fontPath, fontSize));
+    //this->labels.push_back(cocos2d::Label::createWithTTF("Ear Clipping", fontPath, fontSize));
 	this->labels.push_back(cocos2d::Label::createWithTTF("EXIT(ESC)", fontPath, fontSize));
 	
 	int index = 0;
