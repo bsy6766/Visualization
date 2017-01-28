@@ -216,4 +216,45 @@ public:
     void updateValue(const int index, const float value);
 };
 
+/**
+*	@class SliderLabelNode
+*	@brief Inherits cocos2d Node.
+*
+*	Purpose of this class is to create node that has label and slider
+*/
+
+class SliderLabelNode : public cocos2d::Node
+{
+private:
+	friend class QuadTreeScene;
+	friend class FlockingScene;
+
+	//Default contructor
+	SliderLabelNode() = default;
+
+	//cocos2d virtual
+	virtual bool init() override;
+
+	//Label and slider
+	cocos2d::Vec2 sliderStartPos;
+
+	struct SliderLabel
+	{
+		cocos2d::Label* label;
+		cocos2d::ui::Slider* slider;
+	};
+	
+	std::vector<SliderLabel> sliderLabels;
+public:
+	//simple creator func
+	static SliderLabelNode* createNode();
+
+	//Default destructor
+	~SliderLabelNode() = default;
+
+	//Cocos2d Macro
+	CREATE_FUNC(SliderLabelNode);
+
+	void addSlider(const std::string& labelStr, const std::string& sliderTextureName, const int percentage, const cocos2d::ui::Widget::ccWidgetClickCallback &callback);
+};
 #endif

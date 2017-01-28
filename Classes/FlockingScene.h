@@ -42,12 +42,17 @@ private:
     DisplayBoundaryBoxNode* displayBoundaryBoxNode;
     LabelsNode* labelsNode;
     ButtonModifierNode* buttonModifierNode;
+	SliderLabelNode* sliderLabelNode;
+	float simulationSpeedModifier;
     
     // Enum for labels
     enum class CUSTOM_LABEL_INDEX
     {
+		TITLE,
+		EMPTY,
         ENTITIES,
         WEIGHTS,
+		MAX_CUSTOM_LABEL,
     };
     
 	enum class USAGE_KEY
@@ -57,6 +62,7 @@ private:
 		CLEAR,
 		ADD_TEN,
 		REMOVE_TEN,
+		SMOOTH_STEERING,
         MAX_KEYBOARD_USAGE,
 	};
     
@@ -85,6 +91,7 @@ private:
         COHESION,
         SEPARATION,
         AVOID,
+		MAX_WEIGHT,
     };
 
 	enum class ACTION_TAG
@@ -111,6 +118,9 @@ private:
 
 	// Flags
 	bool pause;
+
+	// Smooth steering mode
+	bool smoothSteering;
 
 	// Entities
 	std::list<ECS::Entity*> entities;
@@ -170,6 +180,9 @@ private:
     
     // Button click call back
     void onButtonPressed(cocos2d::Ref* sender);
+
+	// On slider finishes click on slider
+	void onSliderClick(cocos2d::Ref* sender);
 public:
 	//simple creator func
 	static FlockingScene* createScene();

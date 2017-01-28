@@ -18,6 +18,8 @@ bool FlockingScene::init()
     
     // init id counter to 0
 	ECS::Entity::idCounter = 0;
+
+	this->smoothSteering = true;
     
     // Init mouse point
     this->curMousePosition = cocos2d::Vec2(-1.0f, -1.0f);
@@ -49,33 +51,43 @@ bool FlockingScene::init()
     
     // Init custom labels
     float labelX = winSize.height - 10.0f;
-    float labelY = winSize.height - 30.0f;
+    float labelY = winSize.height - 45.0f;
     this->labelsNode->customLabelStartPos = cocos2d::Vec2(labelX, labelY);
-    
-    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Entities: 0", 25);
-    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Eights (Click buttons to modify weights)", 25);
+
+	const int titleSize = 35;
+	const int customLabelSize = 25;
+	const int blankLineSize = 15;
+
+	this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Flocking Algorithm Visualization", titleSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, " ", blankLineSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Entities: 0", customLabelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Weights (Click buttons to modify weights)", customLabelSize);
     
     // Init button node
     this->buttonModifierNode = ButtonModifierNode::createNode();
     this->buttonModifierNode->setPosition(cocos2d::Vec2::ZERO);
     this->buttonModifierNode->retain();
     this->addChild(this->buttonModifierNode);
+
+	const float customLastY = this->labelsNode->customLabels.back()->getBoundingBox().getMinY();
+	const float blockGap = 22.0f;
     
-    float buttonLabelY = labelY - 60.0f;
+	float buttonLabelY = customLastY - blockGap;
     
     const std::string leftStr = "left";
     const std::string rightStr = "right";
     const std::string buttonStr = "Button";
     const std::string format = ".png";
     
-    this->buttonModifierNode->buttonLabelStartPos = cocos2d::Vec2(labelX, buttonLabelY - 10.0f);
+    this->buttonModifierNode->buttonLabelStartPos = cocos2d::Vec2(labelX, buttonLabelY);
     
     this->buttonModifierNode->leftButtonXOffset = 160.0f;
     this->buttonModifierNode->valueLabelXOffset = 190.0f;
-    this->buttonModifierNode->rightButtonXOffset = 220.0f;
-    
+    this->buttonModifierNode->rightButtonXOffset = 240.0f;
+
+	const int labelSize = 20;
     this->buttonModifierNode->addButton("Alignment",
-                                        20,
+										labelSize,
                                         ECS::FlockingData::ALIGNMENT_WEIGHT,
                                         leftStr,
                                         rightStr,
@@ -86,7 +98,7 @@ bool FlockingScene::init()
                                         CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
     
     this->buttonModifierNode->addButton("Cohesion",
-                                        20,
+										labelSize,
                                         ECS::FlockingData::COHENSION_WEIGHT,
                                         leftStr,
                                         rightStr,
@@ -97,7 +109,7 @@ bool FlockingScene::init()
                                         CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
     
     this->buttonModifierNode->addButton("Separation",
-                                        20,
+										labelSize,
                                         ECS::FlockingData::SEPARATION_WEIGHT,
                                         leftStr,
                                         rightStr,
@@ -108,7 +120,7 @@ bool FlockingScene::init()
                                         CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
     
     this->buttonModifierNode->addButton("Avoid",
-                                        20,
+										labelSize,
                                         ECS::FlockingData::AVOID_WEIGHT,
                                         leftStr,
                                         rightStr,
@@ -127,29 +139,44 @@ bool FlockingScene::init()
 	this->rangeChecker->setScale(ECS::FlockingData::SIGHT_RADIUS * 2.0f / 100.0f);
 	this->areaNode->addChild(rangeChecker);
     
-    // init more labels
-    this->labelsNode->keyboardUsageLabelStartPos = cocos2d::Vec2(labelX, winSize.height * 0.65f);
+    // init more labels    
+	const int headerSize = 25;
+
+	const float weightLastY = this->buttonModifierNode->buttonLabels.back()->getBoundingBox().getMinY();
+	this->labelsNode->keyboardUsageLabelStartPos = cocos2d::Vec2(labelX, weightLastY - blockGap);
+
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Keys (Green = enabled)", headerSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Space = Toggle update", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "C = Clear all entities", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "A = Add 10 Boids", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "E = Remove 10 Boids", labelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "S = Toggle smooth steering", labelSize);
     
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Keys (Green = enabled)", 25);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Space = Toggle update", 20);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "C = Clear all entities", 20);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "A = Add 10 Boids", 20);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "E = Remove 10 Boids", 20);
+	const float keysLastY = this->labelsNode->keyboardUsageLabels.back()->getBoundingBox().getMinY();
+    this->labelsNode->mouseOverAndKeyLabelStartPos = cocos2d::Vec2(labelX, keysLastY - blockGap);
     
-    this->labelsNode->mouseOverAndKeyLabelStartPos = cocos2d::Vec2(labelX, (winSize.height * 0.65f) - (static_cast<float>(USAGE_KEY::MAX_KEYBOARD_USAGE) + 0.5f) * 20.0f);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE_OVER_AND_KEY, "Mouse over and key", headerSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE_OVER_AND_KEY, "O (In box) = Add Obstacle on point", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE_OVER_AND_KEY, "O (On Obstacle) = Remove Obstacle", labelSize);
     
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE_OVER_AND_KEY, "Mouse over and key", 25);
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE_OVER_AND_KEY, "O (In box) = Add Obstacle on point", 20);
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE_OVER_AND_KEY, "O (On Obstacle) = Remove Obstacle", 20);
+	const float mouseOverLastY = this->labelsNode->mouseOverAndKeyUsageLabels.back()->getBoundingBox().getMinY();
+    this->labelsNode->mouseUsageLabelStartPos = cocos2d::Vec2(labelX, mouseOverLastY - blockGap);
     
-    this->labelsNode->mouseUsageLabelStartPos = cocos2d::Vec2(labelX, (winSize.height * 0.65f) - (static_cast<float>(USAGE_KEY::MAX_KEYBOARD_USAGE) + static_cast<float>(USAGE_MOUSE_OVER_AND_KEY::MAX_MOUSE_HOVER_AND_KEY_USAGE) + 1.0f) * 20.0f);
-    
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Mouse", 25);
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (In box) = Add Boid", 20);
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (On Boid) = Toggle Boid tracking", 20);
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Right Click (On Boid) = Remove Boid)", 20);
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Middle Click (In box) = Add Obstacle)", 20);
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Middle Click (On Obstacle) = Remove Obstacle", 20);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Mouse", headerSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (In box) = Add Boid", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (On Boid) = Toggle Boid tracking", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Right Click (On Boid) = Remove Boid)", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Middle Click (In box) = Add Obstacle)", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Middle Click (On Obstacle) = Remove Obstacle", labelSize);
+
+	// speed modifier
+	this->simulationSpeedModifier = 1.0f;
+
+	this->sliderLabelNode = SliderLabelNode::createNode();
+	const float mouseLastY = this->labelsNode->mouseUsageLabels.back()->getBoundingBox().getMinY();
+	this->sliderLabelNode->sliderStartPos = cocos2d::Vec2(labelX, mouseLastY - blockGap);
+	this->sliderLabelNode->addSlider("Simulation Speed", "Slider", 50, CC_CALLBACK_1(FlockingScene::onSliderClick, this));
+	this->addChild(this->sliderLabelNode);
 
 	// Limit max entity to 400 in this case
 	ECS::Entity::maxEntitySize = 400;
@@ -170,13 +197,15 @@ void FlockingScene::onEnter()
 
 void FlockingScene::update(float delta)
 {
+	this->labelsNode->updateFPSLabel(delta);
+
 	if (!pause)
 	{
 		resetQTreeAndPurge();
+
+		delta *= this->simulationSpeedModifier;
 		updateFlockingAlgorithm(delta);
 	}
-
-    this->labelsNode->updateFPSLabel(delta);
     
     this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::ENTITIES), "Entities: " + std::to_string(this->entities.size()) + " / " + std::to_string(ECS::Entity::maxEntitySize));
 }
@@ -312,7 +341,7 @@ void FlockingScene::updateFlockingAlgorithm(const float delta)
 			entityDirVecComp->dirVec.normalize();
 
 			// update position
-			auto movedDir = entityDirVecComp->dirVec * ECS::FlockingData::movementSpeed;
+			auto movedDir = entityDirVecComp->dirVec * delta * ECS::FlockingData::movementSpeed;
 			auto newPos = entitySpriteComp->sprite->getPosition() + movedDir;
 			entitySpriteComp->sprite->setPosition(newPos);
 
@@ -800,6 +829,26 @@ void FlockingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
         }
         this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::REMOVE_TEN), cocos2d::Color3B::WHITE);
 	}
+
+	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_S)
+	{
+		this->smoothSteering = !this->smoothSteering;
+
+		for (auto entity : this->entities)
+		{
+			auto dirVecComp = entity->getComponent<DirectionVector*>(DIRECTION_VECTOR);
+			dirVecComp->smoothSteer = this->smoothSteering;
+		}
+
+		if (this->smoothSteering)
+		{
+			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::SMOOTH_STEERING), cocos2d::Color3B::GREEN);
+		}
+		else
+		{
+			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::SMOOTH_STEERING), cocos2d::Color3B::WHITE);
+		}
+	}
     
     if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_O)
     {
@@ -827,6 +876,25 @@ void FlockingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
             this->labelsNode->setColor(LabelsNode::TYPE::MOUSE_OVER_AND_KEY, static_cast<int>(USAGE_MOUSE_OVER_AND_KEY::ADD_OBSTACLE), cocos2d::Color3B::WHITE);
         }
     }
+}
+
+void FlockingScene::onSliderClick(cocos2d::Ref* sender)
+{
+	// Click ended. Get value
+	float percentage = static_cast<float>(this->sliderLabelNode->sliderLabels.back().slider->getPercent());
+	//50% = 1.0(default. So multiply by 2.
+	percentage *= 2.0f;
+	// 0% == 0, 100% = 1.0f, 200% = 2.0f
+	if (percentage == 0)
+	{
+		// 0 will make simulation stop
+		percentage = 1;
+	}
+	//. Devide by 100%
+	percentage *= 0.01f;
+
+	// apply
+	this->simulationSpeedModifier = percentage;
 }
 
 void FlockingScene::releaseInputListeners()

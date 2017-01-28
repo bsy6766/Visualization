@@ -64,64 +64,60 @@ bool QuadTreeScene::init()
     
     // Init custom labels
     float labelX = winSize.height - 10.0f;
-    float labelY = winSize.height - 30.0f;
+	float labelY = winSize.height - 45.0f;
     this->labelsNode->customLabelStartPos = cocos2d::Vec2(labelX, labelY);
+
+	const int titleSize = 35;
+	const int customLabelSize = 25;
+	const int blankLineSize = 15;
     
-	this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Quad Tree Visualization", 35);
-	this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, " ", 25);
-    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Entities: 0", 25);
-    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Collision check: 0", 25);
-    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Collision check w/o duplication : 0", 25);
-    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Brute-Froce check: 0", 25);
-    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Quad Tree max level: 0", 25);
+	this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Quad Tree Visualization", titleSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, " ", blankLineSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Entities: 0", customLabelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Collision check: 0", customLabelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Collision check w/o duplication : 0", customLabelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Brute-Froce check: 0", customLabelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Quad Tree max level: 0", customLabelSize);
     
 	// init more labels
-    this->labelsNode->keyboardUsageLabelStartPos = cocos2d::Vec2(labelX, winSize.height * 0.65f);
+	const float customLastY = this->labelsNode->customLabels.back()->getBoundingBox().getMinY();
+	const float blockGap = 22.0f;
+
+	this->labelsNode->keyboardUsageLabelStartPos = cocos2d::Vec2(labelX, customLastY - blockGap);
+
+	const int headerSize = 25;
+	const int labelSize = 20;
     
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Keys (Green = enabled)", 25);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Space = Toggle update", 20);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "C = Clear all Entities", 20);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "A = Add 10 Entities", 20);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "E = Remove 10 Entities", 20);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "G = Toggle quad tree subdivision grid", 20);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Keys (Green = enabled)", headerSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Space = Toggle update", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "C = Clear all Entities", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "A = Add 10 Entities", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "E = Remove 10 Entities", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "G = Toggle quad tree subdivision grid", labelSize);
     this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::GRID), cocos2d::Color3B::GREEN);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "D = Toggle duplication check", 20);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "D = Toggle duplication check", labelSize);
     this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::DUPL_CHECK), cocos2d::Color3B::GREEN);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "R = Toggle collision resolution", 20);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "1 = Increase Quad Tree max level", 20);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "2 = Decrease Quad Tree max level", 20);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "R = Toggle collision resolution", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "1 = Increase Quad Tree max level", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "2 = Decrease Quad Tree max level", labelSize);
     
-    this->labelsNode->mouseUsageLabelStartPos = cocos2d::Vec2(labelX, (winSize.height * 0.65f) - (static_cast<float>(USAGE_KEY::MAX_KEYBOARD_USAGE) + 0.5f) * 20.0f);
+	const float keysLastY = this->labelsNode->keyboardUsageLabels.back()->getBoundingBox().getMinY();
+    this->labelsNode->mouseUsageLabelStartPos = cocos2d::Vec2(labelX, keysLastY - blockGap);
     
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Mouse", 25);
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (In box) = Add Entity", 20);
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (On Entity) = Toggle Entity tracking", 20);
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Right Click (On Entity) = Remove Entity", 20);
-
-	//Slider Label
-	this->simulationSpeedLabel = cocos2d::Label::createWithTTF("Simulation Speed", "fonts/Rubik-Medium.ttf", 25);
-	this->simulationSpeedLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	float lastLabelY = this->labelsNode->mouseUsageLabels.back()->getPosition().y;
-	this->simulationSpeedLabel->setPosition(cocos2d::Vec2(labelX, lastLabelY - 50.0f));
-	this->addChild(this->simulationSpeedLabel);
-
-	// Slider
-	this->simulationSpeedSlider = cocos2d::ui::Slider::create();
-	this->simulationSpeedSlider->loadBarTexture("sliderBar.png", cocos2d::ui::Widget::TextureResType::PLIST);
-	this->simulationSpeedSlider->loadSlidBallTextures("sliderBallNormal.png", "sliderBallPressed.png", "sliderBallDisabled.png", cocos2d::ui::Widget::TextureResType::PLIST);
-	this->simulationSpeedSlider->loadProgressBarTexture("sliderProgressBar.png", cocos2d::ui::Widget::TextureResType::PLIST);
-	this->simulationSpeedSlider->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-	auto labelPos = this->simulationSpeedLabel->getPosition();
-	labelPos.y -= 20.0f;
-	labelPos.x += 5.0f;
-	this->simulationSpeedSlider->setPosition(labelPos);
-	this->simulationSpeedSlider->setPercent(50);	// 50% equals to default speed
-	this->simulationSpeedSlider->addClickEventListener(CC_CALLBACK_1(QuadTreeScene::onSliderClick, this));
-	this->addChild(this->simulationSpeedSlider);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Mouse", headerSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (In box) = Add Entity", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (On Entity) = Toggle Entity tracking", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Right Click (On Entity) = Remove Entity", labelSize);
 
 	// speed modifier
 	this->simulationSpeedModifier = 1.0f;
-	
+
+	this->sliderLabelNode = SliderLabelNode::createNode();
+	const float mouseLastY = this->labelsNode->mouseUsageLabels.back()->getBoundingBox().getMinY();
+	this->sliderLabelNode->sliderStartPos = cocos2d::Vec2(labelX, mouseLastY - blockGap);
+	this->sliderLabelNode->addSlider("Simulation Speed", "Slider", 50, CC_CALLBACK_1(QuadTreeScene::onSliderClick, this));
+	this->addChild(this->sliderLabelNode);
+
 	return true;
 }
 
@@ -800,7 +796,7 @@ void QuadTreeScene::releaseInputListeners()
 void QuadTreeScene::onSliderClick(cocos2d::Ref* sender)
 {
 	// Click ended. Get value
-	float percentage = static_cast<float>(this->simulationSpeedSlider->getPercent());
+	float percentage = static_cast<float>(this->sliderLabelNode->sliderLabels.back().slider->getPercent());
 	//50% = 1.0(default. So multiply by 2.
 	percentage *= 2.0f;
 	// 0% == 0, 100% = 1.0f, 200% = 2.0f

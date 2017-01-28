@@ -142,7 +142,7 @@ const bool LabelsNode::isValidIndex(TYPE type, const int index)
 void LabelsNode::addLabel(LabelsNode::TYPE type, const std::string &str, const int fontSize)
 {
     auto newLabel = cocos2d::Label::createWithTTF(str, fontPath, fontSize);
-    newLabel->setAnchorPoint(cocos2d::Vec2(0, 1.0f));
+    newLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
     
     cocos2d::Vec2 pos = cocos2d::Vec2::ZERO;
 	float yOffSet = 0;
@@ -390,11 +390,13 @@ const bool ButtonModifierNode::isValidIndex(TYPE type, const int index)
 
 void ButtonModifierNode::addButton(const std::string& labelStr, const int fontSize, const float value, const std::string& leftButtonSpriteNamePrefix, const std::string& rightButtonSpriteNamePrefix, const std::string& buttonSpriteNameSuffix, const std::string& format, const int leftActionTag, const int rightActionTag, const cocos2d::ui::AbstractCheckButton::ccWidgetClickCallback& callback)
 {
+	const float pad = 3.0f; 
+
     // Butotn label
     auto newButtonLabel = cocos2d::Label::createWithTTF(labelStr, fontPath, fontSize);
     newButtonLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
     auto labelPos = this->buttonLabelStartPos;
-    labelPos.y -= (static_cast<float>(this->buttonLabels.size()) * (fontSize + 5.0f));
+    labelPos.y -= (static_cast<float>(this->buttonLabels.size()) * (fontSize + pad));
     newButtonLabel->setPosition(labelPos);
     this->addChild(newButtonLabel);
     this->buttonLabels.push_back(newButtonLabel);
@@ -403,8 +405,9 @@ void ButtonModifierNode::addButton(const std::string& labelStr, const int fontSi
     auto newValueLabel = cocos2d::Label::createWithTTF(std::to_string(value).substr(0, 3), fontPath, fontSize);
     auto valuePos = this->buttonLabelStartPos;
     valuePos.x += this->valueLabelXOffset;
-    valuePos.y -= (static_cast<float>(this->valueLabels.size()) * (fontSize + 5.0f));
+    valuePos.y -= (static_cast<float>(this->valueLabels.size()) * (fontSize + pad));
     newValueLabel->setPosition(valuePos);
+	newValueLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
     this->addChild(newValueLabel);
     this->valueLabels.push_back(newValueLabel);
     
@@ -414,7 +417,8 @@ void ButtonModifierNode::addButton(const std::string& labelStr, const int fontSi
     auto leftButton = cocos2d::ui::Button::create(leftButtonSpriteNamePrefix + suffix, leftButtonSpriteNamePrefix + "Selected" + suffix, leftButtonSpriteNamePrefix + "Disabled" + suffix, cocos2d::ui::Widget::TextureResType::PLIST);
     auto leftButtonPos = this->buttonLabelStartPos;
     leftButtonPos.x += this->leftButtonXOffset;
-    leftButtonPos.y -= (static_cast<float>(this->leftButtons.size()) * (fontSize + 5.0f));
+    leftButtonPos.y -= (static_cast<float>(this->leftButtons.size()) * (fontSize + pad));
+	leftButton->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
     leftButton->setPosition(leftButtonPos);
     leftButton->addClickEventListener(callback);
     leftButton->setActionTag(leftActionTag);
@@ -425,7 +429,8 @@ void ButtonModifierNode::addButton(const std::string& labelStr, const int fontSi
     auto rightButton = cocos2d::ui::Button::create(rightButtonSpriteNamePrefix + suffix, rightButtonSpriteNamePrefix + "Selected" + suffix, rightButtonSpriteNamePrefix + "Disabled" + suffix, cocos2d::ui::Widget::TextureResType::PLIST);
     auto rightButtonPos = this->buttonLabelStartPos;
     rightButtonPos.x += this->rightButtonXOffset;
-    rightButtonPos.y -= (static_cast<float>(this->rightButtons.size()) * (fontSize + 5.0f));
+    rightButtonPos.y -= (static_cast<float>(this->rightButtons.size()) * (fontSize + pad));
+	rightButton->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
     rightButton->setPosition(rightButtonPos);
     rightButton->addClickEventListener(callback);
     rightButton->setActionTag(rightActionTag);
@@ -439,4 +444,58 @@ void ButtonModifierNode::updateValue(const int index, const float value)
     {
         this->valueLabels.at(index)->setString(std::to_string(value).substr(0, 3));
     }
+}
+
+
+
+
+SliderLabelNode* SliderLabelNode::createNode()
+{
+	SliderLabelNode* newNode = SliderLabelNode::create();
+	return newNode;
+}
+
+bool SliderLabelNode::init()
+{
+	if (!cocos2d::Node::init())
+	{
+		return false;
+	}
+
+	return true;
+}
+
+void SliderLabelNode::addSlider(const std::string& labelStr, const std::string& sliderTextureName, const int percentage, const cocos2d::ui::Widget::ccWidgetClickCallback& callback)
+{
+	auto pos = this->sliderStartPos;
+	float yOffset = 0;
+	float size = static_cast<float>(this->sliderLabels.size());
+	if (size != 0)
+	{
+		float prevSliderLabelSize = static_cast<float>(this->sliderLabels.back().label->getContentSize().height + this->sliderLabels.back().slider->getContentSize().height) - 20.0f;
+		yOffset = size * prevSliderLabelSize;
+	}
+
+	//Slider Label
+	auto newLabel = cocos2d::Label::createWithTTF("Simulation Speed", "fonts/Rubik-Medium.ttf", 25);
+	newLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
+	pos.y -= yOffset;
+	newLabel->setPosition(pos);
+	this->addChild(newLabel);
+
+	// Slider
+	auto newSlider = cocos2d::ui::Slider::create();
+	newSlider->loadBarTexture("sliderBar.png", cocos2d::ui::Widget::TextureResType::PLIST);
+	newSlider->loadSlidBallTextures("sliderBallNormal.png", "sliderBallPressed.png", "sliderBallDisabled.png", cocos2d::ui::Widget::TextureResType::PLIST);
+	newSlider->loadProgressBarTexture("sliderProgressBar.png", cocos2d::ui::Widget::TextureResType::PLIST);
+	newSlider->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
+	auto labelPos = newLabel->getPosition();
+	labelPos.y -= 20.0f;
+	labelPos.x += 5.0f;
+	newSlider->setPosition(labelPos);
+	newSlider->setPercent(50);	// 50% equals to default speed
+	newSlider->addClickEventListener(callback);
+	this->addChild(newSlider);
+
+	this->sliderLabels.push_back({ newLabel, newSlider });
 }

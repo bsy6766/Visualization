@@ -47,6 +47,7 @@ private:
         COLLISION_WO_DUP_CHECK,
         BRUTE_FORCE,
         QUAD_TREE_MAX_LEVEL,
+		MAX_CUSTOM_LABEL
     };
     
 	enum class USAGE_KEY
@@ -97,8 +98,7 @@ private:
 	QuadTreeLineNode* quadTreeLineNode;
     DisplayBoundaryBoxNode* displayBoundaryBoxNode;
     LabelsNode* labelsNode;
-	cocos2d::Label* simulationSpeedLabel;
-	cocos2d::ui::Slider* simulationSpeedSlider;
+	SliderLabelNode* sliderLabelNode;
 	float simulationSpeedModifier;
 
 	// Boundary holder
@@ -134,6 +134,7 @@ private:
     // Toggle color
     void toggleColor(const bool enabled, LabelsNode::TYPE type, const int index, const bool playAnimation = true);
 
+	// On slider finishes click on slider
 	void onSliderClick(cocos2d::Ref* sender);
 public:
 	//simple creator func
