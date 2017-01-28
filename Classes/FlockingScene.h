@@ -48,8 +48,6 @@ private:
     // Enum for labels
     enum class CUSTOM_LABEL_INDEX
     {
-		TITLE,
-		EMPTY,
         ENTITIES,
         WEIGHTS,
 		MAX_CUSTOM_LABEL,
@@ -58,7 +56,7 @@ private:
 	enum class USAGE_KEY
 	{
         NONE,
-		SPACE = 1,
+		PAUSE = 1,
 		CLEAR,
 		ADD_TEN,
 		REMOVE_TEN,

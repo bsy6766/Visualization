@@ -5,6 +5,7 @@
 #include "ui/CocosGUI.h"
 #include "QuadTree.h"
 #include "ECS.h"
+#include "CustomNode.h"
 #include <memory>
 
 class CirclePackingScene : public cocos2d::Scene
@@ -37,27 +38,27 @@ private:
 	void releaseInputListeners();
 
     // Labels
-	cocos2d::Label* backLabel;
-	int fps;
-	float fpsElapsedTime;
-	cocos2d::Label* fpsLabel;
-	cocos2d::DrawNode* growingDrawNode;
-	cocos2d::DrawNode* allGrownCircleDrawNode;
+	LabelsNode* labelsNode;
+	SliderLabelNode* sliderLabelNode;
+	float simulationSpeedModifier;
+
+	// Enums
+	enum class CUSTOM_LABEL_INDEX
+	{
+		STATUS,
+		IMAGE_SIZE,
+		POSSIBLE_SPAWN_POINTS,
+		SPAWNED_CIRCLES,
+		GROWING_CIRCLES,
+		MAX_CUSTOM_LABEL,
+	};
+
 	cocos2d::Label* imageNameLabel;
 	cocos2d::Label* imageTestPurposeLabel;
 	cocos2d::Label* imageSelectInstructionLabel;
-	cocos2d::Sprite* leftArrow;
 	cocos2d::Node* imageSelectNode;
 	cocos2d::Sprite* imageSelectPanelBg;
-	bool viewingImageSelectPanel;
-    
-    // Stats
-	cocos2d::Label* statsLabel;
-	cocos2d::Label* runStatus;
-	cocos2d::Label* possibleCircleSpawnPointLabel;
-	cocos2d::Label* spawnedCircleCountLabel;
-    cocos2d::Label* growingCircleCountLabel;
-    cocos2d::Label* imageSizeLabel;
+	cocos2d::Node* circleNode;
 
     // Images and sprites
 	std::vector<cocos2d::Image*> images;
@@ -70,6 +71,16 @@ private:
 		CAT,
 		THE_SCREAM,
 		GRADIENT
+	};
+
+	enum USAGE_KEY
+	{
+		NONE,
+		PAUSE,
+		SHOW_ORIGINAL_IMAGE,
+		RESTART,
+		SAVE,
+		CLEAR,
 	};
 
 	// new circles are added on front. Growing circles are placed on front block. 
@@ -104,8 +115,8 @@ private:
     // True if algorithm is finished
     bool finished;
 
-	// Simulate speed multiplier. 1.0 by default. 0 = stops simulation
-	float simulateSpeedMultiplier;
+	// Show original image over circles
+	bool showOriginalImage;
 
 	// Keep track growing circle number
 	int growingCircleCount;
@@ -172,17 +183,11 @@ private:
     // Set image name and sizelabel corresponding to image name
 	void setImageNameAndSizeLabel();
     
-    // Update FPS.
-	void updateFPS(const float delta);
-    
     // Update active circle's radius(growth)
 	void updateCircleGrowth(const float delta);
     
     // Check each circle's collision and resolve the collision
 	void updateCircleCollisionResolution();
-    
-    // Draw circle with cocos2d-x draw node. Disabled
-	void updateDrawNodes(const bool clearAllGrownDrawNode);
     
     // Create new circle entity
 	ECS::Entity* createNewEntity();
@@ -198,6 +203,9 @@ private:
     
 	// Button press call back
 	void onButtonPressed(cocos2d::Ref* sender);
+
+	// On slider finishes click on slider
+	void onSliderClick(cocos2d::Ref* sender);
 
 public:
 	//simple creator func

@@ -40,8 +40,6 @@ private:
     // Enum for labels
     enum class CUSTOM_LABEL_INDEX
     {
-		TITLE,
-		EMPTY,
         ENTITIES,
         COLLISION,
         COLLISION_WO_DUP_CHECK,
@@ -53,7 +51,7 @@ private:
 	enum class USAGE_KEY
 	{
         NONE = 0,
-		SPACE,
+		PAUSE,
 		CLEAR,
 		ADD_TEN,
 		REMOVE_TEN,

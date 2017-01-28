@@ -92,22 +92,23 @@ bool LabelsNode::init()
     // Init animation action
     this->labelAnimation = cocos2d::Sequence::create(cocos2d::ScaleTo::create(0, 0.85f), cocos2d::DelayTime::create(0.25f), cocos2d::ScaleTo::create(0, 1.0f), nullptr);
     this->labelAnimation->retain();
-    
-    auto winSize = cocos2d::Director::getInstance()->getVisibleSize();
-    
-    int fontSize = 20.0f;
-    
-    // Init label
-    this->backLabel = cocos2d::Label::createWithTTF("BACK(ESC)", fontPath, fontSize);
-    this->backLabel->setPosition(cocos2d::Vec2(winSize.width - 70.0f, 40.0f));
-    this->addChild(this->backLabel);
-    
-    float labelX = winSize.height - 10.0f;
-    
-    fpsLabel = cocos2d::Label::createWithTTF("FPS: " + std::to_string(cocos2d::Director::getInstance()->getFrameRate()), fontPath, fontSize);
-    fpsLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-    fpsLabel->setPosition(cocos2d::Vec2(labelX, 40.0f));
-    this->addChild(fpsLabel);
+
+	// Init title LAbel
+	const int titleSize = 35;
+	this->titleLabel = cocos2d::Label::createWithTTF("Visualization", fontPath, titleSize);
+	this->titleLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
+	this->addChild(this->titleLabel);
+
+	// Init back label
+	const int fontSize = 20;
+	this->backLabel = cocos2d::Label::createWithTTF("BACK(ESC)", fontPath, fontSize);
+	this->backLabel->setAnchorPoint(cocos2d::Vec2(0.5f, 0.5f));
+	this->addChild(this->backLabel);
+
+	// Init fps label
+	this->fpsLabel = cocos2d::Label::createWithTTF("FPS: " + std::to_string(cocos2d::Director::getInstance()->getFrameRate()), fontPath, fontSize);
+	this->fpsLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
+	this->addChild(fpsLabel);
     
     // fps
     this->fps = 0;
@@ -330,6 +331,41 @@ void LabelsNode::playAnimation(TYPE type, const int index)
                 break;
         }
     }
+}
+
+void LabelsNode::initTitleStr(const std::string& titleString, const cocos2d::Vec2& pos)
+{
+	this->titleLabel->setString(titleString + " Visualization");
+	this->titleLabel->setPosition(pos);
+}
+
+void LabelsNode::setSharedLabelPosition(SHARED_LABEL_POS_TYPE type)
+{
+	auto winSize = cocos2d::Director::getInstance()->getVisibleSize();
+	int fontSize = 20.0f;
+
+	switch (type)
+	{
+	case SHARED_LABEL_POS_TYPE::QUADTREE_SCENE:
+	case SHARED_LABEL_POS_TYPE::FLOCKING_SCENE:
+	{
+		float height = 40.0f;
+		this->backLabel->setPosition(cocos2d::Vec2(winSize.width - 70.0f, height));
+		float labelX = winSize.height - 10.0f;
+		this->fpsLabel->setPosition(cocos2d::Vec2(labelX, height));
+	}
+		break;
+	case SHARED_LABEL_POS_TYPE::CIRCLE_PACKING_SCENE:
+	{
+		float height = 20.0f;
+		this->backLabel->setPosition(cocos2d::Vec2(winSize.width - 70.0f, height));
+		float labelX = 130.0f;
+		this->fpsLabel->setPosition(cocos2d::Vec2(labelX, height));
+	}
+	break;
+	default:
+		break;
+	}
 }
 
 void LabelsNode::onExit()

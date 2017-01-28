@@ -86,37 +86,51 @@ public:
 class LabelsNode : public cocos2d::Node
 {
 private:
-    friend class QuadTreeScene;
-    friend class FlockingScene;
-    friend class CirclePackingScene;
-    
-    enum class TYPE
-    {
-        CUSTOM,
-        KEYBOARD,
-        MOUSE_OVER_AND_KEY,
-        MOUSE
-    };
-    
-    struct MouseUsageLabel
-    {
-        cocos2d::Label* label;
-        int mouseButton;    //0 = left, 1 = right, 2 = middle
-    };
-    
-    static const std::string fontPath;
-    
-    //Default contructor
-    LabelsNode() = default;
-    
-    //cocos2d virtual
-    virtual bool init() override;
-    virtual void onExit() override;
-    
-    // Shared Labels
-    cocos2d::Label* backLabel;
-    cocos2d::Label* fpsLabel;
-    
+	friend class QuadTreeScene;
+	friend class FlockingScene;
+	friend class CirclePackingScene;
+
+	enum class TYPE
+	{
+		CUSTOM,
+		KEYBOARD,
+		MOUSE_OVER_AND_KEY,
+		MOUSE
+	};
+
+	struct MouseUsageLabel
+	{
+		cocos2d::Label* label;
+		int mouseButton;    //0 = left, 1 = right, 2 = middle
+	};
+
+	static const std::string fontPath;
+
+	//Default contructor
+	LabelsNode() = default;
+
+	//cocos2d virtual
+	virtual bool init() override;
+	virtual void onExit() override;
+
+	// Shared Labels
+	cocos2d::Label* titleLabel;
+	cocos2d::Label* backLabel;
+	cocos2d::Label* fpsLabel;
+
+	enum SHARED_LABEL_POS_TYPE
+	{
+		QUADTREE_SCENE,
+		FLOCKING_SCENE,
+		CIRCLE_PACKING_SCENE,
+		FREE,
+	};
+
+	// Function for shared Labels
+	void initTitleStr(const std::string& titleString, const cocos2d::Vec2& pos);
+	void setSharedLabelPosition(SHARED_LABEL_POS_TYPE type);
+
+
     // Custom Labels
     std::vector<cocos2d::Label*> customLabels;
     cocos2d::Vec2 customLabelStartPos;
@@ -228,6 +242,7 @@ class SliderLabelNode : public cocos2d::Node
 private:
 	friend class QuadTreeScene;
 	friend class FlockingScene;
+	friend class CirclePackingScene;
 
 	//Default contructor
 	SliderLabelNode() = default;
