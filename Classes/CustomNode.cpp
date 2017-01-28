@@ -109,6 +109,11 @@ bool LabelsNode::init()
 	this->fpsLabel = cocos2d::Label::createWithTTF("FPS: " + std::to_string(cocos2d::Director::getInstance()->getFrameRate()), fontPath, fontSize);
 	this->fpsLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	this->addChild(fpsLabel);
+
+	// Init timeTaken label
+	this->timeTakenLabel = cocos2d::Label::createWithTTF("Time Taken: 0", fontPath, fontSize);
+	this->timeTakenLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
+	this->addChild(timeTakenLabel);
     
     // fps
     this->fps = 0;
@@ -256,13 +261,18 @@ void LabelsNode::updateFPSLabel(const float delta)
     {
         this->fpsElapsedTime -= 1.0f;
         fps++;
-        fpsLabel->setString("FPS: " + std::to_string(fps) + " (" + std::to_string(delta).substr(0, 5) + "ms)");
+        fpsLabel->setString("FPS: " + std::to_string(fps) + " (" + std::to_string(delta * 1000.0f).substr(0, 2) + "ms)");
         fps = 0;
     }
     else
     {
         fps++;
     }
+}
+
+void LabelsNode::updateTimeTakenLabel(const std::string & timeTaken)
+{
+	this->timeTakenLabel->setString("Time taken: " + timeTaken + "ms");
 }
 
 void LabelsNode::updateMouseHover(const cocos2d::Vec2 &mousePos)
@@ -366,6 +376,12 @@ void LabelsNode::setSharedLabelPosition(SHARED_LABEL_POS_TYPE type)
 	default:
 		break;
 	}
+
+	auto fpsLabelBB = this->fpsLabel->getBoundingBox();
+	auto timeTakePos = this->fpsLabel->getPosition();
+	timeTakePos.x += fpsLabelBB.size.width + 40.0f;
+
+	this->timeTakenLabel->setPosition(timeTakePos);
 }
 
 void LabelsNode::onExit()

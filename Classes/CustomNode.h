@@ -117,6 +117,7 @@ private:
 	cocos2d::Label* titleLabel;
 	cocos2d::Label* backLabel;
 	cocos2d::Label* fpsLabel;
+	cocos2d::Label* timeTakenLabel;
 
 	enum SHARED_LABEL_POS_TYPE
 	{
@@ -164,6 +165,7 @@ public:
     
     // Updates
     void updateFPSLabel(const float delta);
+	void updateTimeTakenLabel(const std::string& timeTaken);
     void updateMouseHover(const cocos2d::Vec2& mousePos);
     const bool updateMouseDown(const cocos2d::Vec2& mousePos);
 
