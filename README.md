@@ -153,6 +153,8 @@ This program uses Quad Tree like the QuadTree project in this repo to optimize c
 #### Note
 Visualizes animated Circle Packing in 2D.<br>
 Reads image and picks random position to spawn circle and circle grows until it reaches maximum size or touches other circle.<br>
+My implementation doesn't pack the circles evenly in radius (Search google Circle Packing and check images with evenly spaced circles).<br>
+It picks random position and let them grow which results all different size of circles.
 
 #### Preview (Expand/Collapse)
 <details> 
@@ -165,7 +167,12 @@ All circles that spawns on screen grows in fixed rate. If circle collides(touche
 Circle's position is 'sort-of' random. The algorithm collects all possible spawn point in image and then randomly polls the position.
 
 #### Usage
-To run algorithm, place your mouse pointer near the left edge of screen to show image lists. Some images have different purpose, such as alpha channel testing, but they all run same circle packing algorithm.
+Click the images on the left panel to run algorithm. <br>
+Press R to restart. <br>
+Press C to clear.<br>
+Press I to see original image.<br>
+Press Space to toggle update.<br>
+Press S to save circle packed image. Path: Working directory(Directory where you run the program)/CirclePacking.png<br>
 </details>
 
 ----
@@ -178,6 +185,8 @@ Visualizes A* pathfinding step by step
 Visualizes dot and cross product (i.e. Patrol detects player if player is in his sight range with angle)
 ### Audio spectrum
 Visualizes music in to several different form of graphs
+### Simplex Noise
+Ken Perlin's Simplex Noise. Generates noise image and shake.
 
 ----
 ## Font
