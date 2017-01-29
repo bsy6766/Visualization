@@ -83,7 +83,7 @@ void MainScene::setDescriptionLabel()
 			this->descriptionLabel->setString("Visualization circle packing based on image");
 			break;
 		case MainScene::MENU_INDEX::RECT_PACKING:
-			this->descriptionLabel->setString("Visualization rectangle packing in power of 2 sized square area");
+			this->descriptionLabel->setString("Visualization rectangle packing square area");
 			break;
 		case MainScene::MENU_INDEX::EXIT:
 			this->descriptionLabel->setString("Exit");
