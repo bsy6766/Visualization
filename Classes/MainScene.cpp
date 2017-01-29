@@ -40,8 +40,8 @@ bool MainScene::init()
 	this->labels.push_back(cocos2d::Label::createWithTTF("Flocking", fontPath, fontSize));
     this->labels.push_back(cocos2d::Label::createWithTTF("Circle Packing", fontPath, fontSize));
     this->labels.push_back(cocos2d::Label::createWithTTF("Rect Packing", fontPath, fontSize));
+    this->labels.push_back(cocos2d::Label::createWithTTF("Ear Clipping", fontPath, fontSize));
     //this->labels.push_back(cocos2d::Label::createWithTTF("A Star Pathfinding", fontPath, fontSize));
-    //this->labels.push_back(cocos2d::Label::createWithTTF("Ear Clipping", fontPath, fontSize));
 	this->labels.push_back(cocos2d::Label::createWithTTF("EXIT(ESC)", fontPath, fontSize));
 
 	this->versionLabel = cocos2d::Label::createWithTTF("v0.6", fontPath, 20);
@@ -85,6 +85,9 @@ void MainScene::setDescriptionLabel()
 		case MainScene::MENU_INDEX::RECT_PACKING:
 			this->descriptionLabel->setString("Visualizes rectangle packing square area");
 			break;
+        case MainScene::MENU_INDEX::EAR_CLIPPING:
+            this->descriptionLabel->setString("Visualizes ear clipping (polygon triangulation) with drawing mode");
+            break;
 		case MainScene::MENU_INDEX::EXIT:
 			this->descriptionLabel->setString("Exit");
 			break;
@@ -109,7 +112,12 @@ void MainScene::checkMouseOver(const cocos2d::Vec2 mousePos)
 	int index = 0;
 	for (auto label : this->labels)
 	{
-		if (label->getBoundingBox().containsPoint(mousePos))
+        auto labelBB = label->getBoundingBox();
+        // Extend the bounding box on left and right
+        float pad = 70.0f;
+        labelBB.origin.x -= pad;
+        labelBB.size.width += (pad*2.0f);
+		if (labelBB.containsPoint(mousePos))
 		{
 			if (this->hoveringLableIndex == -1)
 			{

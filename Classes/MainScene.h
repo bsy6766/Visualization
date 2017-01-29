@@ -41,10 +41,10 @@ private:
 		QUAD_TREE = 0,
 		FLOCKING,
 		CIRCLE_PACKING,
-		RECT_PACKING,
+        RECT_PACKING,
+        EAR_CLIPPING,
 		EXIT,
 		//A_STAR_PATHFINDING,
-		//EAR_CLIPPING,
 	};
 
 	void setDescriptionLabel();
