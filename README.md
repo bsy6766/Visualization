@@ -219,10 +219,11 @@ Used [Rubik](https://www.fontsquirrel.com/fonts/rubik) by Hubert & Fischer
 
 
 ## ChangeLog
-v0.6 Refined (Released: Windows, OSX)<br>
-v0.5 Added Circle Packing visualization. (Released: Windows, OSX)<br>
+v0.7 Added Rect Packing visualization.<br>
+v0.6 Refined.<br>
+v0.5 Added Circle Packing visualization.<br>
 v0.4 Fixed Bugs.<br>
-v0.3 Replaced ECS. (Released: Windows)<br>
-v0.2 Added Flocking Algorithm visualization. (Released: Windows)<br>
+v0.3 Replaced ECS. <br>
+v0.2 Added Flocking Algorithm visualization.<br>
 v0.1 Added QuadTree visualization.<br>
 v0.0 Project started.<br>
