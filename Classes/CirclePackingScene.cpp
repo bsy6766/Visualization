@@ -249,7 +249,6 @@ void CirclePackingScene::updateCircleCollisionResolution()
 		return;
 	}
     
-    int size = static_cast<int>(this->activeCircles.size());
     int totalComparisonCount = 0;
     
 	for (auto activeCircle : this->activeCircles)

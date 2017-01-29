@@ -6,7 +6,7 @@
 #include "ECS.h"
 #include <queue>
 
-class RectPackingScene : public cocos2d::CCScene
+class RectPackingScene : public cocos2d::Scene
 {
 private:
 	//default constructor

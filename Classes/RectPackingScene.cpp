@@ -15,7 +15,7 @@ RectPackingScene* RectPackingScene::createScene()
 
 bool RectPackingScene::init()
 {
-	if (!CCScene::init())
+    if (!cocos2d::Scene::init())
 	{
 		return false;
 	}
@@ -133,7 +133,7 @@ bool RectPackingScene::init()
 
 void RectPackingScene::onEnter()
 {
-	cocos2d::CCScene::onEnter();
+	cocos2d::Scene::onEnter();
 	initInputListeners();
 
 	restart();
@@ -221,6 +221,10 @@ const bool RectPackingScene::insert(ECS::Entity * entity, const cocos2d::Size& r
 			// left failed. insert on right
 			return insert(rectComp->right, rectSize);
 		}
+        else
+        {
+            return true;
+        }
 	}
 	else
 	{
@@ -261,9 +265,6 @@ const bool RectPackingScene::insert(ECS::Entity * entity, const cocos2d::Size& r
 		// Get left and right entities compoennt
 		auto leftRectComp = rectComp->left->getComponent<ECS::RectPackingNode*>(ECS::COMPONENT_ID::RECT_PACKING_NODE);
 		auto rightRectComp = rectComp->right->getComponent<ECS::RectPackingNode*>(ECS::COMPONENT_ID::RECT_PACKING_NODE);
-
-		// double the padding because we are adding pad on all 4 sides of rect
-		float pad = this->padding * 2.0f;
 
 		// Check the size of new rectangle and see which way do split
 		const cocos2d::Size dSize = rectComp->area.size - rectSize;
@@ -462,7 +463,7 @@ void RectPackingScene::initRects()
 		sizes.push_back(cocos2d::Size(Utility::Random::randomInt(15, 40), Utility::Random::randomInt(15, 40)));
 	}
 
-	cocos2d::log("Total rect created = %d", sizes.size());
+    cocos2d::log("Total rect created = %d", static_cast<int>(sizes.size()));
 
 	this->maxRects = smallCount + mediumCount + largeCount;
 
@@ -473,7 +474,7 @@ void RectPackingScene::initRects()
 		this->randomSizes.push(size);
 	}
 
-	cocos2d::log("Total rect to pack = %d", this->randomSizes.size());
+    cocos2d::log("Total rect to pack = %d", static_cast<int>(this->randomSizes.size()));
 }
 
 void RectPackingScene::clear()
@@ -584,7 +585,7 @@ void RectPackingScene::onMouseDown(cocos2d::Event* event)
 {
 	auto mouseEvent = static_cast<EventMouse*>(event);
 	//0 = left, 1 = right, 2 = middle
-	int mouseButton = mouseEvent->getMouseButton();
+	//int mouseButton = mouseEvent->getMouseButton();
 	float x = mouseEvent->getCursorX();
 	float y = mouseEvent->getCursorY();
 
@@ -656,7 +657,7 @@ void RectPackingScene::releaseInputListeners()
 
 void RectPackingScene::onExit()
 {
-	cocos2d::CCScene::onExit();
+	cocos2d::Scene::onExit();
 	releaseInputListeners(); 
 
 	if (this->root != nullptr)
