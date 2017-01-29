@@ -3,6 +3,7 @@
 #include "FlockingScene.h"
 #include "CirclePackingScene.h"
 #include "RectPackingScene.h"
+#include "EarClippingScene.h"
 #include "Utility.h"
 
 USING_NS_CC;
@@ -208,28 +209,29 @@ void MainScene::onMouseDown(cocos2d::Event* event)
 			{
 			case MENU_INDEX::QUAD_TREE:
 			{
-				// Load quad tree scene
 				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, QuadTreeScene::create(), cocos2d::Color3B::BLACK));
 			}
 				break;
 			case MENU_INDEX::FLOCKING:
 			{
-				// Load quad tree scene
 				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, FlockingScene::create(), cocos2d::Color3B::BLACK));
 			}
 				break;
 			case MENU_INDEX::CIRCLE_PACKING:
 			{
-				// Load quad tree scene
 				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, CirclePackingScene::create(), cocos2d::Color3B::BLACK));
 			}
 				break;
 			case MENU_INDEX::RECT_PACKING:
 			{
-				// Load quad tree scene
 				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, RectPackingScene::create(), cocos2d::Color3B::BLACK));
 			}
-				break;
+                    break;
+            case MENU_INDEX::EAR_CLIPPING:
+            {
+                cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, EarClippingScene::create(), cocos2d::Color3B::BLACK));
+            }
+                break;
 			case MENU_INDEX::EXIT:
 			{
 				cocos2d::Director::getInstance()->end();
