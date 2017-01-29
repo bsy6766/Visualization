@@ -159,3 +159,36 @@ void CirclePackingData::deactivate()
 	this->radius = 0;
 	this->color = cocos2d::Color4F::WHITE;
 }
+
+
+
+
+ECS::RectPackingNode::RectPackingNode() : Component(static_cast<int>(COMPONENT_ID::RECT_PACKING_NODE)), left(nullptr), right(nullptr), rect(cocos2d::Rect::ZERO), area(cocos2d::Rect::ZERO) {}
+
+ECS::RectPackingNode::~RectPackingNode()
+{
+	if (left)
+	{
+		delete left;
+	}
+
+	if (right)
+	{
+		delete right;
+	}
+}
+
+const bool RectPackingNode::isLeaf()
+{
+	return (left == nullptr) && (right == nullptr);
+}
+
+const float RectPackingNode::getAreaWidth()
+{
+	return this->area.size.width;
+}
+
+const float RectPackingNode::getAreaHeight()
+{
+	return this->area.size.height;
+}

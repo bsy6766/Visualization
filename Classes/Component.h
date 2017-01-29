@@ -21,6 +21,7 @@ namespace ECS
 		QTREE_DATA,
 		FLOCKING_DATA,
 		CIRCLE_PACKING_DATA,
+		RECT_PACKING_NODE
 	};
 
 
@@ -124,6 +125,33 @@ namespace ECS
 		void update(const float delta);
 		void activate(const cocos2d::Vec2& position, const float radius, const cocos2d::Color4F color);
 		void deactivate();
+	};
+
+	class RectPackingNode : public Component
+	{
+	public:
+		RectPackingNode();
+		~RectPackingNode();
+		RectPackingNode(RectPackingNode const&) = delete;
+		void operator=(RectPackingNode const&) = delete;
+
+		// Two children
+		ECS::Entity* left;
+		ECS::Entity* right;
+
+		//color
+		cocos2d::Color4F color;
+
+		// True if this is leaf node(have no children)
+		const bool isLeaf();
+
+		// The area size of this node
+		cocos2d::Rect area;
+		const float getAreaWidth();
+		const float getAreaHeight();
+
+		// The rectangle this node have. Must be leaf.
+		cocos2d::Rect rect;
 	};
 }
 

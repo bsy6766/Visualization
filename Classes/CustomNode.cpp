@@ -357,6 +357,7 @@ void LabelsNode::setSharedLabelPosition(SHARED_LABEL_POS_TYPE type)
 	{
 	case SHARED_LABEL_POS_TYPE::QUADTREE_SCENE:
 	case SHARED_LABEL_POS_TYPE::FLOCKING_SCENE:
+	case SHARED_LABEL_POS_TYPE::RECT_PACKING_SCENE:
 	{
 		float height = 40.0f;
 		this->backLabel->setPosition(cocos2d::Vec2(winSize.width - 70.0f, height));
@@ -370,7 +371,7 @@ void LabelsNode::setSharedLabelPosition(SHARED_LABEL_POS_TYPE type)
 		this->fpsLabel->setPosition(cocos2d::Vec2(130.0f, height));
 	}
 	break;
-	case SHARED_LABEL_POS_TYPE::RECT_PACKING_SCENE:
+	case SHARED_LABEL_POS_TYPE::FREE:
 	{
 		float height = 20.0f;
 		this->backLabel->setPosition(cocos2d::Vec2(winSize.width - 70.0f, height));
@@ -383,7 +384,7 @@ void LabelsNode::setSharedLabelPosition(SHARED_LABEL_POS_TYPE type)
 
 	auto fpsLabelBB = this->fpsLabel->getBoundingBox();
 	auto timeTakePos = this->fpsLabel->getPosition();
-	timeTakePos.x += fpsLabelBB.size.width + 40.0f;
+	timeTakePos.x += fpsLabelBB.size.width + 20.0f;
 
 	this->timeTakenLabel->setPosition(timeTakePos);
 }

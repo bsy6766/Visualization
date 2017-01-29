@@ -175,6 +175,27 @@ Press Space to toggle update.<br>
 Press S to save circle packed image. Path: Working directory(Directory where you run the program)/CirclePacking.png<br>
 </details>
 
+<details>
+<summary><b>Rect Packing</b></summary>
+#### Note
+Visualizes rectangle packing in fixed size of area. This is also called as sprite packing, texture packing, etc.<br>
+Generates hundreds of random sized rectangle and tries to fit int fixed size of area.<br>
+
+#### Preview (Expand/Collapse)
+<details> 
+  <summary>Rect Packing preview gif</summary>
+   ![Rect Packing Preview](https://github.com/bsy6766/Visualization/blob/master/gifs/RectPacking.gif)
+</details>
+
+#### Reference
+This is the [Reference](http://blackpawn.com/texts/lightmaps/default.html) I used for this algorithm.
+
+#### Rect
+Rect is a just rentagle. I used cocos2d-x's Rect class.
+
+
+</details>
+
 ----
 ## Planned
 ### Ear clipping polygon triangulation

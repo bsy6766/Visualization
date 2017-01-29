@@ -47,8 +47,7 @@ namespace Utility
 		}
 
 	public:
-		template<typename T>
-		static inline T randomInt(T min, T max)
+		static inline int randomInt(int min, int max)
 		{
 			if (seedNumber == 0 || seedString == "")
 			{
@@ -60,7 +59,7 @@ namespace Utility
 				std::swap(min, max);
 			}
 
-			std::uniform_int_distribution<T> dist(min, max);
+			std::uniform_int_distribution<int> dist(min, max);
 			return dist(generator);
 		}
 

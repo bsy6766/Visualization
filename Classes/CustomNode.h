@@ -49,6 +49,7 @@ class DisplayBoundaryBoxNode : public cocos2d::Node
 private:
     friend class QuadTreeScene;
     friend class FlockingScene;
+	friend class RectPackingScene;
     
     //Default contructor
     DisplayBoundaryBoxNode() = default;
