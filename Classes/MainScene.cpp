@@ -74,16 +74,16 @@ void MainScene::setDescriptionLabel()
 		switch (menuIndex)
 		{
 		case MainScene::MENU_INDEX::QUAD_TREE:
-			this->descriptionLabel->setString("Visualization collision check and resolution with Quad Tree");
+			this->descriptionLabel->setString("Visualizes collision check and resolution with Quad Tree");
 			break;
 		case MainScene::MENU_INDEX::FLOCKING:
-			this->descriptionLabel->setString("Visualization flocking algorithm");
+			this->descriptionLabel->setString("Visualizes flocking algorithm");
 			break;
 		case MainScene::MENU_INDEX::CIRCLE_PACKING:
-			this->descriptionLabel->setString("Visualization circle packing based on image");
+			this->descriptionLabel->setString("Visualizes circle packing based on image");
 			break;
 		case MainScene::MENU_INDEX::RECT_PACKING:
-			this->descriptionLabel->setString("Visualization rectangle packing square area");
+			this->descriptionLabel->setString("Visualizes rectangle packing square area");
 			break;
 		case MainScene::MENU_INDEX::EXIT:
 			this->descriptionLabel->setString("Exit");
