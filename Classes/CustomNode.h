@@ -190,6 +190,7 @@ class ButtonModifierNode : public cocos2d::Node
 {
 private:
     friend class FlockingScene;
+	friend class RectPackingScene;
     
     // font path
     static const std::string fontPath;
@@ -248,6 +249,7 @@ private:
 	friend class QuadTreeScene;
 	friend class FlockingScene;
 	friend class CirclePackingScene;
+	friend class RectPackingScene;
 
 	//Default contructor
 	SliderLabelNode() = default;

@@ -22,21 +22,92 @@ bool RectPackingScene::init()
 
 	this->scheduleUpdate();
 
-	this->padding = 2.0f;
+	this->padding = 0.0f;
 	this->drawDivisionLine = false;
+	this->pause = false;
+	this->finished = true;
+	this->stepDuration = 0.01f;
+	this->elapsedTime = 0;
+
+	this->root = nullptr;
 
 	// Init labels node
 	this->labelsNode = LabelsNode::createNode();
 	this->labelsNode->setSharedLabelPosition(LabelsNode::SHARED_LABEL_POS_TYPE::RECT_PACKING_SCENE);
 	this->addChild(this->labelsNode);
 
-	// Starting pos
 	auto winSize = cocos2d::Director::getInstance()->getVisibleSize();
+	// Starting pos
 	float labelX = winSize.height - 10.0f;
 	float labelY = winSize.height - 45.0f;
 
 	// Set title
-	this->labelsNode->initTitleStr("Rect Packing", cocos2d::Vec2(labelX, labelY));
+	this->labelsNode->initTitleStr("Flocking Algorithm", cocos2d::Vec2(labelX, labelY));
+
+	labelY -= 50.0f;
+
+	// Init custom labels
+	this->labelsNode->customLabelStartPos = cocos2d::Vec2(labelX, labelY);
+
+	// Set size
+	const int customLabelSize = 25;
+
+	this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Status: Waiting", customLabelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Total packed rectangles = 0", customLabelSize);
+
+	this->buttonModifierNode = ButtonModifierNode::createNode();
+	this->buttonModifierNode->setPosition(cocos2d::Vec2::ZERO);
+	this->buttonModifierNode->retain();
+	this->addChild(this->buttonModifierNode);
+
+	const float customLastY = this->labelsNode->customLabels.back()->getBoundingBox().getMinY();
+	const float blockGap = 22.0f;
+
+	float buttonLabelY = customLastY - blockGap;
+
+	const std::string leftStr = "left";
+	const std::string rightStr = "right";
+	const std::string buttonStr = "Button";
+	const std::string format = ".png";
+
+	this->buttonModifierNode->buttonLabelStartPos = cocos2d::Vec2(labelX, buttonLabelY);
+
+	this->buttonModifierNode->leftButtonXOffset = 160.0f;
+	this->buttonModifierNode->valueLabelXOffset = 190.0f;
+	this->buttonModifierNode->rightButtonXOffset = 240.0f;
+
+	const int labelSize = 20;
+	this->buttonModifierNode->addButton("Border padding",
+										labelSize,
+										this->padding,
+										leftStr,
+										rightStr,
+										buttonStr,
+										format,
+										static_cast<int>(ACTION_TAG::LEFT),
+										static_cast<int>(ACTION_TAG::RIGHT),
+										CC_CALLBACK_1(RectPackingScene::onButtonPressed, this));
+
+	// init more labels    
+	const int headerSize = 25;
+
+	const float weightLastY = this->buttonModifierNode->buttonLabels.back()->getBoundingBox().getMinY();
+	this->labelsNode->keyboardUsageLabelStartPos = cocos2d::Vec2(labelX, weightLastY - blockGap);
+
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Keys (Green = enabled)", headerSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Space: Toggle update", labelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "L: Toggle rect division line", labelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "R: Restart", labelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "C: Clear", labelSize);
+
+	// speed modifier
+	this->simulationSpeedModifier = 1.0f;
+
+	this->sliderLabelNode = SliderLabelNode::createNode();
+	const float mouseLastY = this->labelsNode->keyboardUsageLabels.back()->getBoundingBox().getMinY();
+	this->sliderLabelNode->sliderStartPos = cocos2d::Vec2(labelX, mouseLastY - blockGap);
+	this->sliderLabelNode->addSlider("Simulation Speed", "Slider", 50, CC_CALLBACK_1(RectPackingScene::onSliderClick, this));
+	this->addChild(this->sliderLabelNode);
 
 	// init display boundary box node which draws outer line of simulation display box
 	this->displayBoundaryBoxNode = DisplayBoundaryBoxNode::createNode();
@@ -52,50 +123,6 @@ bool RectPackingScene::init()
 	ECS::Entity::idCounter = 0;
 	// Can insert 3000 rect
 	ECS::Entity::maxEntitySize = 3000;
-	this->root = this->createNewEntity();
-
-	this->maxRects = 1100;
-	this->totalRectsPacked = 0;
-
-	this->stepDuration = 0.001f;
-	this->elapsedTime = 0;
-
-	this->finished = false;
-
-	// Initialize rects.
-	// Create 100 small rects
-	std::vector<cocos2d::Size> sizes;
-	const int smallCount = static_cast<int>(static_cast<float>(this->maxRects) * 0.5f);
-	for (int i = 0; i < smallCount; i++)
-	{
-		sizes.push_back(cocos2d::Size(Utility::Random::randomInt(5, 20), Utility::Random::randomInt(5, 20)));
-	}
-
-	// Create 150 medium rects
-	const int mediumCount = static_cast<int>(static_cast<float>(this->maxRects) * 0.25f);
-	for (int i = 0; i < mediumCount; i++)
-	{
-		sizes.push_back(cocos2d::Size(Utility::Random::randomInt(10, 30), Utility::Random::randomInt(10, 30)));
-	}
-	// Create 50 large rects
-	const int largeCount = static_cast<int>(static_cast<float>(this->maxRects) * 0.25f);
-	for (int i = 0; i < largeCount; i++)
-	{
-		sizes.push_back(cocos2d::Size(Utility::Random::randomInt(15, 40), Utility::Random::randomInt(15, 40)));
-	}
-
-	cocos2d::log("Total rect created = %d", sizes.size());
-
-	this->maxRects = smallCount + mediumCount + largeCount;
-
-	std::shuffle(std::begin(sizes), std::end(sizes), std::mt19937(std::random_device{}()));
-
-	for (auto size : sizes)
-	{
-		this->randomSizes.push(size);
-	}
-
-	cocos2d::log("Total rect to pack = %d", this->randomSizes.size());
 
 	this->rectDrawNode = cocos2d::DrawNode::create();
 	this->rectDrawNode->setLineWidth(1.0f);
@@ -108,19 +135,24 @@ void RectPackingScene::onEnter()
 {
 	cocos2d::CCScene::onEnter();
 	initInputListeners();
+
+	restart();
 }
 
 void RectPackingScene::update(float delta)
 {
 	this->labelsNode->updateFPSLabel(delta);
 
+	if (pause) return;
 	if (finished) return;
 
 	Utility::Time::start();
 
+	delta *= this->simulationSpeedModifier;
+
 	this->elapsedTime += delta;
 
-	if (this->elapsedTime >= this->stepDuration)
+	while (this->elapsedTime >= this->stepDuration)
 	{
 		this->elapsedTime -= this->stepDuration;
 
@@ -128,6 +160,14 @@ void RectPackingScene::update(float delta)
 		{
 			this->finished = true;
 			cocos2d::log("%d Rects packed!", this->totalRectsPacked);
+
+			this->buttonModifierNode->leftButtons.back()->setEnabled(true);
+			this->buttonModifierNode->rightButtons.back()->setEnabled(true);
+
+			this->labelsNode->updateTimeTakenLabel("0");
+
+			this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Finished");
+			break;
 		}
 		else
 		{
@@ -140,6 +180,8 @@ void RectPackingScene::update(float delta)
 			}
 		}
 	}
+
+	this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::TOTAL_RECT_PACKED), "Total packed rectangles: " + std::to_string(this->totalRectsPacked));
 
 	this->rectDrawNode->clear();
 	this->drawRects(this->root);
@@ -378,6 +420,143 @@ void RectPackingScene::drawRects(ECS::Entity* entity)
 	}
 }
 
+void RectPackingScene::restart()
+{
+	clear();
+
+	this->root = this->createNewEntity();
+
+	initRects();
+
+	this->finished = false;
+
+	this->buttonModifierNode->leftButtons.back()->setEnabled(false);
+	this->buttonModifierNode->rightButtons.back()->setEnabled(false);
+
+	this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Running");
+}
+
+void RectPackingScene::initRects()
+{
+	this->maxRects = 1200;
+
+	// Initialize rects.
+	// Create 100 small rects
+	std::vector<cocos2d::Size> sizes;
+	const int smallCount = static_cast<int>(static_cast<float>(this->maxRects) * 0.5f);
+	for (int i = 0; i < smallCount; i++)
+	{
+		sizes.push_back(cocos2d::Size(Utility::Random::randomInt(5, 20), Utility::Random::randomInt(5, 20)));
+	}
+
+	// Create 150 medium rects
+	const int mediumCount = static_cast<int>(static_cast<float>(this->maxRects) * 0.25f);
+	for (int i = 0; i < mediumCount; i++)
+	{
+		sizes.push_back(cocos2d::Size(Utility::Random::randomInt(10, 30), Utility::Random::randomInt(10, 30)));
+	}
+	// Create 50 large rects
+	const int largeCount = static_cast<int>(static_cast<float>(this->maxRects) * 0.25f);
+	for (int i = 0; i < largeCount; i++)
+	{
+		sizes.push_back(cocos2d::Size(Utility::Random::randomInt(15, 40), Utility::Random::randomInt(15, 40)));
+	}
+
+	cocos2d::log("Total rect created = %d", sizes.size());
+
+	this->maxRects = smallCount + mediumCount + largeCount;
+
+	std::shuffle(std::begin(sizes), std::end(sizes), std::mt19937(std::random_device{}()));
+
+	for (auto size : sizes)
+	{
+		this->randomSizes.push(size);
+	}
+
+	cocos2d::log("Total rect to pack = %d", this->randomSizes.size());
+}
+
+void RectPackingScene::clear()
+{
+	// Stop and clear
+	this->maxRects = 0;
+	this->totalRectsPacked = 0;
+	this->pause = false;
+	this->finished = true;
+	this->clearEntity();
+	this->rectDrawNode->clear();
+	this->buttonModifierNode->leftButtons.back()->setEnabled(true);
+	this->buttonModifierNode->rightButtons.back()->setEnabled(true);
+	std::queue<cocos2d::Size> empty;
+	std::swap(this->randomSizes, empty);
+
+	this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Waiting");
+}
+
+void RectPackingScene::clearEntity()
+{
+	if (this->root != nullptr)
+	{
+		delete this->root;
+		this->root = nullptr;
+	}
+}
+
+
+void RectPackingScene::onButtonPressed(cocos2d::Ref * sender)
+{
+	auto button = dynamic_cast<cocos2d::ui::Button*>(sender);
+	auto tag = static_cast<ACTION_TAG>(button->getActionTag());
+	switch (tag)
+	{
+	case ACTION_TAG::LEFT:
+		if (this->finished)
+		{
+			this->padding -= 1.0f;
+
+			if (this->padding < 0)
+			{
+				this->padding = 0;
+			}
+		}
+		this->buttonModifierNode->updateValue(0, this->padding);
+		break;
+	case ACTION_TAG::RIGHT:
+		if (this->finished)
+		{
+			this->padding += 1.0f;
+
+			if (this->padding > 5.0f)
+			{
+				this->padding = 5.0f;
+			}
+		}
+		this->buttonModifierNode->updateValue(0, this->padding);
+		break;
+	default:
+		break;
+	}
+}
+
+void RectPackingScene::onSliderClick(cocos2d::Ref* sender)
+{
+	// Click ended. Get value
+	float percentage = static_cast<float>(this->sliderLabelNode->sliderLabels.back().slider->getPercent());
+	//50% = 1.0(default. So multiply by 2.
+	percentage *= 2.0f;
+	// 0% == 0, 100% = 1.0f, 200% = 2.0f
+	if (percentage == 0)
+	{
+		// 0 will make simulation stop
+		percentage = 1;
+	}
+	//. Devide by 100%
+	percentage *= 0.01f;
+
+	// apply
+	this->simulationSpeedModifier = percentage;
+}
+
 void RectPackingScene::initInputListeners()
 {
 	this->mouseInputListener = EventListenerMouse::create();
@@ -426,15 +605,44 @@ void RectPackingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coc
 		cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, MainScene::create(), cocos2d::Color3B::BLACK));
 	}
 
-	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_A)
+	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_SPACE)
 	{
-		this->insert(this->root, cocos2d::Size(Utility::Random::randomInt(50, 200), Utility::Random::randomInt(50, 200)));
+		this->pause = !this->pause;
+		if (this->pause)
+		{
+			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::PAUSE), cocos2d::Color3B::GREEN);
+			this->labelsNode->updateTimeTakenLabel("0");
+		}
+		else
+		{
+			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::PAUSE), cocos2d::Color3B::WHITE);
+		}
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_L)
 	{
 		this->drawDivisionLine = !this->drawDivisionLine;
-		this->rectDrawNode->clear();
-		this->drawRects(this->root); 
+		if (this->finished == false)
+		{
+			this->rectDrawNode->clear();
+			this->drawRects(this->root);
+		}
+
+		if (this->drawDivisionLine)
+		{
+			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::PAUSE), cocos2d::Color3B::GREEN);
+		}
+		else
+		{
+			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::PAUSE), cocos2d::Color3B::WHITE);
+		}
+	}
+	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_R)
+	{
+		this->restart();
+	}
+	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_C)
+	{
+		this->clear();
 	}
 }
 

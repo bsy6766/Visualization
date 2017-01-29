@@ -39,11 +39,31 @@ private:
 
 	enum class CUSTOM_LABEL_INDEX
 	{
+		STATUS,
+		TOTAL_RECT_PACKED,
+	};
 
+	enum class USAGE_KEY
+	{
+		NONE,
+		PAUSE,
+		TOGGLE_LINE,
+		RESTART,
+		CLEAR,
+		MAX_KEYBOARD_USAGE,
+	};
+
+	enum class ACTION_TAG
+	{
+		LEFT,
+		RIGHT
 	};
 
 	LabelsNode* labelsNode;
+	ButtonModifierNode* buttonModifierNode;
 	DisplayBoundaryBoxNode* displayBoundaryBoxNode;
+	SliderLabelNode* sliderLabelNode;
+	float simulationSpeedModifier;
 	cocos2d::Vec2 displayBoundaryShift;
 	cocos2d::DrawNode* rectDrawNode;
 
@@ -58,6 +78,7 @@ private:
 
 	float padding;
 
+	bool pause;
 	bool drawDivisionLine;
 	bool finished;
 
@@ -67,6 +88,17 @@ private:
 
 	const bool insert(ECS::Entity* entity, const cocos2d::Size& rectSize);
 	ECS::Entity* createNewEntity();
+
+	void restart();
+	void initRects();
+	void clear();
+	void clearEntity();
+
+	// Button click call back
+	void onButtonPressed(cocos2d::Ref* sender);
+
+	// On slider finishes click on slider
+	void onSliderClick(cocos2d::Ref* sender);
 public:
 	//simple creator func
 	static RectPackingScene* createScene();

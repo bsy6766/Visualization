@@ -152,28 +152,28 @@ bool FlockingScene::init()
 	this->labelsNode->keyboardUsageLabelStartPos = cocos2d::Vec2(labelX, weightLastY - blockGap);
 
     this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Keys (Green = enabled)", headerSize);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Space:  Toggle update", labelSize);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "C:  Clear all entities", labelSize);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "A:  Add 10 Boids", labelSize);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "E:  Remove 10 Boids", labelSize);
-	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "S:  Toggle smooth steering", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Space: Toggle update", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "C: Clear all entities", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "A: Add 10 Boids", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "E: Remove 10 Boids", labelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "S: Toggle smooth steering", labelSize);
     
 	const float keysLastY = this->labelsNode->keyboardUsageLabels.back()->getBoundingBox().getMinY();
     this->labelsNode->mouseOverAndKeyLabelStartPos = cocos2d::Vec2(labelX, keysLastY - blockGap);
     
     this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE_OVER_AND_KEY, "Mouse over and key", headerSize);
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE_OVER_AND_KEY, "O (In box):  Add Obstacle on point", labelSize);
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE_OVER_AND_KEY, "O (On Obstacle):  Remove Obstacle", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE_OVER_AND_KEY, "O (In box): Add Obstacle on point", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE_OVER_AND_KEY, "O (On Obstacle): Remove Obstacle", labelSize);
     
 	const float mouseOverLastY = this->labelsNode->mouseOverAndKeyUsageLabels.back()->getBoundingBox().getMinY();
     this->labelsNode->mouseUsageLabelStartPos = cocos2d::Vec2(labelX, mouseOverLastY - blockGap);
     
     this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Mouse", headerSize);
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (In box):  Add Boid", labelSize);
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (On Boid):  Toggle Boid tracking", labelSize);
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Right Click (On Boid):  Remove Boid)", labelSize);
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Middle Click (In box):  Add Obstacle)", labelSize);
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Middle Click (On Obstacle):  Remove Obstacle", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (In box): Add Boid", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (On Boid): Toggle Boid tracking", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Right Click (On Boid): Remove Boid)", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Middle Click (In box): Add Obstacle)", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Middle Click (On Obstacle): Remove Obstacle", labelSize);
 
 	// speed modifier
 	this->simulationSpeedModifier = 1.0f;

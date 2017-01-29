@@ -288,7 +288,7 @@
             <key>size</key>
             <string>{128,256}</string>
             <key>smartupdate</key>
-            <string>$TexturePacker:SmartUpdate:4e44357f5fbb355db4d92af176d62f29:740864eff7718c9f8fe56171cedece77:1de88c2a7237d4cdf78de8d8ad4f4c7e$</string>
+            <string>$TexturePacker:SmartUpdate:d8d6a05d47d66d3a332e9d04ccb7b4b4:31d80dbcb76bf85770f5799fbc81e69c:1de88c2a7237d4cdf78de8d8ad4f4c7e$</string>
             <key>textureFileName</key>
             <string>spritesheet.png</string>
         </dict>

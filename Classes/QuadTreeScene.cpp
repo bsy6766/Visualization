@@ -94,25 +94,25 @@ bool QuadTreeScene::init()
 	const int labelSize = 20;
     
     this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Keys (Green = enabled)", headerSize);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Space:  Toggle update", labelSize);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "C:  Clear all Entities", labelSize);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "A:  Add 10 Entities", labelSize);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "E:  Remove 10 Entities", labelSize);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "G:  Toggle quad tree subdivision grid", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Space: Toggle update", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "C: Clear all Entities", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "A: Add 10 Entities", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "E: Remove 10 Entities", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "G: Toggle quad tree subdivision grid", labelSize);
     this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::GRID), cocos2d::Color3B::GREEN);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "D:  Toggle duplication check", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "D: Toggle duplication check", labelSize);
     this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::DUPL_CHECK), cocos2d::Color3B::GREEN);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "R:  Toggle collision resolution", labelSize);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "1:  Increase Quad Tree max level", labelSize);
-    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "2:  Decrease Quad Tree max level", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "R: Toggle collision resolution", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "1: Increase Quad Tree max level", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "2: Decrease Quad Tree max level", labelSize);
     
 	const float keysLastY = this->labelsNode->keyboardUsageLabels.back()->getBoundingBox().getMinY();
     this->labelsNode->mouseUsageLabelStartPos = cocos2d::Vec2(labelX, keysLastY - blockGap);
     
     this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Mouse", headerSize);
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (In box):  Add Entity", labelSize);
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (On Entity):  Toggle Entity tracking", labelSize);
-    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Right Click (On Entity):  Remove Entity", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (In box): Add Entity", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (On Entity): Toggle Entity tracking", labelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Right Click (On Entity): Remove Entity", labelSize);
 
 	// speed modifier
 	this->simulationSpeedModifier = 1.0f;
