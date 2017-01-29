@@ -21,7 +21,7 @@ bool TitleScene::init()
 
 	auto winSize = cocos2d::Director::getInstance()->getVisibleSize();
 
-	this->logo = cocos2d::Sprite::create("icon/cocos2dx_portrait.png");
+    this->logo = cocos2d::Sprite::create("logo/cocos2dx_portrait.png");
 	this->logo->setPosition(winSize * 0.5f);
 	this->logo->setOpacity(0);
 	this->addChild(this->logo);
