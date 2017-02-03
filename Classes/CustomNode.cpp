@@ -292,7 +292,6 @@ void LabelsNode::updateMouseHover(const cocos2d::Vec2 &mousePos)
 
 const bool LabelsNode::updateMouseDown(const cocos2d::Vec2 &mousePos)
 {
-    
     if (this->backLabel->getBoundingBox().containsPoint(mousePos))
     {
         cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, MainScene::create(), cocos2d::Color3B::BLACK));

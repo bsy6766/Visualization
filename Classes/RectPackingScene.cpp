@@ -167,6 +167,7 @@ void RectPackingScene::update(float delta)
 			this->labelsNode->updateTimeTakenLabel("0");
 
 			this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Finished");
+			this->labelsNode->updateTimeTakenLabel("0");
 			break;
 		}
 		else
@@ -622,7 +623,7 @@ void RectPackingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coc
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_L)
 	{
 		this->drawDivisionLine = !this->drawDivisionLine;
-		if (this->finished == false)
+		if (this->finished == true)
 		{
 			this->rectDrawNode->clear();
 			this->drawRects(this->root);
@@ -630,11 +631,11 @@ void RectPackingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coc
 
 		if (this->drawDivisionLine)
 		{
-			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::PAUSE), cocos2d::Color3B::GREEN);
+			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::TOGGLE_LINE), cocos2d::Color3B::GREEN);
 		}
 		else
 		{
-			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::PAUSE), cocos2d::Color3B::WHITE);
+			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::TOGGLE_LINE), cocos2d::Color3B::WHITE);
 		}
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_R)

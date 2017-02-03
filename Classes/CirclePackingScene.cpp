@@ -896,11 +896,19 @@ void CirclePackingScene::onMouseMove(cocos2d::Event* event)
 
 void CirclePackingScene::onMouseDown(cocos2d::Event* event) 
 {
-	//auto mouseEvent = static_cast<EventMouse*>(event);
+	auto mouseEvent = static_cast<EventMouse*>(event);
 	//0 = left, 1 = right, 2 = middle
-	//int mouseButton = mouseEvent->getMouseButton();
-	//float x = mouseEvent->getCursorX();
-	//float y = mouseEvent->getCursorY();
+	int mouseButton = mouseEvent->getMouseButton();
+	float x = mouseEvent->getCursorX();
+	float y = mouseEvent->getCursorY();
+
+	auto point = cocos2d::Vec2(x, y);
+
+	bool ret = this->labelsNode->updateMouseDown(point);
+	if (ret)
+	{
+		return;
+	}
 }
 
 void CirclePackingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::Event* event)
