@@ -124,7 +124,16 @@ float CirclePackingData::maxRadius = 50.0f;
 float CirclePackingData::growthSpeed = 10.0f;
 float CirclePackingData::initialRadius = 5.0f;
 
-CirclePackingData::CirclePackingData(const cocos2d::Vec2 & position, const float radius, const cocos2d::Color4F color) : Component(), alive(false), growing(false), position(position), radius(radius), color(color) {}
+CirclePackingData::CirclePackingData() 
+: ECS::Component()
+//, alive(false)
+, position(cocos2d::Vec2::ZERO)
+, radius(1.0f)
+, color(cocos2d::Color4F::WHITE)
+, growing(false)
+{}
+
+//CirclePackingData::CirclePackingData(const cocos2d::Vec2 & position, const float radius, const cocos2d::Color4F color) : Component(), alive(false), growing(false), position(position), radius(radius), color(color) {}
 
 void CirclePackingData::update(const float delta)
 {
@@ -141,7 +150,6 @@ void CirclePackingData::update(const float delta)
 
 void CirclePackingData::activate(const cocos2d::Vec2 & position, const float radius, const cocos2d::Color4F color)
 {
-	this->alive = true;
 	this->growing = true;
 	this->position = position;
 	this->radius = radius;
@@ -150,7 +158,6 @@ void CirclePackingData::activate(const cocos2d::Vec2 & position, const float rad
 
 void CirclePackingData::deactivate()
 {
-	this->alive = false;
 	this->growing = false;
 	this->position = cocos2d::Vec2::ZERO;
 	this->radius = 0;

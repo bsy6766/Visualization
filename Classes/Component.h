@@ -95,7 +95,8 @@ namespace ECS
 	class CirclePackingData : public Component
 	{
 	public:
-		CirclePackingData(const cocos2d::Vec2& position, const float radius = CirclePackingData::initialRadius, const cocos2d::Color4F color = cocos2d::Color4F::WHITE);
+		CirclePackingData();
+		//CirclePackingData(const cocos2d::Vec2& position, const float radius = CirclePackingData::initialRadius, const cocos2d::Color4F color = cocos2d::Color4F::WHITE);
 		~CirclePackingData() = default;
 		CirclePackingData(CirclePackingData const&) = delete;
 		void operator=(CirclePackingData const&) = delete;
@@ -105,7 +106,6 @@ namespace ECS
 		cocos2d::Color4F color;
 
 		bool growing;
-		bool alive;
 		
 		static float maxRadius;
 		static float growthSpeed;

@@ -277,9 +277,12 @@ namespace ECS
 		{
 			std::vector<std::unique_ptr<ECS::Entity, ECS::Deleter<ECS::Entity>>> pool;
 			std::deque<unsigned int> nextIndicies;
+			int idCounter;
 		};
 		// Entities
 		std::unordered_map<std::string, std::unique_ptr<EntityPool>> entityPools;
+		// wraps id counter if reaches max
+		void wrapEntityPoolIdCounter(const std::string& poolName);
 		// ================================================================================
 
 		// =================================== COMPONENT ==================================
@@ -295,7 +298,7 @@ namespace ECS
 		// Component ID Map. class type_index <---> CID
 		std::unordered_map<std::type_index, C_UNIQUE_ID> C_UNIQUE_IDMap;
 		// Wraps id counter if reaches max
-		void wrapIdCounter(const C_UNIQUE_ID cUniqueId);
+		void wrapComponentUniqueIdCounter(const C_UNIQUE_ID cUniqueId);
 
 		const C_UNIQUE_ID getComponentUniqueId(const std::type_info& t);
 		const C_UNIQUE_ID registerComponent(const std::type_info& t);
@@ -377,6 +380,8 @@ namespace ECS
 				}
 			}
 		}
+		// Move entity to Entity pool
+		const bool moveEntityToEntityPool(ECS::Entity*& entity, const std::string& entityPoolName);
 
 		// Create component.
 		template<class T> T* createComponent()
@@ -606,10 +611,6 @@ namespace ECS
         // Component Index map
         std::unordered_map<C_UNIQUE_ID, std::unordered_set<C_INDEX>> componentIndicies;
         
-        // ID counter. Starts from 0
-        static E_ID idCounter;
-		static void wrapIdCounter();
-        
         // ID of entity.
         E_ID id;
         
@@ -626,7 +627,7 @@ namespace ECS
 		bool sleep;
         
         // Revive this entity and get ready to use
-        void revive();
+        void revive(const E_ID newId);
         
         // get C_INDEX by C_UNIQUE_ID
         void getComponentIndiicesByUniqueId(const C_UNIQUE_ID cId, std::unordered_set<C_INDEX>& cIndicies);

@@ -18,6 +18,8 @@ ECS::Manager::Manager()
 		this->entityPools.begin()->second->pool.back()->index = i;
 		this->entityPools.begin()->second->nextIndicies.push_back(i);
 	}
+
+	this->entityPools.begin()->second->idCounter = 0;
 }
 
 ECS::Manager::~Manager()
@@ -101,7 +103,18 @@ void ECS::Manager::update(const float delta)
 
 }
 
-void ECS::Manager::wrapIdCounter(const C_UNIQUE_ID cUniqueId)
+void ECS::Manager::wrapEntityPoolIdCounter(const std::string& poolName)
+{
+	if (this->hasEntityPoolName(poolName))
+	{
+		if (this->entityPools.at(poolName)->idCounter >= ECS::MAX_E_ID)
+		{
+			this->entityPools.at(poolName)->idCounter = 0;
+		}
+	}
+}
+
+void ECS::Manager::wrapComponentUniqueIdCounter(const C_UNIQUE_ID cUniqueId)
 {
 	try
 	{
@@ -204,6 +217,8 @@ const bool ECS::Manager::createEntityPool(const std::string& name, const int max
 		newPool->pool.back()->index = i;
 	}
 
+	newPool->idCounter = 0;
+
 	this->entityPools.insert(std::pair<std::string, std::unique_ptr<ECS::Manager::EntityPool>>(name, std::unique_ptr<ECS::Manager::EntityPool>(newPool)));
 	return true;
 }
@@ -255,7 +270,9 @@ ECS::Entity* ECS::Manager::createEntity(const std::string& poolName)
 		find_it->second->nextIndicies.pop_front();
 
 		// Assume index is always valid.
-		find_it->second->pool.at(index)->revive();
+		find_it->second->pool.at(index)->revive(find_it->second->idCounter);
+		find_it->second->idCounter++;
+		this->wrapEntityPoolIdCounter(poolName);
 		return find_it->second->pool.at(index).get();
 	}
 
@@ -298,6 +315,56 @@ void ECS::Manager::getAllEntitiesInPool(std::vector<ECS::Entity*>& entities, con
 			}
 		}
 	}
+}
+
+const bool ECS::Manager::moveEntityToEntityPool(ECS::Entity*& entity, const std::string& entityPoolName)
+{
+	if (entity == nullptr) return false;
+	if (entity->id == ECS::INVALID_E_ID) return false;
+
+	if (this->hasEntityPoolName(entityPoolName) && this->hasEntityPoolName(entity->entityPoolName))
+	{
+		ECS::Entity* target = this->createEntity(entityPoolName);
+		if (target == nullptr)
+		{
+			return false;
+		}
+
+		for (auto& e : this->entityPools[entity->entityPoolName]->pool)
+		{
+			if (e->id == entity->id)
+			{
+				target->signature = e->signature;
+				target->componentIndicies = e->componentIndicies;
+				target->sleep = e->sleep;
+
+				// Reassing owner for components
+				for (auto pair : e->componentIndicies)
+				{
+					const C_UNIQUE_ID cUniqueId = pair.first;
+					for (auto cIndex : pair.second)
+					{
+						this->components.at(cUniqueId)->pool.at(cIndex)->ownerId = target->id;
+					}
+				}
+
+				e->signature = 0;
+				e->alive = false;
+				e->componentIndicies.clear();
+				e->sleep = false;
+				e->id = ECS::INVALID_E_ID;
+				this->entityPools[e->entityPoolName]->nextIndicies.push_front(e->index);
+
+				entity = nullptr;
+
+				entity = target;
+
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 const bool ECS::Manager::killEntity(ECS::Entity* e)
@@ -563,7 +630,16 @@ Component* ECS::Manager::getComponent(Entity* e, const std::type_info& t)
 		{
 			// Because this is getComponent not getComponents, return first one
 			const C_INDEX firstIndex = (*cIndicies.begin());
-			return this->components[cUniqueId]->pool.at(firstIndex).get();
+
+			Component* c = this->components[cUniqueId]->pool.at(firstIndex).get();
+			if (c->ownerId == e->id)
+			{
+				return c;
+			}
+			else
+			{
+				nullptr;
+			}
 		}
 	}
 }
@@ -665,7 +741,7 @@ const bool ECS::Manager::addComponent(Entity* e, const std::type_info& t, Compon
 	// Set owner id
 	c->ownerId = e->getId();
 	// wrap counter 
-	this->wrapIdCounter(cUniqueId);
+	this->wrapComponentUniqueIdCounter(cUniqueId);
 
 	return true;
 }
@@ -903,6 +979,8 @@ void ECS::Manager::clear()
 		defaultPool->nextIndicies.push_back(i);
 	}
 
+	defaultPool->idCounter = 0;
+
 	this->entityPools.insert(std::pair<std::string, std::unique_ptr<ECS::Manager::EntityPool>>(ECS::DEFAULT_ENTITY_POOL_NAME, std::unique_ptr<ECS::Manager::EntityPool>(defaultPool)));
 
 	this->components.clear();
@@ -913,7 +991,6 @@ void ECS::Manager::clear()
 
 	System::idCounter = 0;
 	Component::uniqueIdCounter = 0;
-	Entity::idCounter = 0;
 }
 
 void ECS::Manager::printComponentsInfo()
@@ -957,8 +1034,6 @@ void ECS::Manager::printComponentsInfo()
 
 //============================================================================================
 
-E_ID ECS::Entity::idCounter = 0;
-
 ECS::Entity::Entity()
 : alive(false)
 , sleep(false)
@@ -967,16 +1042,6 @@ ECS::Entity::Entity()
 , signature(0)
 , entityPoolName(std::string())
 {}
-
-void ECS::Entity::wrapIdCounter()
-{
-	if (ECS::Entity::idCounter >= ECS::MAX_E_ID)
-	{
-		// id Counter reached max number. Wrap to 0. 
-		// This means user created more 4294967295 entities, which really doesn't happen all that much.
-		ECS::Entity::idCounter = 0;
-	}
-}
 
 void ECS::Entity::getComponentIndiicesByUniqueId(const C_UNIQUE_ID cUniqueId, std::unordered_set<C_INDEX>& cIndicies)
 {
@@ -995,12 +1060,11 @@ void ECS::Entity::getComponentIndiicesByUniqueId(const C_UNIQUE_ID cUniqueId, st
 	}
 }
 
-void ECS::Entity::revive()
+void ECS::Entity::revive(const E_ID newId)
 {
 	this->alive = true;
 	this->sleep = false;
-	this->id = Entity::idCounter++;
-	this->wrapIdCounter();
+	this->id = newId;
 }
 
 void ECS::Entity::kill()

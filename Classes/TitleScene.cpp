@@ -26,6 +26,8 @@ bool TitleScene::init()
 	this->logo->setOpacity(0);
 	this->addChild(this->logo);
 
+	this->elapsedTime = 0;
+
 	return true;
 }
 

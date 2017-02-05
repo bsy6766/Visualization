@@ -120,6 +120,75 @@ namespace ECS
 		// Update system
 		virtual void update(const float delta, std::vector<ECS::Entity*>& entities) override;
 	};
+
+	class CirclePackingSystem : public System
+	{
+	public:
+		CirclePackingSystem();
+		~CirclePackingSystem() = default;
+
+		// Flags
+		bool finished;
+		bool pause;
+
+		// Quad tree
+		std::unique_ptr<QuadTree> quadTree;
+
+		enum class IMAGE_INDEX
+		{
+			CPP = 0,	//C++
+			CAT,		//Color test
+			THE_SCREAM,	//Color test
+			GRADIENT,	//Alpha test
+			MAX_SIZE,
+			NONE,
+		};
+
+		struct SpawnPoint
+		{
+			cocos2d::Vec2 point;
+			cocos2d::Color4F color;
+		};
+
+		// Possible spawn point where circle can spawn. Pops from front.
+		std::queue<SpawnPoint> circleSpawnPointsWithColor;
+
+		IMAGE_INDEX currentImageIndex;
+
+		// Search offsets. @see findCircleSpawnPoint(const IMAGE_INDEX)
+		int searchSpawnPointWidthOffset;
+		int searchSpawnPointHeightOffset;
+
+		int initialCircleCount;
+		int circleSpawnRate;
+
+		// Initialize quad tree
+		void initQuadTree(cocos2d::Rect& boundary);
+		// Insert cricles to quad tree
+		void insertCirclesToQuadTree(std::vector<ECS::Entity*> entities);
+		// Delete quad tree
+		void releaseQuadTree();
+		// Run circlepacking
+		void runCirclePacking();
+		// Reset circles.
+		void resetCircles();
+		// Find spawn point
+		void findCircleSpawnPoint(cocos2d::Image& image, cocos2d::Sprite& sprite);
+		// Spawn new circles
+		int spawnCircles(cocos2d::Node& parent);
+		// Create new circle
+		void createNewCircle(cocos2d::Node& parent, SpawnPoint& spawnPoint);
+		// Update circles
+		void updateCircleGrowth(const float delta, std::vector<ECS::Entity*>& growingCircles);
+		void updateCircleCollisionResolution(std::vector<ECS::Entity*>& growingCircles);
+		int moveAllGrownCircles(std::vector<ECS::Entity*> growingCircles);
+
+		// Convert pixel point to screen point
+		cocos2d::Vec2 pixelToPoint(const int x, const int y, const int height, const cocos2d::Vec2& spritePos);
+
+		// Update system
+		virtual void update(const float delta, std::vector<ECS::Entity*>& entities) override;
+	};
 }
 
 #endif
