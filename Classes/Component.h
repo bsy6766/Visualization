@@ -73,7 +73,7 @@ namespace ECS
 		};
 
 	public:
-		FlockingData(const TYPE type);
+		FlockingData();
 		~FlockingData() = default;
 		FlockingData(FlockingData const&) = delete;
 		void operator=(FlockingData const&) = delete;

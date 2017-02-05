@@ -1,7 +1,6 @@
 #include "ECS.h"
 #include <cassert>
 #include <string>
-#include "cocos2d.h"
 
 using namespace ECS;
 
@@ -26,6 +25,7 @@ ECS::Manager::~Manager()
 	// Unique ptr will release all for us
 	this->entityPools.clear();
 	this->components.clear();
+	this->systems.clear();
 	this->C_UNIQUE_IDMap.clear();
 }
 
@@ -199,7 +199,7 @@ const bool ECS::Manager::createEntityPool(const std::string& name, const int max
 	for (unsigned int i = 0; i < poolSize; i++)
 	{
 		newPool->pool.push_back(std::unique_ptr<ECS::Entity, ECS::Deleter<ECS::Entity>>(new ECS::Entity(), ECS::Deleter<ECS::Entity>()));
-		newPool->nextIndicies.push_front(i);
+		newPool->nextIndicies.push_back(i);
 		newPool->pool.back()->entityPoolName = name;
 		newPool->pool.back()->index = i;
 	}
@@ -286,7 +286,7 @@ ECS::Entity* ECS::Manager::getEntityById(const E_ID entityId)
 	return nullptr;
 }
 
-void ECS::Manager::getAllEnttitiesInPool(std::vector<ECS::Entity*>& entities, const std::string & poolName)
+void ECS::Manager::getAllEntitiesInPool(std::vector<ECS::Entity*>& entities, const std::string & poolName)
 {
 	if (this->hasEntityPoolName(poolName))
 	{
@@ -899,6 +899,7 @@ void ECS::Manager::clear()
 		defaultPool->pool.at(i)->componentIndicies.clear();
 		defaultPool->pool.at(i)->signature = 0;
 		defaultPool->pool.at(i)->index = i;
+		defaultPool->pool.at(i)->alive = false;
 		defaultPool->nextIndicies.push_back(i);
 	}
 

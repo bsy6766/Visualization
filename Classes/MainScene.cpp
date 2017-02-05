@@ -1,7 +1,7 @@
 #include "MainScene.h"
 #include "QuadTreeScene.h"
-/*
 #include "FlockingScene.h"
+/*
 #include "CirclePackingScene.h"
 #include "RectPackingScene.h"
 #include "EarClippingScene.h"
@@ -214,12 +214,12 @@ void MainScene::onMouseDown(cocos2d::Event* event)
 				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, QuadTreeScene::create(), cocos2d::Color3B::BLACK));
 			}
 				break;
-				/*
 			case MENU_INDEX::FLOCKING:
 			{
 				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, FlockingScene::create(), cocos2d::Color3B::BLACK));
 			}
 				break;
+				/*
 			case MENU_INDEX::CIRCLE_PACKING:
 			{
 				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, CirclePackingScene::create(), cocos2d::Color3B::BLACK));

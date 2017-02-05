@@ -16,11 +16,8 @@ bool FlockingScene::init()
 	{
 		return false;
 	}
-    
-    // init id counter to 0
-	ECS::Entity::idCounter = 0;
 
-	this->smoothSteering = true;
+	ECS::Manager::getInstance();
     
     // Init mouse point
     this->curMousePosition = cocos2d::Vec2(-1.0f, -1.0f);
@@ -66,7 +63,8 @@ bool FlockingScene::init()
 	// Set size
 	const int customLabelSize = 25;
 
-    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Entities: 0", customLabelSize);
+    this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Boids: 0", customLabelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Obstacles: 0", customLabelSize);
     this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Weights (Click buttons to modify weights)", customLabelSize);
     
     // Init button node
@@ -135,9 +133,7 @@ bool FlockingScene::init()
                                         static_cast<int>(ACTION_TAG::AVOID_LEFT),
                                         static_cast<int>(ACTION_TAG::AVOID_RIGHT),
                                         CC_CALLBACK_1(FlockingScene::onButtonPressed, this));
-
-	this->lastTrackingBoidId = -1;
-
+	
 	this->rangeChecker = cocos2d::Sprite::createWithSpriteFrameName("boidRangeChecker.png");
 	this->rangeChecker->setAnchorPoint(cocos2d::Vec2(0.5f, 0.5f));
 	this->rangeChecker->setVisible(false);
@@ -157,6 +153,7 @@ bool FlockingScene::init()
     this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "A: Add 10 Boids", labelSize);
     this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "E: Remove 10 Boids", labelSize);
 	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "S: Toggle smooth steering", labelSize);
+	this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::SMOOTH_STEERING), cocos2d::Color3B::GREEN, false);
     
 	const float keysLastY = this->labelsNode->keyboardUsageLabels.back()->getBoundingBox().getMinY();
     this->labelsNode->mouseOverAndKeyLabelStartPos = cocos2d::Vec2(labelX, keysLastY - blockGap);
@@ -184,11 +181,6 @@ bool FlockingScene::init()
 	this->sliderLabelNode->addSlider("Simulation Speed", "Slider", 50, CC_CALLBACK_1(FlockingScene::onSliderClick, this));
 	this->addChild(this->sliderLabelNode);
 
-	// Limit max entity to 400 in this case
-	ECS::Entity::maxEntitySize = 400;
-
-	this->pause = false;
-
 	return true;
 }
 
@@ -198,185 +190,74 @@ void FlockingScene::onEnter()
 
 	initInputListeners();
 
-	initEntitiesAndQTree();
+	initECS();
+}
+
+void FlockingScene::initECS()
+{
+	ECS::Manager* m = ECS::Manager::getInstance();
+	m->createEntityPool("FB", 512);
+	m->createEntityPool("FO", 32);
+
+	// Create 40 entities at start
+	const int initialEntityCount = 40;
+	for (int i = 0; i < initialEntityCount; i++)
+	{
+		createNewBoid();
+	}
+
+	auto system = m->createSystem<ECS::FlockingSystem>();
+	system->disbaleDefafultEntityPool();
+	system->addEntityPoolName("FB");
+	system->addEntityPoolName("FO");
+	// Obstacle doesn't have direction vector. So don't add that as a component ttype
+	system->addComponentType<ECS::Sprite>();
+	system->addComponentType<ECS::FlockingData>();
+
+	system->initQuadTree(this->displayBoundary);
+	system->displayBoundary = this->displayBoundary;
 }
 
 void FlockingScene::update(float delta)
 {
+	// Update fps label always
 	this->labelsNode->updateFPSLabel(delta);
 
-	if (!pause)
+	// Apply simulation speed modifier
+	delta *= this->simulationSpeedModifier;
+
+	auto m = ECS::Manager::getInstance();
+	auto system = m->getSystem<ECS::FlockingSystem>();
+
+	int boidCount = static_cast<int>(m->getAliveEntityCountInEntityPool("FB"));
+	this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::BOIDS), "Boids: " + std::to_string(boidCount) + " / 512");
+	int obstacleCount = static_cast<int>(m->getAliveEntityCountInEntityPool("FO"));
+	this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::OBSTACLES), "Obstacles: " + std::to_string(obstacleCount) + " / 32");
+
+	if (!system->isActive())
 	{
-		Utility::Time::start();
-
-		resetQTreeAndPurge();
-
-		delta *= this->simulationSpeedModifier;
-		updateFlockingAlgorithm(delta);
-
-		Utility::Time::stop();
-
-		std::string timeTakenStr = Utility::Time::getElaspedTime();	// Microseconds
-		float timeTakenF = std::stof(timeTakenStr);	// to float
-		timeTakenF *= 0.001f; // To milliseconds
-
-		this->labelsNode->updateTimeTakenLabel(std::to_string(timeTakenF).substr(0, 5));
+		// Rebuild quad tree when system is offline. Don't update algorithm
+		std::vector<ECS::Entity*> entities;
+		m->getAllEntitiesForSystem<ECS::FlockingSystem>(entities);
+		system->rebuildQuadTree(entities);
+		return;
 	}
-    
-    this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::ENTITIES), "Entities: " + std::to_string(this->entities.size()) + " / " + std::to_string(ECS::Entity::maxEntitySize));
-}
 
-void FlockingScene::resetQTreeAndPurge()
-{
-	this->quadTree->clear();
+	Utility::Time::start();
 
-	auto it = this->entities.begin();
-	for (; it != this->entities.end();)
+	m->update(delta);
+	if (system->lastTrackingBoidId != ECS::INVALID_E_ID)
 	{
-		// Remove if entities is dead
-		if ((*it)->alive == false)
-		{
-			delete (*it);
-			it = this->entities.erase(it);
-			continue;
-		}
-
-		if (pause)
-		{
-			// if simulation is paused, don't update entitie's position
-			it++;
-			continue;
-		}
-
-		// Re-insert to quadtree
-		this->quadTree->insert((*it));
-
-		// Reset color to white. Only boids
-		if ((*it)->getComponent<ECS::FlockingData*>(FLOCKING_DATA)->type == ECS::FlockingData::TYPE::BOID)
-		{
-			(*it)->getComponent<ECS::Sprite*>(SPRITE)->sprite->setColor(cocos2d::Color3B::WHITE);
-		}
-
-		// next
-		it++;
+		this->rangeChecker->setPosition(m->getEntityById(system->lastTrackingBoidId)->getComponent<ECS::Sprite>()->sprite->getPosition());
 	}
-}
 
-void FlockingScene::updateFlockingAlgorithm(const float delta)
-{
-	// iterate entities
-	for (auto entity : entities)
-	{
-		auto entityFlockingObjComp = entity->getComponent<ECS::FlockingData*>(FLOCKING_DATA);
-		if (entityFlockingObjComp->type == ECS::FlockingData::TYPE::BOID)
-		{
-			// If entity is boid, update flocking algorithm
-			auto entitySpriteComp = entity->getComponent<ECS::Sprite*>(SPRITE);
-			std::list<Entity*> nearEntities;
+	Utility::Time::stop();
 
-			// Create query rect and query near entities
-			cocos2d::Rect queryingArea = cocos2d::Rect::ZERO;
-			float pad = ECS::FlockingData::SIGHT_RADIUS;
-			queryingArea.origin = (entitySpriteComp->sprite->getPosition() - cocos2d::Vec2(pad, pad));
-			queryingArea.size = cocos2d::Vec2(pad * 2.0f, pad * 2.0f);
+	std::string timeTakenStr = Utility::Time::getElaspedTime();	// Microseconds
+	float timeTakenF = std::stof(timeTakenStr);	// to float
+	timeTakenF *= 0.001f; // To milliseconds
 
-			this->quadTree->queryAllEntities(queryingArea, nearEntities);
-
-			std::list<Entity*> nearBoids;
-			std::list<Entity*> nearAvoids;
-
-			// Iterate near entieis
-			for (auto nearEntity : nearEntities)
-			{
-				auto nearEntityFlockingObjComp = nearEntity->getComponent<ECS::FlockingData*>(FLOCKING_DATA);
-				auto nearBoidSpriteComp = nearEntity->getComponent<ECS::Sprite*>(SPRITE);
-				auto entityPos = entitySpriteComp->sprite->getPosition();
-				auto nearBoidPos = nearBoidSpriteComp->sprite->getPosition();
-				float distance = nearBoidPos.distance(entityPos);
-				if (nearEntityFlockingObjComp->type == ECS::FlockingData::TYPE::BOID)
-				{
-					// If near entity is boid, check distance
-					if (distance <= ECS::FlockingData::SIGHT_RADIUS)
-					{
-						// Add near entity as near boid
-						nearBoids.push_back(nearEntity);
-						if (entityFlockingObjComp->tracking)
-						{
-							nearBoidSpriteComp->sprite->setColor(cocos2d::Color3B::GREEN);
-						}
-					}
-				}
-				else if (nearEntityFlockingObjComp->type == ECS::FlockingData::TYPE::OBSTACLE)
-				{
-					// If near entity is obstacle, check distance
-					if (distance <= ECS::FlockingData::AVOID_RADIUS)
-					{
-						// Add near entity as near obstacle
-						nearAvoids.push_back(nearEntity);
-					}
-				}
-			}
-
-			// Update direction vector
-			auto entityDirVecComp = entity->getComponent<ECS::DirectionVector*>(DIRECTION_VECTOR);
-			
-			cocos2d::Vec2 finalVec = cocos2d::Vec2::ZERO;
-			cocos2d::Vec2 avoidVec = cocos2d::Vec2::ZERO;
-			if (!nearAvoids.empty())
-			{
-				// Apply avoid direction
-				avoidVec = this->getAvoid(entity, nearAvoids);
-				finalVec += (avoidVec * ECS::FlockingData::AVOID_WEIGHT);
-			}
-
-			if (!nearBoids.empty())
-			{
-				// Apply core 3 steer behavior.
-				cocos2d::Vec2 alignmentVec = this->getAlignment(entity, nearBoids) * ECS::FlockingData::ALIGNMENT_WEIGHT;
-				cocos2d::Vec2 cohesionVec = this->getCohesion(entity, nearBoids) * ECS::FlockingData::COHENSION_WEIGHT;
-				cocos2d::Vec2 separationVec = this->getSeparation(entity, nearBoids) * ECS::FlockingData::SEPARATION_WEIGHT;
-				finalVec += (alignmentVec + cohesionVec + separationVec);
-			}
-
-			// normalize and save
-			finalVec.normalize();
-
-			if (entityDirVecComp->smoothSteer)
-			{
-				// Steer boid's direction smooothly
-				auto diffVec = finalVec - entityDirVecComp->dirVec;
-				diffVec *= (delta * ECS::FlockingData::steerSpeed);
-				entityDirVecComp->dirVec += diffVec;
-			}
-			else
-			{
-				// Steer instantly
-				entityDirVecComp->dirVec = finalVec;
-			}
-
-			entityDirVecComp->dirVec.normalize();
-
-			// update position
-			auto movedDir = entityDirVecComp->dirVec * delta * ECS::FlockingData::movementSpeed;
-			auto newPos = entitySpriteComp->sprite->getPosition() + movedDir;
-			entitySpriteComp->sprite->setPosition(newPos);
-
-			float angle = entityDirVecComp->getAngle();
-			entitySpriteComp->sprite->setRotation(-angle);
-
-			if (!this->displayBoundary.containsPoint(newPos))
-			{
-				// wrap position if boid is out of boundary
-				entitySpriteComp->wrapPositionWithInBoundary(this->displayBoundary);
-			}
-
-			if (entityFlockingObjComp->tracking)
-			{
-				entitySpriteComp->sprite->setColor(cocos2d::Color3B::BLUE);
-				this->rangeChecker->setPosition(entitySpriteComp->sprite->getPosition());
-			}
-		}
-	}
+	this->labelsNode->updateTimeTakenLabel(std::to_string(timeTakenF).substr(0, 5));
 }
 
 void FlockingScene::initInputListeners()
@@ -391,161 +272,61 @@ void FlockingScene::initInputListeners()
 	_eventDispatcher->addEventListenerWithSceneGraphPriority(this->keyInputListener, this);
 }
 
-void FlockingScene::initEntitiesAndQTree()
+void FlockingScene::createNewBoid(const cocos2d::Vec2& pos)
 {
-	// Create 40 entities at start
-	const int initialEntityCount = 100;
-	for (int i = 0; i < initialEntityCount; i++)
+	auto m = ECS::Manager::getInstance();
+	ECS::Entity* e = m->createEntity("FB");
+	if (e == nullptr)
 	{
-		auto newEntity = createNewEntity();
-		if (newEntity != nullptr)
-		{
-			this->entities.push_back(newEntity);
-		}
+		return;
 	}
 
-	// Init quadtree with initial boundary
-	this->quadTree = new QuadTree(this->displayBoundary, 0);
-}
-
-ECS::Entity * FlockingScene::createNewEntity()
-{
-	Entity* newEntity = new Entity();
-
-	// attach component and return
-	auto dirVecComp = new ECS::DirectionVector();
+	auto dirVecComp = m->createComponent<ECS::DirectionVector>();
 	dirVecComp->smoothSteer = true;
-	newEntity->components[DIRECTION_VECTOR] = dirVecComp;
-	auto spriteComp = new ECS::Sprite(*this->areaNode, "boidEntity.png");
+	auto spriteComp = m->createComponent<ECS::Sprite>();
+	spriteComp->sprite = cocos2d::Sprite::createWithSpriteFrameName("boidEntity.png");
+	spriteComp->sprite->retain();
+	if (pos == cocos2d::Vec2::ZERO)
+	{
+		spriteComp->setRandomPosInBoundary(this->displayBoundary);
+	}
+	else
+	{
+		spriteComp->sprite->setPosition(pos);
+	}
+	this->areaNode->addChild(spriteComp->sprite);
+
 	const float angle = dirVecComp->getAngle();
 
 	spriteComp->rotateToDirVec(-angle);
-	spriteComp->setRandomPosInBoundary(this->displayBoundary);
-	newEntity->components[SPRITE] = spriteComp;
-	newEntity->components[FLOCKING_DATA] = new ECS::FlockingData(ECS::FlockingData::TYPE::BOID);
 
-	return newEntity;
+	e->addComponent<ECS::Sprite>(spriteComp);
+	e->addComponent<ECS::DirectionVector>(dirVecComp);
+	e->addComponent<ECS::FlockingData>();
 }
 
-ECS::Entity * FlockingScene::createNewEntity(const cocos2d::Vec2 & pos)
+void FlockingScene::createNewObstacle(const cocos2d::Vec2& pos)
 {
-	Entity* newEntity = createNewEntity();
-	auto spriteComp = newEntity->getComponent<ECS::Sprite*>(SPRITE);
-	spriteComp->sprite->setPosition(pos);
-	return newEntity;
-}
+	auto m = ECS::Manager::getInstance();
+	ECS::Entity* e = m->createEntity("FO");
+	if (e == nullptr)
+	{
+		return;
+	}
 
-ECS::Entity * FlockingScene::createNewObstacleEntity(const cocos2d::Vec2& pos)
-{
-	Entity* newEntity = new Entity();
-	auto spriteComp = new ECS::Sprite(*this->areaNode, "circle.png");
+	auto spriteComp = m->createComponent<ECS::Sprite>();
+	spriteComp->sprite = cocos2d::Sprite::createWithSpriteFrameName("circle.png");
 	spriteComp->sprite->setColor(cocos2d::Color3B::RED);
+	spriteComp->sprite->retain();
 	spriteComp->sprite->setPosition(pos);
-	newEntity->components[SPRITE] = spriteComp;
-	newEntity->components[FLOCKING_DATA] = new ECS::FlockingData(ECS::FlockingData::TYPE::OBSTACLE);
-	return newEntity;
-}
+	this->areaNode->addChild(spriteComp->sprite);
 
-const cocos2d::Vec2 FlockingScene::getAlignment(Entity* boid, std::list<Entity*>& nearBoids)
-{
-	cocos2d::Vec2 sumDirVec = cocos2d::Vec2::ZERO;
+	e->addComponent<ECS::Sprite>(spriteComp);
 
-	const cocos2d::Vec2 boidPos = boid->getComponent<ECS::Sprite*>(SPRITE)->sprite->getPosition();
+	auto dataComp = m->createComponent<ECS::FlockingData>();
+	dataComp->type = ECS::FlockingData::TYPE::OBSTACLE;
 
-	for (auto nearBoid : nearBoids)
-	{
-		auto dirVecComp = nearBoid->getComponent<ECS::DirectionVector*>(DIRECTION_VECTOR);
-		sumDirVec += dirVecComp->dirVec;
-	}
-
-	const float countF = static_cast<float>(nearBoids.size());
-	sumDirVec.x /= countF;
-	sumDirVec.y /= countF;
-	sumDirVec.normalize();
-	return sumDirVec;
-}
-
-const cocos2d::Vec2 FlockingScene::getCohesion(Entity* boid, std::list<Entity*>& nearBoids)
-{
-	cocos2d::Vec2 sumPosVec = cocos2d::Vec2::ZERO;
-
-	const cocos2d::Vec2 boidPos = boid->getComponent<ECS::Sprite*>(SPRITE)->sprite->getPosition();
-
-	for (auto nearBoid : nearBoids)
-	{
-		auto nearBoidSpriteComp = nearBoid->getComponent<ECS::Sprite*>(SPRITE);
-		sumPosVec += nearBoidSpriteComp->sprite->getPosition();
-	}
-
-	const float countF = static_cast<float>(nearBoids.size());
-	sumPosVec.x /= countF;
-	sumPosVec.y /= countF;
-
-	cocos2d::Vec2 cohesionVec = sumPosVec - boidPos;
-
-	cohesionVec.normalize();
-
-	return cohesionVec;
-}
-
-const cocos2d::Vec2 FlockingScene::getSeparation(Entity* boid, std::list<Entity*>& nearBoids)
-{
-	cocos2d::Vec2 sumDistVec = cocos2d::Vec2::ZERO;
-
-	const cocos2d::Vec2 boidPos = boid->getComponent<ECS::Sprite*>(SPRITE)->sprite->getPosition();
-
-	for (auto nearBoid : nearBoids)
-	{
-		auto nearBoidSpriteComp = nearBoid->getComponent<ECS::Sprite*>(SPRITE);
-		auto nearBoidPos = nearBoidSpriteComp->sprite->getPosition();
-		auto distVec = nearBoidPos - boidPos;
-		float distance = nearBoidPos.distance(boidPos);
-		if (distance <= 0)
-		{
-			sumDistVec += distVec;
-		}
-		else
-		{
-			sumDistVec += (distVec * (1.0f / distance));
-		}
-	}
-
-	const float countF = static_cast<float>(nearBoids.size());
-	sumDistVec.x /= countF;
-	sumDistVec.y /= countF;
-
-	sumDistVec *= -1;
-
-	sumDistVec.normalize();
-
-	return sumDistVec;
-}
-
-const cocos2d::Vec2 FlockingScene::getAvoid(Entity* boid, std::list<Entity*>& nearAvoids)
-{
-	int count = 0;
-	cocos2d::Vec2 sumDistVec = cocos2d::Vec2::ZERO;
-
-	const cocos2d::Vec2 boidPos = boid->getComponent<ECS::Sprite*>(SPRITE)->sprite->getPosition();
-
-	for (auto nearAvoid : nearAvoids)
-	{
-		auto nearAvoidSpriteComp = nearAvoid->getComponent<ECS::Sprite*>(SPRITE);
-		auto nearAvoidPos = nearAvoidSpriteComp->sprite->getPosition();
-		cocos2d::Vec2 distVec = boidPos - nearAvoidPos;
-		sumDistVec += distVec;
-		count++;
-	}
-
-	if (count > 0)
-	{
-		const float countF = static_cast<float>(count);
-		sumDistVec.x /= countF;
-		sumDistVec.y /= countF;
-		sumDistVec.normalize();
-	}
-
-	return sumDistVec;
+	e->addComponent<ECS::FlockingData>(dataComp);
 }
 
 void FlockingScene::onButtonPressed(cocos2d::Ref * sender)
@@ -676,87 +457,79 @@ void FlockingScene::onMouseDown(cocos2d::Event* event)
         return;
     }
 
+	auto m = ECS::Manager::getInstance();
+	auto system = m->getSystem<ECS::FlockingSystem>();
+
+	if (this->displayBoundary.containsPoint(point))
+	{
+		if (mouseButton == 0)
+		{
+			bool entityClicked = system->updateMouseDown(mouseButton, point);
+			if (entityClicked)
+			{
+				if (system->lastTrackingBoidId != ECS::INVALID_E_ID)
+				{
+					this->rangeChecker->setVisible(true);
+					auto e = m->getEntityById(system->lastTrackingBoidId);
+					this->rangeChecker->setPosition(e->getComponent<ECS::Sprite>()->sprite->getPosition());
+					this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::TRACK), cocos2d::Color3B::GREEN);
+				}
+				else
+				{
+					this->rangeChecker->setVisible(false);
+					this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::TRACK), cocos2d::Color3B::WHITE);
+				}
+			}
+			else
+			{
+				this->createNewBoid(point);
+				this->labelsNode->playAnimation(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::ADD_ONE));
+			}
+		}
+		else if (mouseButton == 1)
+		{
+			bool wasTracking = system->lastTrackingBoidId != ECS::INVALID_E_ID ? true : false;
+			bool entityClicked = system->updateMouseDown(1, point);
+			if (entityClicked)
+			{
+				this->labelsNode->playAnimation(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::REMOVE_ONE));
+			}
+
+			if (wasTracking && system->lastTrackingBoidId == ECS::INVALID_E_ID)
+			{
+				this->rangeChecker->setVisible(false);
+				this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::TRACK), cocos2d::Color3B::WHITE);
+			}
+		}
+		else if (mouseButton == 2)
+		{
+			bool entityClicked = system->updateMouseDown(mouseButton, point);
+			if (!entityClicked)
+			{
+				this->createNewObstacle(point);
+				this->labelsNode->playAnimation(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::ADD_OBSTACLE));
+			}
+			else
+			{
+				this->labelsNode->playAnimation(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::REMOVE_OBSTACLE));
+			}
+		}
+	}
+
+	/*
 	if (mouseButton == 0)
 	{
 		// Left click
 		if (this->displayBoundary.containsPoint(point))
 		{
-			// In display boundary
-			for (auto entity : this->entities)
-			{
-				auto spriteComp = entity->getComponent<ECS::Sprite*>(SPRITE);
-				if (spriteComp->sprite->getBoundingBox().containsPoint(point))
-				{
-					auto entityFlockingObjComp = entity->getComponent<ECS::FlockingData*>(FLOCKING_DATA);
-
-					// Clicked boid sprite
-					if (entity->id == this->lastTrackingBoidId)
-					{
-						// Already tracking this boid. Disble tracking
-						entityFlockingObjComp->tracking = false;
-						this->lastTrackingBoidId = -1;
-						this->rangeChecker->setVisible(false);
-                        
-                        this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::TRACK), cocos2d::Color3B::WHITE);
-						return;
-					}
-					
-					// New entity to track
-					entityFlockingObjComp->tracking = true;
-
-					if (this->lastTrackingBoidId != -1)
-					{
-						// Already tracking entity
-						for (auto lastEntity : this->entities)
-						{
-							if (lastEntity->id == this->lastTrackingBoidId)
-							{
-								// Disable tracking on last tracking entitiy
-								auto comp = lastEntity->getComponent<ECS::FlockingData*>(FLOCKING_DATA);
-								comp->tracking = false;
-								break;
-							}
-						}
-					}
-
-					// Set this entity to new tracking entity
-					this->lastTrackingBoidId = entity->id;
-
-					this->rangeChecker->setVisible(true);
-					this->rangeChecker->setPosition(entity->getComponent<ECS::Sprite*>(SPRITE)->sprite->getPosition());
-                    this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::TRACK), cocos2d::Color3B::GREEN);
-					return;
-				}
-			}
-
-			// If it didn't track any entity, create one
-			if (static_cast<int>(this->entities.size()) < ECS::Entity::maxEntitySize)
-			{
-				this->entities.push_back(createNewEntity(point));
-                this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::ADD_ONE), cocos2d::Color3B::WHITE);
-			}
+			
 		}
 	}
 	else if (mouseButton == 1)
 	{
 		if (this->displayBoundary.containsPoint(point))
 		{
-			for (auto entity : this->entities)
-			{
-				auto spriteComp = entity->getComponent<ECS::Sprite*>(SPRITE);
-				if (spriteComp->sprite->getBoundingBox().containsPoint(point))
-				{
-					entity->alive = false;
-					auto flockingObjComp = entity->getComponent<ECS::FlockingData*>(FLOCKING_DATA);
-					if (flockingObjComp->tracking)
-					{
-						this->rangeChecker->setVisible(false);
-					}
-                    
-                    this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::REMOVE_ONE), cocos2d::Color3B::WHITE);
-					return;
-				}
-			}
+
 		}
 	}
 	else if (mouseButton == 2)
@@ -764,21 +537,13 @@ void FlockingScene::onMouseDown(cocos2d::Event* event)
 		// Middle click
 		if (this->displayBoundary.containsPoint(point))
 		{
-			for (auto entity : this->entities)
-			{
-				auto spriteComp = entity->getComponent<ECS::Sprite*>(SPRITE);
-				if (spriteComp->sprite->getPosition().distance(point) < 6.0f)
-				{
-					entity->alive = false;
-                    this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::REMOVE_OBSTACLE), cocos2d::Color3B::GREEN);
-					return;
-				}
-			}
 
-			this->entities.push_back(createNewObstacleEntity(point));
+
+			this->entities.push_back(createNewObstacle(point));
             this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::ADD_OBSTACLE), cocos2d::Color3B::GREEN);
 		}
 	}
+	*/
 }
 
 void FlockingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::Event* event) 
@@ -790,75 +555,84 @@ void FlockingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 	}
 
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_SPACE)
-	{
-		this->pause = !this->pause;
-		if (this->pause)
-        {
+	{		
+		// Toggle pause simulation. Still counts fps and entity
+		auto system = ECS::Manager::getInstance()->getSystem<ECS::FlockingSystem>();
+		if (system->isActive())
+		{
+			system->deactivate();
 			this->labelsNode->updateTimeTakenLabel("0");
-            this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::PAUSE), cocos2d::Color3B::GREEN);
+			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::PAUSE), cocos2d::Color3B::GREEN);
 		}
 		else
-        {
-            this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::PAUSE), cocos2d::Color3B::WHITE);
-		}
-	}
-
-	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_C)
-	{
-		for (auto entity : this->entities)
 		{
-            entity->alive = false;
-            this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::CLEAR), cocos2d::Color3B::WHITE);
-			this->rangeChecker->setVisible(false);
-			this->labelsNode->updateTimeTakenLabel("0");
+			system->activate();
+			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::PAUSE), cocos2d::Color3B::WHITE);
 		}
 	}
-
-	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_A)
+	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_C)
 	{
+		std::vector<ECS::Entity*> entities;
+		ECS::Manager::getInstance()->getAllEntitiesForSystem<ECS::FlockingSystem>(entities);
+
+		for (auto entity : entities)
+		{
+			entity->kill();
+		}
+
+		this->labelsNode->playAnimation(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::CLEAR));
+	}
+	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_A)
+	{
+		const int size = ECS::Manager::getInstance()->getAliveEntityCountInEntityPool("FB");
+		if (size != 512)
+		{
+			// Add ten entities
+			for (int i = 0; i < 10; i++)
+			{
+				createNewBoid();
+			}
+
+			this->labelsNode->playAnimation(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::ADD_TEN));
+		}
+	}
+	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_E)
+	{
+		// Remove last 10 entities
+		std::vector<ECS::Entity*> entities;
+		ECS::Manager::getInstance()->getAllEntitiesInPool(entities, "FB");
 		int count = 0;
-		while (this->entities.size() < 400 && count < 10)
+		for (auto entity : entities)
 		{
-			this->entities.push_back(createNewEntity());
+			if (count == 10)
+			{
+				break;
+			}
+			entity->kill();
 			count++;
-        }
-        this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::ADD_TEN), cocos2d::Color3B::WHITE);
+		}
+
+		this->labelsNode->playAnimation(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::REMOVE_TEN));
 	}
-
-	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_E)
+	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_S)
 	{
-		int count = 0;
-		for (auto entity : this->entities)
-		{
-			if (count < 10)
-			{
-				entity->alive = false;
-				auto flockingObjComp = entity->getComponent<ECS::FlockingData*>(FLOCKING_DATA);
-				if (flockingObjComp->tracking)
-				{
-					this->rangeChecker->setVisible(false);
-				}
-                count++;
-			}
-        }
-        this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::REMOVE_TEN), cocos2d::Color3B::WHITE);
-	}
+		auto system = ECS::Manager::getInstance()->getSystem<ECS::FlockingSystem>();
+		system->smoothSteering = !system->smoothSteering;
 
-	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_S)
-	{
-		this->smoothSteering = !this->smoothSteering;
+		std::vector<ECS::Entity*> entities;
+		ECS::Manager::getInstance()->getAllEntitiesInPool(entities, "FB");
 
-		for (auto entity : this->entities)
+		for (auto entity : entities)
 		{
-			auto dataComp = entity->getComponent<FlockingData*>(FLOCKING_DATA);
-			if (dataComp->type == FlockingData::TYPE::BOID)
+			auto dataComp = entity->getComponent<ECS::FlockingData>();
+			if (dataComp->type == ECS::FlockingData::TYPE::BOID)
 			{
-				auto dirVecComp = entity->getComponent<DirectionVector*>(DIRECTION_VECTOR);
-				dirVecComp->smoothSteer = this->smoothSteering;
+				auto dirVecComp = entity->getComponent<ECS::DirectionVector>();
+				dirVecComp->smoothSteer = system->smoothSteering;
 			}
 		}
 
-		if (this->smoothSteering)
+		if (system->smoothSteering)
 		{
 			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::SMOOTH_STEERING), cocos2d::Color3B::GREEN);
 		}
@@ -867,8 +641,7 @@ void FlockingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::SMOOTH_STEERING), cocos2d::Color3B::WHITE);
 		}
 	}
-    
-    if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_O)
+	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_O)
     {
         // This is added for laptop users because they might not have middle click
         if(this->curMousePosition.x == -1.0f || this->curMousePosition.y == -1.0f)
@@ -876,22 +649,33 @@ void FlockingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
             // mouse position must be positive. It's either out of window or hasn't intialized
             return;
         }
-        
+
         if (this->displayBoundary.containsPoint(this->curMousePosition))
         {
-            for (auto entity : this->entities)
-            {
-                auto spriteComp = entity->getComponent<ECS::Sprite*>(SPRITE);
-                if (spriteComp->sprite->getPosition().distance(this->curMousePosition) < 6.0f)
-                {
-                    entity->alive = false;
-                    this->labelsNode->setColor(LabelsNode::TYPE::MOUSE_OVER_AND_KEY, static_cast<int>(USAGE_MOUSE_OVER_AND_KEY::REMOVE_OBSTACLE), cocos2d::Color3B::WHITE);
-                    return;
-                }
-            }
+			std::vector<ECS::Entity*> entities;
+			ECS::Manager::getInstance()->getAllEntitiesInPool(entities, "FO");
+
+			for (auto entity : entities)
+			{
+				auto dataComp = entity->getComponent<ECS::FlockingData>();
+				if (dataComp->type == ECS::FlockingData::TYPE::OBSTACLE)
+				{
+					auto spriteComp = entity->getComponent<ECS::Sprite>();
+					if (spriteComp->sprite->getPosition().distance(this->curMousePosition) < 6.0f)
+					{
+						entity->kill();
+						this->labelsNode->setColor(LabelsNode::TYPE::MOUSE_OVER_AND_KEY, static_cast<int>(USAGE_MOUSE_OVER_AND_KEY::REMOVE_OBSTACLE), cocos2d::Color3B::WHITE);
+						return;
+					}
+				}
+			}
             
-            this->entities.push_back(createNewObstacleEntity(this->curMousePosition));
-            this->labelsNode->setColor(LabelsNode::TYPE::MOUSE_OVER_AND_KEY, static_cast<int>(USAGE_MOUSE_OVER_AND_KEY::ADD_OBSTACLE), cocos2d::Color3B::WHITE);
+			// Create obstacle
+			if (entities.size() < 32)
+			{
+				this->createNewObstacle(this->curMousePosition);
+				this->labelsNode->setColor(LabelsNode::TYPE::MOUSE_OVER_AND_KEY, static_cast<int>(USAGE_MOUSE_OVER_AND_KEY::ADD_OBSTACLE), cocos2d::Color3B::WHITE);
+			}
         }
     }
 }
@@ -933,19 +717,5 @@ void FlockingScene::onExit()
     this->displayBoundaryBoxNode->release();
     this->buttonModifierNode->release();
 
-	// Delete all entities
-	for (auto entity : this->entities)
-	{
-		if (entity != nullptr)
-		{
-			delete entity;
-		}
-	}
-
-	// Delete quadtree
-	if (this->quadTree != nullptr)
-	{
-		delete quadTree;
-	}
-
+	ECS::Manager::deleteInstance();
 }

@@ -3,10 +3,10 @@
 
 #include "cocos2d.h"
 #include "ui/CocosGUI.h"
-#include "QuadTree.h"
 #include "ECS.h"
 #include "CustomNode.h"
 #include "Component.h"
+#include "System.h"
 
 class FlockingScene : public cocos2d::Scene
 {
@@ -47,7 +47,8 @@ private:
     // Enum for labels
     enum class CUSTOM_LABEL_INDEX
     {
-        ENTITIES,
+        BOIDS,
+		OBSTACLES,
         WEIGHTS,
 		MAX_CUSTOM_LABEL,
     };
@@ -110,74 +111,18 @@ private:
         BOX
     };
 
-	// Quadtree to optimize collision check
-	QuadTree* quadTree;
-
-	// Flags
-	bool pause;
-
-	// Smooth steering mode
-	bool smoothSteering;
-
-	// Entities
-	std::list<ECS::Entity*> entities;
-
 	// RangeChecker
 	cocos2d::Sprite* rangeChecker;
-
-	// Tracking
-	int lastTrackingBoidId;
-
-	// Initialize entities and quad tree
-	void initEntitiesAndQTree();
+	
+	// Initialize ECS
+	void initECS();
 
 	// Creates new entity with required components
-	ECS::Entity* createNewEntity();
-	ECS::Entity* createNewEntity(const cocos2d::Vec2& pos);
-	ECS::Entity* createNewObstacleEntity(const cocos2d::Vec2& pos);
+	void createNewBoid(const cocos2d::Vec2& pos = cocos2d::Vec2::ZERO);
+	void createNewObstacle(const cocos2d::Vec2& pos);
 
-	// Reset QuadTree and remove inactive entities
-	void resetQTreeAndPurge();
-	// Update flocking algorithm
-	void updateFlockingAlgorithm(const float delta);
-
-	// Flocking algorithm
-	/**
-	*	Get Alignment vector
-	*	Iterate through near boids and checks distance.
-	*	If distance between boid and near boids are close enough, 
-	*	sum near boids' direction vector and get average then normalize
-	*/
-	const cocos2d::Vec2 getAlignment(Entity* boid, std::list<Entity*>& nearBoids);
-	/**
-	*	Get Cohesion
-	*	Iterate thorugh near boids and checks distance.
-	*	If distance between boid and near boids are close enough,
-	*	sum near boids' position vector and get average then nomarlize.
-	*	In this case, we want direction vector not position, so compute
-	*	direction vector based on boid's position
-	*/
-	const cocos2d::Vec2 getCohesion(Entity* boid, std::list<Entity*>& nearBoids);
-	/**
-	*	Get Separation
-	*	Iterate through near boids and checks distance
-	*	If distance between boid and near boids are close enough,
-	*	sum the distance between boid and near boids and get average, 
-	*	negate the direction, then normalize. 
-	*/
-	const cocos2d::Vec2 getSeparation(Entity* boid, std::list<Entity*>& nearBoids);
-	/**
-	*	Get Avoid
-	*	This isn't core flocking algorithm. Alignment, Cohesion and
-	*	Separation are the core but this is a simple addition to
-	*	algorithm to make boid avoid obstacles.
-	*	It's similar to Separation, but weighted by distance
-	*/
-	const cocos2d::Vec2 getAvoid(Entity* boid, std::list<Entity*>& nearAvoids);
-    
     // Button click call back
     void onButtonPressed(cocos2d::Ref* sender);
-
 	// On slider finishes click on slider
 	void onSliderClick(cocos2d::Ref* sender);
 public:

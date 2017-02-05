@@ -207,7 +207,7 @@ void QuadTreeScene::update(float delta)
 	if(!system->isActive())
 	{
 		std::vector<ECS::Entity*> entities;
-		m->getAllEnttitiesInPool(entities, "QT");
+		m->getAllEntitiesInPool(entities, "QT");
 		system->rebuildQuadTree(entities);
 		return;
 	}
@@ -285,9 +285,14 @@ void QuadTreeScene::onMouseDown(cocos2d::Event* event)
 			bool entityClicked = system->updateMouseDown(0, point);
 			if (entityClicked)
 			{
-				// tracking
-				// Clicked on entitiy sprite
-				this->labelsNode->playAnimation(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::TRACK));
+				if (system->lastTrackingEntityID != ECS::INVALID_E_ID)
+				{
+					this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::TRACK), cocos2d::Color3B::GREEN);
+				}
+				else
+				{
+					this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::TRACK), cocos2d::Color3B::WHITE);
+				}
 			}
 			else
 			{
@@ -297,12 +302,18 @@ void QuadTreeScene::onMouseDown(cocos2d::Event* event)
 		}
 		else if (mouseButton == 1)
 		{
+			bool wasTracking = system->lastTrackingEntityID != ECS::INVALID_E_ID ? true : false;
 			bool entityClicked = system->updateMouseDown(1, point);
 			if (entityClicked)
 			{
 				// tracking
 				// Clicked on entitiy sprite
 				this->labelsNode->playAnimation(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::REMOVE_ONE));
+			}
+
+			if (wasTracking && system->lastTrackingEntityID == ECS::INVALID_E_ID)
+			{
+				this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::TRACK), cocos2d::Color3B::WHITE);
 			}
 		}
 	}
@@ -361,7 +372,7 @@ void QuadTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 	{
 		// Wipe all entities
  		std::vector<ECS::Entity*> entities;
-		ECS::Manager::getInstance()->getAllEnttitiesInPool(entities, "QT");
+		ECS::Manager::getInstance()->getAllEntitiesInPool(entities, "QT");
 		for (auto entity : entities)
 		{
 			entity->kill();
@@ -378,6 +389,11 @@ void QuadTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 		{
 			createNewEntity();
 		}
+
+		std::vector<ECS::Entity*> entities;
+		ECS::Manager::getInstance()->getAllEntitiesInPool(entities, "QT");
+		ECS::Manager::getInstance()->getSystem<ECS::QuadTreeSystem>()->rebuildQuadTree(entities);
+		ECS::Manager::getInstance()->getSystem<ECS::QuadTreeSystem>()->drawQuadTreelines();
         
         this->labelsNode->playAnimation(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::ADD_TEN));
 	}
@@ -385,7 +401,7 @@ void QuadTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 	{
 		// Remove last 10 entities
 		std::vector<ECS::Entity*> entities;
-		ECS::Manager::getInstance()->getAllEnttitiesInPool(entities, "QT");
+		ECS::Manager::getInstance()->getAllEntitiesInPool(entities, "QT");
 		int count = 0;
 		for (auto entity : entities)
 		{
@@ -396,6 +412,12 @@ void QuadTreeScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2
 			entity->kill();
 			count++;
         }
+
+		entities.clear();
+		ECS::Manager::getInstance()->getAllEntitiesInPool(entities, "QT");
+
+		ECS::Manager::getInstance()->getSystem<ECS::QuadTreeSystem>()->rebuildQuadTree(entities);
+		ECS::Manager::getInstance()->getSystem<ECS::QuadTreeSystem>()->drawQuadTreelines();
         
         this->labelsNode->playAnimation(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::REMOVE_TEN));
 	}

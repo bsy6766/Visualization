@@ -116,7 +116,7 @@ float FlockingData::SEPARATION_WEIGHT = 1.0f;
 float FlockingData::AVOID_RADIUS = 50.0f;
 float FlockingData::AVOID_WEIGHT = 2.0f;
 
-FlockingData::FlockingData(const TYPE type) : Component(), tracking(false), type(type) {}
+FlockingData::FlockingData() : Component(), tracking(false), type(ECS::FlockingData::TYPE::BOID){}
 
 
 
