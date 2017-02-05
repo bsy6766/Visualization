@@ -9,8 +9,6 @@
 #include <list>
 #include "ECS.h"
 
-using namespace ECS;
-
 //The maximum/minimum level of tree it can sub divide.
 #define MAX_LEVEL 10
 #define MIN_LEVEL 5
@@ -50,7 +48,7 @@ private:
 	cocos2d::Rect boundary;
 
 	//Boxes
-	std::list<Entity*> datas;
+	std::list<ECS::Entity*> datas;
 
 	//sub divide current quad tree
 	void subDivide();
@@ -62,7 +60,7 @@ public:
 	~QuadTree();
 
 	//Insert bounding box to tree
-	bool insert(Entity* entity);
+	bool insert(ECS::Entity* entity, cocos2d::Rect& bb);
 
 	//Set boundary
 	void setBoundary(const cocos2d::Rect& boundary);
@@ -93,7 +91,7 @@ public:
 	*	@param queryingArea An area to query.
 	*	@param nearEntities Container to retreive queried bounding boxes
 	*/
-	void queryAllEntities(const cocos2d::Rect& queryingArea, std::list<Entity*>& nearEntities);
+	void queryAllEntities(const cocos2d::Rect& queryingArea, std::list<ECS::Entity*>& nearEntities);
 };
 
 #endif

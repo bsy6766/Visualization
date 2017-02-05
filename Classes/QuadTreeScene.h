@@ -2,8 +2,8 @@
 #define QTREESCENE_H
 
 #include "cocos2d.h"
-#include "QuadTree.h"
 #include "Component.h"
+#include "System.h"
 #include "ECS.h"
 #include "Component.h"
 #include "CustomNode.h"
@@ -81,15 +81,9 @@ private:
 
 	// flags
 	bool pause;
-	bool showGrid;
-	bool duplicationCheck;
-	bool collisionResolve;
 
 	// Tracking entity
 	int lastTrackingEntityID;
-
-	// Quadtree
-	QuadTree* quadTree;
 
 	// Node
 	cocos2d::Node* areaNode;
@@ -101,33 +95,12 @@ private:
 
 	// Boundary holder
 	cocos2d::Rect displayBoundary;
-
-	// Track all entities
-	std::list<ECS::Entity*> entities;
-
-	// Initialize entities and quad tree
-	void initEntitiesAndQTree();
+	
+	// Initialize ECS
+	void initECS();
     
-	// Creates new entity with required components
-	ECS::Entity* createNewEntity();
-    
-	// Update each entity's position and reassign to quadtree
-	void resetQTreeAndUpdatePosition(float delta);
-    
-	// Checks collision between entities, count number, resolve if enabled
-	void checkCollision();
-    
-	// Checks if box is out of boundary. Sets bool to true if box need to flip direction
-	void checkBoundary(ECS::Sprite& spriteComp, bool& flipX, bool& flipY);
-    
-	// Flips direction
-	void flipDirVec(const bool flipX, const bool flipY, cocos2d::Vec2& dirVec);
-    
-	// Resolves collision between two entities.
-	void resolveCollisions(ECS::Sprite& entitySpriteComp, ECS::Sprite& nearEntitySpriteComp, ECS::DirectionVector& entityDirVecComp, ECS::DirectionVector& nearEntityDirVecComp);
-    
-	// Reassigns entitiy id to keep id less than 1000 (because of duplication check).
-	void reassignEntityIds();
+	// Creates new entity with required components at position
+	void createNewEntity(const cocos2d::Vec2& position = cocos2d::Vec2::ZERO);
     
     // Toggle color
     void toggleColor(const bool enabled, LabelsNode::TYPE type, const int index, const bool playAnimation = true);

@@ -184,7 +184,7 @@ void QuadTree::subDivide()
 		se = new QuadTree(cocos2d::Rect(this->boundary.getMidX(), this->boundary.getMinY(), width, height), this->level + 1);
 
 	//so...replace the object
-	std::list<Entity*> remainingData;
+	std::list<ECS::Entity*> remainingData;
 
 	for (auto data : this->datas)
 	{
@@ -195,19 +195,20 @@ void QuadTree::subDivide()
 
 	for (auto data : remainingData)
 	{
-		if (this->nw->insert(data))
+		auto bb = data->getComponent<ECS::Sprite>()->sprite->getBoundingBox();
+		if (this->nw->insert(data, bb))
 		{
 			continue;
 		}
-		else if (this->ne->insert(data))
+		else if (this->ne->insert(data, bb))
 		{
 			continue;
 		}
-		else if (this->sw->insert(data))
+		else if (this->sw->insert(data, bb))
 		{
 			continue;
 		}
-		else if (this->se->insert(data))
+		else if (this->se->insert(data, bb))
 		{
 			continue;
 		}
@@ -220,13 +221,13 @@ void QuadTree::subDivide()
 	remainingData.clear();
 }
 
-bool QuadTree::insert(Entity* entity)
+bool QuadTree::insert(ECS::Entity* entity, cocos2d::Rect& bb)
 {
 	if (this->clean)
 		clean = false;
 
-	// Note: The line below is specifically made for this project. 
-	auto bb = dynamic_cast<ECS::Sprite*>(entity->components[SPRITE])->sprite->getBoundingBox();
+	// Note: The line below is specifically made for this project.
+	//auto bb = ECS::Manager::getInstance()->getComponent<ECS::Sprite>(entity)->sprite->getBoundingBox();
 	if (this->boundary.intersectsRect(bb))
 	{
 		//check if it has subs
@@ -246,19 +247,19 @@ bool QuadTree::insert(Entity* entity)
 					subDivide();
 
 					//insert new object to subs
-					if (this->nw->insert(entity))
+					if (this->nw->insert(entity, bb))
 					{
 						return true;
 					}
-					else if (this->ne->insert(entity))
+					else if (this->ne->insert(entity, bb))
 					{
 						return true;
 					}
-					else if (this->sw->insert(entity))
+					else if (this->sw->insert(entity, bb))
 					{
 						return true;
 					}
-					else if (this->se->insert(entity))
+					else if (this->se->insert(entity, bb))
 					{
 						return true;
 					}
@@ -280,19 +281,19 @@ bool QuadTree::insert(Entity* entity)
 		else
 		{					
 			//insert new object to subs
-			if (this->nw->insert(entity))
+			if (this->nw->insert(entity, bb))
 			{
 				return true;
 			}
-			else if (this->ne->insert(entity))
+			else if (this->ne->insert(entity, bb))
 			{
 				return true;
 			}
-			else if (this->sw->insert(entity))
+			else if (this->sw->insert(entity, bb))
 			{
 				return true;
 			}
-			else if (this->se->insert(entity))
+			else if (this->se->insert(entity, bb))
 			{
 				return true;
 			}
@@ -326,7 +327,7 @@ void QuadTree::setLevel(const int level)
 	this->level = level;
 }
 
-void QuadTree::queryAllEntities(const cocos2d::Rect& queryingArea, std::list<Entity*>& nearBoundingBoxes)
+void QuadTree::queryAllEntities(const cocos2d::Rect& queryingArea, std::list<ECS::Entity*>& nearBoundingBoxes)
 {
 	if (this->boundary.intersectsRect(queryingArea))
 	{

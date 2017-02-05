@@ -14,17 +14,6 @@
 
 namespace ECS
 {
-	enum COMPONENT_ID
-	{
-		DIRECTION_VECTOR = 0,
-		SPRITE,
-		QTREE_DATA,
-		FLOCKING_DATA,
-		CIRCLE_PACKING_DATA,
-		RECT_PACKING_NODE
-	};
-
-
 	class DirectionVector : public Component
 	{
 	public:
@@ -46,7 +35,7 @@ namespace ECS
 	class Sprite : public Component
 	{
 	public:
-		Sprite(cocos2d::Node& parent, const std::string& spriteName);
+		Sprite();
 		~Sprite();
 		Sprite(Sprite const&) = delete;
 		void operator=(Sprite const&) = delete;
@@ -68,8 +57,8 @@ namespace ECS
 		~QTreeData();
 		QTreeData(QTreeData const&) = delete;
 		void operator=(QTreeData const&) = delete;
-
-		std::vector<int> visitied;
+		
+		std::unordered_set<int> visitied;
 		float speed;
 		bool tracking;
 	};

@@ -5,7 +5,7 @@
 using namespace ECS;
 
 
-DirectionVector::DirectionVector() : Component(DIRECTION_VECTOR), dirVec(cocos2d::Vec2::ZERO),  smoothSteer(false)
+DirectionVector::DirectionVector() : Component(), dirVec(cocos2d::Vec2::ZERO),  smoothSteer(false)
 {
 	setNewDirVec();
 }
@@ -32,14 +32,9 @@ const float ECS::DirectionVector::getAngle()
 }
 
 
-
-Sprite::Sprite(cocos2d::Node& parent, const std::string& spriteName) : Component(SPRITE)
+Sprite::Sprite() : ECS::Component()
 {
-	this->sprite = cocos2d::Sprite::createWithSpriteFrameName(spriteName);
-	auto winSize = cocos2d::Director::getInstance()->getVisibleSize();
-	this->sprite->setPosition(winSize.height * 0.5f, winSize.height * 0.5f);
-	this->sprite->retain();
-	parent.addChild(this->sprite);
+	this->sprite = nullptr;
 }
 
 Sprite::~Sprite()
@@ -97,10 +92,12 @@ void ECS::Sprite::wrapPositionWithInBoundary(const cocos2d::Rect & boundary)
 	this->sprite->setPosition(curPos);
 }
 
-QTreeData::QTreeData() : Component(QTREE_DATA), tracking(false)
+
+
+
+QTreeData::QTreeData() : Component(), tracking(false)
 {
 	this->speed = Utility::Random::randomReal<float>(20.0f, 100.0f);
-	this->visitied.resize(Entity::maxEntitySize, 0);
 }
 
 QTreeData::~QTreeData()
@@ -119,7 +116,7 @@ float FlockingData::SEPARATION_WEIGHT = 1.0f;
 float FlockingData::AVOID_RADIUS = 50.0f;
 float FlockingData::AVOID_WEIGHT = 2.0f;
 
-FlockingData::FlockingData(const TYPE type) : Component(FLOCKING_DATA), tracking(false), type(type) {}
+FlockingData::FlockingData(const TYPE type) : Component(), tracking(false), type(type) {}
 
 
 
@@ -127,7 +124,7 @@ float CirclePackingData::maxRadius = 50.0f;
 float CirclePackingData::growthSpeed = 10.0f;
 float CirclePackingData::initialRadius = 5.0f;
 
-CirclePackingData::CirclePackingData(const cocos2d::Vec2 & position, const float radius, const cocos2d::Color4F color) : Component(CIRCLE_PACKING_DATA), alive(false), growing(false), position(position), radius(radius), color(color) {}
+CirclePackingData::CirclePackingData(const cocos2d::Vec2 & position, const float radius, const cocos2d::Color4F color) : Component(), alive(false), growing(false), position(position), radius(radius), color(color) {}
 
 void CirclePackingData::update(const float delta)
 {
@@ -163,20 +160,9 @@ void CirclePackingData::deactivate()
 
 
 
-ECS::RectPackingNode::RectPackingNode() : Component(static_cast<int>(COMPONENT_ID::RECT_PACKING_NODE)), left(nullptr), right(nullptr), rect(cocos2d::Rect::ZERO), area(cocos2d::Rect::ZERO) {}
+ECS::RectPackingNode::RectPackingNode() : Component(), left(nullptr), right(nullptr), rect(cocos2d::Rect::ZERO), area(cocos2d::Rect::ZERO) {}
 
-ECS::RectPackingNode::~RectPackingNode()
-{
-	if (left)
-	{
-		delete left;
-	}
-
-	if (right)
-	{
-		delete right;
-	}
-}
+ECS::RectPackingNode::~RectPackingNode() {}
 
 const bool RectPackingNode::isLeaf()
 {
