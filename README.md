@@ -219,6 +219,7 @@ Used [Rubik](https://www.fontsquirrel.com/fonts/rubik) by Hubert & Fischer
 
 
 ## ChangeLog
+V0.8 Using new ECS implementation of mine [link](https://github.com/bsy6766/ECS)<br>
 v0.7 Added Rect Packing visualization.<br>
 v0.6 Refined.<br>
 v0.5 Added Circle Packing visualization.<br>
