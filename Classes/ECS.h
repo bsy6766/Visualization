@@ -337,6 +337,8 @@ namespace ECS
 		const bool createEntityPool(const std::string& name, const int maxSize = ECS::DEFAULT_ENTITY_POOL_SIZE);
 		// Deletes entitty pool
 		const bool deleteEntityPool(const std::string& name);
+		// Resize entity pool
+		const bool resizeEntityPool(const std::string& entityPoolName, const unsigned int size);
 		// Check if there is pool with same name
 		const bool hasEntityPoolName(const std::string& name);
 		// Get size of entity Pool

@@ -244,6 +244,51 @@ const bool ECS::Manager::deleteEntityPool(const std::string& name)
 	return false;
 }
 
+const bool ECS::Manager::resizeEntityPool(const std::string& entityPoolName, const unsigned int size)
+{
+	if (!this->hasEntityPoolName(entityPoolName))
+	{
+		return false;
+	}
+
+	unsigned int newSize = size;
+	if (!this->isPowerOfTwo(newSize))
+	{
+		this->roundToNearestPowerOfTwo(newSize);
+	}
+
+	const unsigned int curSize = this->entityPools.at(entityPoolName)->pool.size();
+
+	if (curSize < newSize)
+	{
+		// expand
+		for (unsigned int i = curSize; i < newSize; i++)
+		{
+			this->entityPools.at(entityPoolName)->pool.push_back(std::unique_ptr<ECS::Entity, ECS::Deleter<ECS::Entity>>(new ECS::Entity(), ECS::Deleter<ECS::Entity>()));
+			this->entityPools.at(entityPoolName)->pool.back()->entityPoolName = ECS::DEFAULT_ENTITY_POOL_NAME;
+			this->entityPools.at(entityPoolName)->pool.back()->index = i;
+			this->entityPools.at(entityPoolName)->nextIndicies.push_back(i);
+		}
+
+		assert(this->entityPools.at(entityPoolName)->pool.size() == newSize);
+	}
+	else if (curSize > newSize)
+	{
+		this->entityPools.at(entityPoolName)->nextIndicies.clear();
+		this->entityPools.at(entityPoolName)->pool.resize(newSize);
+
+		for (unsigned int i = 0; i < this->entityPools.at(entityPoolName)->pool.size(); i++)
+		{
+			if (this->entityPools.at(entityPoolName)->pool.at(i)->alive == false)
+			{
+				this->entityPools.at(entityPoolName)->nextIndicies.push_back(i);
+			}
+		}
+	}
+
+	return true;
+}
+
 ECS::Entity* ECS::Manager::createEntity(const std::string& poolName)
 {
 	if (poolName.empty())
@@ -638,7 +683,7 @@ Component* ECS::Manager::getComponent(Entity* e, const std::type_info& t)
 			}
 			else
 			{
-				nullptr;
+				return nullptr;
 			}
 		}
 	}

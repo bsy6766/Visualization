@@ -1247,3 +1247,189 @@ int ECS::CirclePackingSystem::moveAllGrownCircles(std::vector<ECS::Entity*> grow
 
 	return growingCircleCount;
 }
+
+
+
+
+
+ECS::ReckPackingSystem::ReckPackingSystem() 
+: ECS::System(0)
+, pause(false)
+, finished(true)
+, root(nullptr)
+{}
+
+void ECS::ReckPackingSystem::initRoot(const cocos2d::Rect& area, const cocos2d::Vec2& shift)
+{
+	this->root = createNewRect(area, shift);
+}
+
+ECS::Entity* ECS::ReckPackingSystem::createNewRect(const cocos2d::Rect& area, const cocos2d::Vec2& shift)
+{
+	auto m = ECS::Manager::getInstance();
+
+	auto e = m->createEntity();
+	auto c = m->createComponent<ECS::RectPackingNode>();
+	c->area = area;
+	c->area.origin -= shift;
+	c->color = cocos2d::Color4F(Utility::Random::randomReal<float>(0, 1.0f), Utility::Random::randomReal<float>(0, 1.0f), Utility::Random::randomReal<float>(0, 1.0f), 1.0f);
+	e->addComponent<ECS::RectPackingNode>(c);
+
+	return e;
+}
+
+const bool ECS::ReckPackingSystem::insert(const cocos2d::Size & rectSize)
+{
+	return this->insert(this->root, rectSize);
+}
+
+const bool ECS::ReckPackingSystem::insert(ECS::Entity* entity, const cocos2d::Size & rectSize)
+{
+	if (rectSize.width == 0 || rectSize.height == 0)
+	{
+		// invalid size of rectangle
+		return false;
+	}
+
+	// Get component
+	auto rectComp = entity->getComponent<ECS::RectPackingNode>();
+
+	if (rectComp->isLeaf() == false)
+	{
+		if (rectComp->left == nullptr || rectComp->right == nullptr)
+		{
+			// Both left and right can't be nullptr
+			return false;
+		}
+
+		// Insert on left
+		const bool leftResult = insert(rectComp->left, rectSize);
+
+		if (leftResult == false)
+		{
+			// left failed. insert on right
+			return insert(rectComp->right, rectSize);
+		}
+		else
+		{
+			return true;
+		}
+	}
+	else
+	{
+		// This entity node is leaf
+
+		// Check if this node already has rectangle assigned
+		if (rectComp->rect.equals(cocos2d::Rect::ZERO) == false)
+		{
+			// This node has rect already. Fail to insert rect.
+			return false;
+		}
+		// else, it's empty
+
+		// Check if the new rectangle fits to this node
+		const cocos2d::Vec2 origin = rectComp->area.origin;
+		cocos2d::Rect targetRect = cocos2d::Rect(origin, rectSize);
+
+		if (Utility::containsRect(rectComp->area, targetRect) == false)
+		{
+			// Rectangle is too big. Failed to insert rect
+			return false;
+		}
+		// else, can fit
+
+		// Check if this image perfectly fits to area
+		if (rectComp->area.size.equals(rectSize))
+		{
+			rectComp->rect = targetRect;
+			//cocos2d::log("Inserting!!");
+			return true;
+		}
+		// Else, doesn't fit perfectly
+
+		// Then, split the area.
+		rectComp->left = this->createNewRect(cocos2d::Rect::ZERO, cocos2d::Vec2::ZERO);
+		rectComp->right = this->createNewRect(cocos2d::Rect::ZERO, cocos2d::Vec2::ZERO);
+
+		// Get left and right entities compoennt
+		auto leftRectComp = rectComp->left->getComponent<ECS::RectPackingNode>();
+		auto rightRectComp = rectComp->right->getComponent<ECS::RectPackingNode>();
+
+		// Check the size of new rectangle and see which way do split
+		const cocos2d::Size dSize = rectComp->area.size - rectSize;
+
+
+		if (dSize.width > dSize.height)
+		{
+			// The rectangle's width is larger or equal than height, let's call this wide shape (I know this handles square but just being simple)
+			// In this case, we split(cut) child area vertically 
+			/*
+			area rectagnle					  area rectangle
+			*----------------*					*-----*----------*
+			|     | dh       |					|     |          |
+			|     |     dw   |					|     |          |
+			*-----*----------|		Split		|     |          |
+			|XXXXX|          |		---->		|     |          |
+			new rectangle	->	|XXXXX|          |					|     |          |
+			(filled with X)		|XXXXX|          |					|     |          |
+			*-----*----------*					*-----*----------*
+			*/
+
+			// Left ofigin equals to area's origin
+			cocos2d::Vec2 leftOrigin = origin;
+			// Left size. Width equal to new rectangle's widht and height is same as area.
+			cocos2d::Size leftSize = cocos2d::Size(rectSize.width, rectComp->area.size.height);
+			// Set area
+			leftRectComp->area = cocos2d::Rect(leftOrigin, leftSize);
+
+			// Right origin. X starts from area's origin with left size's width, which includes the pad
+			float rightX = origin.x + leftSize.width;
+			cocos2d::Vec2 rightOrigin = cocos2d::Vec2(rightX, origin.y);
+			// Right width is difference between area width and leftSize with.
+			cocos2d::Size rightSize = cocos2d::Size(rectComp->area.size.width - leftSize.width, rectComp->area.size.height);
+			rightRectComp->area = cocos2d::Rect(rightOrigin, rightSize);
+		}
+		else
+		{
+			// The rectangle's height is larger than width, let's call this long shape rectangle.
+			// In this case, we split(cut) child area horizontally 
+
+			/*
+			area rectagnle					  area rectangle
+			*----------------*					*----------------*
+			|         |      |					|                |
+			|      dh |      |					|                |
+			|         |      |		Split		|                |
+			*---------*------|		---->		*----------------*
+			new rectangle	->	|XXXXXXXXX|  dw  |					|                |
+			(filled with X)		|XXXXXXXXX|      |					|                |
+			*---------*------*					*----------------*
+			*/
+
+			// Left ofigin equals to area's origin
+			cocos2d::Vec2 leftOrigin = origin;
+			cocos2d::Size leftSize = cocos2d::Size(rectComp->area.size.width, rectSize.height);
+			leftRectComp->area = cocos2d::Rect(leftOrigin, leftSize);
+
+			float rightY = rectSize.height + origin.y;
+			const cocos2d::Vec2 rightOrigin = cocos2d::Vec2(origin.x, rightY);
+			float rightHeight = rectComp->area.size.height - rectSize.height;
+			cocos2d::Size rightSize = cocos2d::Size(rectComp->area.size.width, rightHeight);
+			rightRectComp->area = cocos2d::Rect(rightOrigin, rightSize);
+		}
+
+		return this->insert(rectComp->left, rectSize);
+	}
+}
+
+void ECS::ReckPackingSystem::clear()
+{
+	std::vector<ECS::Entity*> entities;
+	ECS::Manager::getInstance()->getAllEntitiesInPool(entities);
+	for (auto e : entities)
+	{
+		e->kill();
+	}
+}
+
+void ECS::ReckPackingSystem::update(const float delta, std::vector<ECS::Entity*>& entities) {}

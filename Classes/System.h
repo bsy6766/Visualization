@@ -189,6 +189,29 @@ namespace ECS
 		// Update system
 		virtual void update(const float delta, std::vector<ECS::Entity*>& entities) override;
 	};
+
+	class ReckPackingSystem : public System
+	{
+	public:
+		ReckPackingSystem();
+		~ReckPackingSystem() = default;
+
+		// Flags
+		bool pause;
+		bool finished;
+
+		// Root node
+		ECS::Entity* root;
+
+		void initRoot(const cocos2d::Rect& area, const cocos2d::Vec2& shift);
+		ECS::Entity* createNewRect(const cocos2d::Rect& area, const cocos2d::Vec2& shift);
+		const bool insert(const cocos2d::Size& rectSize);
+		const bool insert(ECS::Entity* entity, const cocos2d::Size& rectSize);
+		void clear();
+
+		// Update system
+		virtual void update(const float delta, std::vector<ECS::Entity*>& entities) override;
+	};
 }
 
 #endif

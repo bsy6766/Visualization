@@ -3,6 +3,8 @@
 
 #include "cocos2d.h"
 #include "CustomNode.h"
+#include "System.h"
+#include "Component.h"
 #include "ECS.h"
 #include <queue>
 
@@ -78,21 +80,15 @@ private:
 
 	float padding;
 
-	bool pause;
 	bool drawDivisionLine;
-	bool finished;
 
-	ECS::Entity* root;
+	void initECS();
 
 	void drawRects(ECS::Entity* entity);
-
-	const bool insert(ECS::Entity* entity, const cocos2d::Size& rectSize);
-	ECS::Entity* createNewEntity();
 
 	void restart();
 	void initRects();
 	void clear();
-	void clearEntity();
 
 	// Button click call back
 	void onButtonPressed(cocos2d::Ref* sender);

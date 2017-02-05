@@ -1,7 +1,6 @@
 #include "RectPackingScene.h"
 #include "MainScene.h"
 #include "Utility.h"
-#include "Component.h"
 #include <algorithm>
 #include <random>
 
@@ -24,12 +23,8 @@ bool RectPackingScene::init()
 
 	this->padding = 0.0f;
 	this->drawDivisionLine = false;
-	this->pause = false;
-	this->finished = true;
 	this->stepDuration = 0.01f;
 	this->elapsedTime = 0;
-
-	this->root = nullptr;
 
 	// Init labels node
 	this->labelsNode = LabelsNode::createNode();
@@ -119,11 +114,6 @@ bool RectPackingScene::init()
 	this->displayBoundaryBoxNode->drawNode->setLocalZOrder(static_cast<int>(Z_ORDER::BOX));
 	this->addChild(this->displayBoundaryBoxNode);
 
-	// Init root entity
-	ECS::Entity::idCounter = 0;
-	// Can insert 3000 rect
-	ECS::Entity::maxEntitySize = 3000;
-
 	this->rectDrawNode = cocos2d::DrawNode::create();
 	this->rectDrawNode->setLineWidth(1.0f);
 	this->addChild(this->rectDrawNode);
@@ -135,22 +125,33 @@ void RectPackingScene::onEnter()
 {
 	cocos2d::Scene::onEnter();
 	initInputListeners();
-
+	initECS();
 	restart();
+}
+
+void RectPackingScene::initECS()
+{
+	ECS::Manager* m = ECS::Manager::getInstance();
+	m->resizeEntityPool(ECS::DEFAULT_ENTITY_POOL_NAME, 4096);
+
+	auto system = m->createSystem<ECS::ReckPackingSystem>();
+	system->addComponentType<ECS::RectPackingNode>();
 }
 
 void RectPackingScene::update(float delta)
 {
 	this->labelsNode->updateFPSLabel(delta);
 
-	if (pause) return;
-	if (finished) return;
+	auto m = ECS::Manager::getInstance();
+	auto system = m->getSystem<ECS::ReckPackingSystem>();
 
-	Utility::Time::start();
+	if (system->pause) return;
+	if (system->finished) return;
 
 	delta *= this->simulationSpeedModifier;
 
 	this->elapsedTime += delta;
+
 
 	while (this->elapsedTime >= this->stepDuration)
 	{
@@ -158,7 +159,7 @@ void RectPackingScene::update(float delta)
 
 		if (this->randomSizes.empty())
 		{
-			this->finished = true;
+			system->finished = true;
 			cocos2d::log("%d Rects packed!", this->totalRectsPacked);
 
 			this->buttonModifierNode->leftButtons.back()->setEnabled(true);
@@ -172,187 +173,34 @@ void RectPackingScene::update(float delta)
 		}
 		else
 		{
+			Utility::Time::start();
+
 			auto& size = this->randomSizes.front();
 			this->randomSizes.pop();
-			bool success = this->insert(this->root, size);
+			bool success = system->insert(size);
 			if (success)
 			{
 				this->totalRectsPacked++;
 			}
+
+			Utility::Time::stop();
+
+			std::string timeTakenStr = Utility::Time::getElaspedTime();	// Microseconds
+			float timeTakenF = std::stof(timeTakenStr);	// to float
+			timeTakenF *= 0.001f; // To milliseconds
+			this->labelsNode->updateTimeTakenLabel(std::to_string(timeTakenF).substr(0, 5));
 		}
 	}
 
 	this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::TOTAL_RECT_PACKED), "Total packed rectangles: " + std::to_string(this->totalRectsPacked));
 
 	this->rectDrawNode->clear();
-	this->drawRects(this->root);
-
-	Utility::Time::stop();
-
-	std::string timeTakenStr = Utility::Time::getElaspedTime();	// Microseconds
-	float timeTakenF = std::stof(timeTakenStr);	// to float
-	timeTakenF *= 0.001f; // To milliseconds
-	this->labelsNode->updateTimeTakenLabel(std::to_string(timeTakenF).substr(0, 5));
-}
-
-const bool RectPackingScene::insert(ECS::Entity * entity, const cocos2d::Size& rectSize)
-{
-	if (rectSize.width == 0 || rectSize.height == 0)
-	{
-		// invalid size of rectangle
-		return false;
-	}
-
-	// Get component
-	auto rectComp = entity->getComponent<ECS::RectPackingNode*>(ECS::COMPONENT_ID::RECT_PACKING_NODE);
-	
-	if (rectComp->isLeaf() == false)
-	{
-		if (rectComp->left == nullptr || rectComp->right == nullptr)
-		{
-			// Both left and right can't be nullptr
-			return false;
-		}
-
-		// Insert on left
-		const bool leftResult = insert(rectComp->left, rectSize);
-
-		if (leftResult == false)
-		{
-			// left failed. insert on right
-			return insert(rectComp->right, rectSize);
-		}
-        else
-        {
-            return true;
-        }
-	}
-	else
-	{
-		// This entity node is leaf
-
-		// Check if this node already has rectangle assigned
-		if (rectComp->rect.equals(cocos2d::Rect::ZERO) == false)
-		{
-			// This node has rect already. Fail to insert rect.
-			return false;
-		}
-		// else, it's empty
-
-		// Check if the new rectangle fits to this node
-		const cocos2d::Vec2 origin = rectComp->area.origin;
-		cocos2d::Rect targetRect = cocos2d::Rect(origin, rectSize);
-
-		if (Utility::containsRect(rectComp->area, targetRect) == false)
-		{
-			// Rectangle is too big. Failed to insert rect
-			return false;
-		}
-		// else, can fit
-
-		// Check if this image perfectly fits to area
-		if (rectComp->area.size.equals(rectSize))
-		{
-			rectComp->rect = targetRect;
-			//cocos2d::log("Inserting!!");
-			return true;
-		}
-		// Else, doesn't fit perfectly
-
-		// Then, split the area.
-		rectComp->left = this->createNewEntity();
-		rectComp->right = this->createNewEntity();
-
-		// Get left and right entities compoennt
-		auto leftRectComp = rectComp->left->getComponent<ECS::RectPackingNode*>(ECS::COMPONENT_ID::RECT_PACKING_NODE);
-		auto rightRectComp = rectComp->right->getComponent<ECS::RectPackingNode*>(ECS::COMPONENT_ID::RECT_PACKING_NODE);
-
-		// Check the size of new rectangle and see which way do split
-		const cocos2d::Size dSize = rectComp->area.size - rectSize;
-
-
-		if(dSize.width > dSize.height)
-		{
-			// The rectangle's width is larger or equal than height, let's call this wide shape (I know this handles square but just being simple)
-			// In this case, we split(cut) child area vertically 
-			/*
-								  area rectagnle					  area rectangle
-								*----------------*					*-----*----------*
-								|     | dh       |					|     |          |
-								|     |     dw   |					|     |          |
-								*-----*----------|		Split		|     |          |
-								|XXXXX|          |		---->		|     |          |
-			new rectangle	->	|XXXXX|          |					|     |          |
-			(filled with X)		|XXXXX|          |					|     |          |
-								*-----*----------*					*-----*----------*
-			*/
-
-			// Left ofigin equals to area's origin
-			cocos2d::Vec2 leftOrigin = origin;
-			// Left size. Width equal to new rectangle's widht and height is same as area.
-			cocos2d::Size leftSize = cocos2d::Size(rectSize.width, rectComp->area.size.height);
-			// Set area
-			leftRectComp->area = cocos2d::Rect(leftOrigin, leftSize);
-
-			// Right origin. X starts from area's origin with left size's width, which includes the pad
-			float rightX = origin.x + leftSize.width;
-			cocos2d::Vec2 rightOrigin = cocos2d::Vec2(rightX, origin.y);
-			// Right width is difference between area width and leftSize with.
-			cocos2d::Size rightSize = cocos2d::Size(rectComp->area.size.width - leftSize.width, rectComp->area.size.height);
-			rightRectComp->area = cocos2d::Rect(rightOrigin, rightSize);
-		}
-		else
-		{
-			// The rectangle's height is larger than width, let's call this long shape rectangle.
-			// In this case, we split(cut) child area horizontally 
-
-			/*
-								  area rectagnle					  area rectangle
-								*----------------*					*----------------*
-								|         |      |					|                |
-								|      dh |      |					|                |
-								|         |      |		Split		|                |
-								*---------*------|		---->		*----------------*
-			new rectangle	->	|XXXXXXXXX|  dw  |					|                |
-			(filled with X)		|XXXXXXXXX|      |					|                |
-								*---------*------*					*----------------*
-			*/
-
-			// Left ofigin equals to area's origin
-			cocos2d::Vec2 leftOrigin = origin;
-			cocos2d::Size leftSize = cocos2d::Size(rectComp->area.size.width, rectSize.height);
-			leftRectComp->area = cocos2d::Rect(leftOrigin, leftSize);
-
-			float rightY = rectSize.height + origin.y;
-			const cocos2d::Vec2 rightOrigin = cocos2d::Vec2(origin.x, rightY);
-			float rightHeight = rectComp->area.size.height - rectSize.height;
-			cocos2d::Size rightSize = cocos2d::Size(rectComp->area.size.width, rightHeight);
-			rightRectComp->area = cocos2d::Rect(rightOrigin, rightSize);
-		}
-
-		return this->insert(rectComp->left, rectSize);
-	}
-}
-
-ECS::Entity * RectPackingScene::createNewEntity()
-{
-	ECS::Entity* newEntity = new ECS::Entity();
-
-	ECS::RectPackingNode* node = new ECS::RectPackingNode();
-	auto& area = this->displayBoundaryBoxNode->displayBoundary;
-	//area.size.width -= this->padding;
-	//area.size.height -= this->padding;
-	node->area = area;
-	node->area.origin -= this->displayBoundaryShift;
-	node->color = cocos2d::Color4F(Utility::Random::randomReal<float>(0, 1.0f), Utility::Random::randomReal<float>(0, 1.0f), Utility::Random::randomReal<float>(0, 1.0f), 1.0f);
-	newEntity->components.at(static_cast<int>(ECS::COMPONENT_ID::RECT_PACKING_NODE)) = node;
-
-	return newEntity;
+	this->drawRects(system->root);
 }
 
 void RectPackingScene::drawRects(ECS::Entity* entity)
 {
-	auto rectComp = entity->getComponent<ECS::RectPackingNode*>(ECS::COMPONENT_ID::RECT_PACKING_NODE);
+	auto rectComp = entity->getComponent<ECS::RectPackingNode>();
 	if (rectComp->isLeaf())
 	{
 		// This is a leaf. Check if it has rect that perfectly fits
@@ -387,8 +235,8 @@ void RectPackingScene::drawRects(ECS::Entity* entity)
 		// draw split line
 		if (this->drawDivisionLine)
 		{
-			auto leftRectComp = rectComp->left->getComponent<ECS::RectPackingNode*>(ECS::COMPONENT_ID::RECT_PACKING_NODE);
-			auto rightRectComp = rectComp->right->getComponent<ECS::RectPackingNode*>(ECS::COMPONENT_ID::RECT_PACKING_NODE);
+			auto leftRectComp = rectComp->left->getComponent<ECS::RectPackingNode>();
+			auto rightRectComp = rectComp->right->getComponent<ECS::RectPackingNode>();
 
 			cocos2d::Vec2 start;
 			cocos2d::Vec2 end;
@@ -426,11 +274,13 @@ void RectPackingScene::restart()
 {
 	clear();
 
-	this->root = this->createNewEntity();
+	auto system = ECS::Manager::getInstance()->getSystem<ECS::ReckPackingSystem>();
+
+	system->initRoot(this->displayBoundaryBoxNode->displayBoundary, this->displayBoundaryShift);
 
 	initRects();
 
-	this->finished = false;
+	system->finished = false;
 
 	this->buttonModifierNode->leftButtons.back()->setEnabled(false);
 	this->buttonModifierNode->rightButtons.back()->setEnabled(false);
@@ -480,12 +330,14 @@ void RectPackingScene::initRects()
 
 void RectPackingScene::clear()
 {
+	auto system = ECS::Manager::getInstance()->getSystem<ECS::ReckPackingSystem>();
+
 	// Stop and clear
 	this->maxRects = 0;
 	this->totalRectsPacked = 0;
-	this->pause = false;
-	this->finished = true;
-	this->clearEntity();
+	system->pause = false;
+	system->finished = true;
+	system->clear();
 	this->rectDrawNode->clear();
 	this->buttonModifierNode->leftButtons.back()->setEnabled(true);
 	this->buttonModifierNode->rightButtons.back()->setEnabled(true);
@@ -493,26 +345,18 @@ void RectPackingScene::clear()
 	std::swap(this->randomSizes, empty);
 
 	this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Waiting");
+	this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::TOTAL_RECT_PACKED), "Total packed rectangles: " + std::to_string(this->totalRectsPacked));
 }
-
-void RectPackingScene::clearEntity()
-{
-	if (this->root != nullptr)
-	{
-		delete this->root;
-		this->root = nullptr;
-	}
-}
-
 
 void RectPackingScene::onButtonPressed(cocos2d::Ref * sender)
 {
+	auto system = ECS::Manager::getInstance()->getSystem<ECS::ReckPackingSystem>();
 	auto button = dynamic_cast<cocos2d::ui::Button*>(sender);
 	auto tag = static_cast<ACTION_TAG>(button->getActionTag());
 	switch (tag)
 	{
 	case ACTION_TAG::LEFT:
-		if (this->finished)
+		if (system->finished)
 		{
 			this->padding -= 1.0f;
 
@@ -524,7 +368,7 @@ void RectPackingScene::onButtonPressed(cocos2d::Ref * sender)
 		this->buttonModifierNode->updateValue(0, this->padding);
 		break;
 	case ACTION_TAG::RIGHT:
-		if (this->finished)
+		if (system->finished)
 		{
 			this->padding += 1.0f;
 
@@ -607,10 +451,11 @@ void RectPackingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coc
 		cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, MainScene::create(), cocos2d::Color3B::BLACK));
 	}
 
+	auto system = ECS::Manager::getInstance()->getSystem<ECS::ReckPackingSystem>();
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_SPACE)
 	{
-		this->pause = !this->pause;
-		if (this->pause)
+		system->pause = !system->pause;
+		if (system->pause)
 		{
 			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::PAUSE), cocos2d::Color3B::GREEN);
 			this->labelsNode->updateTimeTakenLabel("0");
@@ -623,11 +468,9 @@ void RectPackingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coc
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_L)
 	{
 		this->drawDivisionLine = !this->drawDivisionLine;
-		if (this->finished == true)
-		{
-			this->rectDrawNode->clear();
-			this->drawRects(this->root);
-		}
+
+		this->rectDrawNode->clear();
+		this->drawRects(system->root);
 
 		if (this->drawDivisionLine)
 		{
@@ -641,6 +484,7 @@ void RectPackingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coc
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_R)
 	{
 		this->restart();
+		this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::PAUSE), cocos2d::Color3B::WHITE);
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_C)
 	{
@@ -660,9 +504,4 @@ void RectPackingScene::onExit()
 {
 	cocos2d::Scene::onExit();
 	releaseInputListeners(); 
-
-	if (this->root != nullptr)
-	{
-		delete this->root;
-	}
 }
