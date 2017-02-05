@@ -221,7 +221,7 @@ void QuadTree::subDivide()
 	remainingData.clear();
 }
 
-bool QuadTree::insert(ECS::Entity* entity, cocos2d::Rect& bb)
+bool QuadTree::insert(ECS::Entity* entity, const cocos2d::Rect& bb)
 {
 	if (this->clean)
 		clean = false;

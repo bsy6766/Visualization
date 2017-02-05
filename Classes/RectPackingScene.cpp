@@ -18,6 +18,8 @@ bool RectPackingScene::init()
 	{
 		return false;
 	}
+    
+    ECS::Manager::getInstance();
 
 	this->scheduleUpdate();
 
@@ -503,5 +505,7 @@ void RectPackingScene::releaseInputListeners()
 void RectPackingScene::onExit()
 {
 	cocos2d::Scene::onExit();
-	releaseInputListeners(); 
+	releaseInputListeners();
+    
+    ECS::Manager::deleteInstance();
 }

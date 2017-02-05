@@ -650,7 +650,7 @@ const bool ECS::Manager::hasComponent(Entity* e, const std::type_info& t, Compon
 
 Component* ECS::Manager::getComponent(Entity* e, const std::type_info& t)
 {
-	if (e == nullptr) return false;
+	if (e == nullptr) return nullptr;
 
 	// Get unique id
 	const ECS::C_UNIQUE_ID cUniqueId = this->getComponentUniqueId(t);
@@ -947,7 +947,7 @@ const S_ID ECS::Manager::registerSystem(const std::type_info & t)
 		// Reject same system going in
 		for (auto& system : this->systems)
 		{
-			if (system.second->id == systemId)
+			if (system.second->getId() == systemId)
 			{
 				return ECS::INVALID_S_ID;
 			}
@@ -964,7 +964,7 @@ const bool ECS::Manager::deleteSystem(System*& s, const std::type_info& t)
 		return false;
 	}
 
-	if (s->id == ECS::INVALID_S_ID)
+	if (s->getId() == ECS::INVALID_S_ID)
 	{
 		delete s;
 		s = nullptr;
@@ -975,7 +975,7 @@ const bool ECS::Manager::deleteSystem(System*& s, const std::type_info& t)
 		auto it = this->systems.begin();
 		for (; it != this->systems.end(); )
 		{ 
-			if ((*it).second->id == s->id)
+			if ((*it).second->getId() == s->getId())
 			{
 				// found
 				this->systems.erase(it);
@@ -993,13 +993,60 @@ const bool ECS::Manager::deleteSystem(System*& s, const std::type_info& t)
 	return false;
 }
 
+const bool ECS::Manager::hasSystem(const std::type_info& t)
+{
+    const S_ID sId = this->getSystemId(t);
+    
+    for (auto& system : this->systems)
+    {
+        if (system.second->getId() == sId)
+        {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+const bool ECS::Manager::hasSystem(ECS::System *s, const std::type_info &t)
+{
+    if (s == nullptr || s->getId() == ECS::INVALID_S_ID)
+    {
+        return false;
+    }
+    
+    for (auto& system : this->systems)
+    {
+        if(system.second->getId() == s->getId())
+        {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+ECS::System* ECS::Manager::getSystem(const std::type_info &t)
+{
+    const S_ID sId = this->getSystemId(t);
+    for(auto& system :  this->systems)
+    {
+        if(system.second->getId() == sId)
+        {
+            return system.second.get();
+        }
+    }
+    
+    return nullptr;
+}
+
 std::map<int, S_ID> ECS::Manager::getSystemUpdateOrder()
 {
 	std::map<int, S_ID> order;
 
 	for (auto& system : this->systems)
 	{
-		order.insert(std::pair<int, S_ID>(system.first, system.second->id));
+		order.insert(std::pair<int, S_ID>(system.first, system.second->getId()));
 	}
 
 	return order;
@@ -1185,7 +1232,7 @@ ECS::System::System(const int priority)
 , queriesDefaultPool(true)
 {}
 
-System::System(const int priority, std::initializer_list<C_UNIQUE_ID> componentUniqueIds, std::initializer_list<std::string> entityPoolNames)
+ECS::System::System(const int priority, std::initializer_list<C_UNIQUE_ID> componentUniqueIds, std::initializer_list<std::string> entityPoolNames)
 : id(ECS::INVALID_S_ID)
 , signature(0)
 , entityPoolNames(entityPoolNames)

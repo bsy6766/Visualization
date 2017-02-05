@@ -24,12 +24,15 @@
 
 namespace ECS
 {
-	// Classes
-	class Entity;
-	class Component;
-	class System;
-	class Manager;
+    // Classes
+    class Entity;
+    class Component;
+    class Manager;
+    class System;
+}
 
+namespace ECS
+{
 	// Const
 	// Maximum number of component id.
 	const unsigned int MAX_C_ID = std::numeric_limits<unsigned int>::max();
@@ -83,6 +86,397 @@ namespace ECS
 	private:
 		void operator()(T* t) { delete t; }
 	};
+    
+    /**
+     *	@class Manager
+     *	@brief The manager class that manages entire ECS.
+     *	@note This is singleton class. The instance automtically released on end of program.
+     */
+    class Manager
+    {
+        friend class Deleter<Manager>;
+        friend class System;
+    private:
+        // Private constructor. Call getInstance for access.
+        Manager();
+        // Private constructor. Call deleteInstance to delete instance.
+        ~Manager();
+        // Disable all other constructors.
+        Manager(const Manager& arg) = delete;						// Copy constructor
+        Manager(const Manager&& arg) = delete;						// Move constructor
+        Manager& operator=(const Manager& arg) = delete;			// Assignment operator
+        Manager& operator=(const Manager&& arg) = delete;			// Move operator
+        
+        // Singleton instance
+        static std::unique_ptr<Manager, ECS::Deleter<Manager>> instance;
+        
+        // ==================================== ENTITY ====================================
+        struct EntityPool
+        {
+            std::vector<std::unique_ptr<ECS::Entity, ECS::Deleter<ECS::Entity>>> pool;
+            std::deque<unsigned int> nextIndicies;
+            int idCounter;
+        };
+        // Entities
+        std::unordered_map<std::string, std::unique_ptr<EntityPool>> entityPools;
+        // wraps id counter if reaches max
+        void wrapEntityPoolIdCounter(const std::string& poolName);
+        // ================================================================================
+        
+        // =================================== COMPONENT ==================================
+        struct ComponentPool
+        {
+            std::vector<std::unique_ptr<ECS::Component, ECS::Deleter<ECS::Component>>> pool;
+            std::deque<unsigned int> nextIndicies;
+            unsigned int idCounter;
+        };
+        // Components
+        //std::unordered_map<C_UNIQUE_ID, std::unique_ptr<ComponentPool>> components;
+        std::vector<std::unique_ptr<ComponentPool>> components;
+        // Component ID Map. class type_index <---> CID
+        std::unordered_map<std::type_index, C_UNIQUE_ID> C_UNIQUE_IDMap;
+        // Wraps id counter if reaches max
+        void wrapComponentUniqueIdCounter(const C_UNIQUE_ID cUniqueId);
+        
+        const C_UNIQUE_ID getComponentUniqueId(const std::type_info& t);
+        const C_UNIQUE_ID registerComponent(const std::type_info& t);
+        const bool deleteComponent(ECS::Component*& c, const std::type_info& t);
+        const bool hasComponent(ECS::Entity* e, const std::type_info& t);
+        const bool hasComponent(ECS::Entity* e, const std::type_info& t, ECS::Component* c);
+        Component* getComponent(ECS::Entity* e, const std::type_info& t);
+        std::vector<ECS::Component*> getComponents(Entity* e, const std::type_info& t);
+        const bool addComponent(ECS::Entity* e, const std::type_info& t, ECS::Component* c);
+        const bool removeComponent(ECS::Entity* e, const std::type_info& t, const C_ID componentId);
+        const bool removeComponent(ECS::Entity* e, const std::type_info& t, ECS::Component* c);
+        const bool removeComponents(ECS::Entity* e, const std::type_info& t);
+        // ================================================================================
+        
+        // ==================================== SYSTEM ====================================
+        std::map<int/*priority*/, std::unique_ptr<ECS::System, ECS::Deleter<ECS::System>>> systems;
+        // System ID Map. class type_index <---> SID
+        std::unordered_map<std::type_index, S_ID> S_IDMap;
+        // Get SID from type info
+        const S_ID getSystemId(const std::type_info& t);
+        
+        const S_ID registerSystem(const std::type_info& t);
+        const bool deleteSystem(System*& s, const std::type_info& t);
+        const bool hasSystem(const std::type_info& t);
+        const bool hasSystem(System* s, const std::type_info& t);
+        ECS::System* getSystem(const std::type_info& t);
+        // ================================================================================
+    public:
+        // Get instance.
+        static Manager* getInstance();
+        // Delete instance.
+        static void deleteInstance();
+        // Check if manager is valid
+        static bool isValid();
+        // Update function. Call this every tick.
+        void update(const float delta);
+        
+        // Creates new EntityPool
+        const bool createEntityPool(const std::string& name, const int maxSize = ECS::DEFAULT_ENTITY_POOL_SIZE);
+        // Deletes entitty pool
+        const bool deleteEntityPool(const std::string& name);
+        // Resize entity pool
+        const bool resizeEntityPool(const std::string& entityPoolName, const unsigned int size);
+        // Check if there is pool with same name
+        const bool hasEntityPoolName(const std::string& name);
+        // Get size of entity Pool
+        const unsigned int getEntityPoolSize(const std::string& name = ECS::DEFAULT_ENTITY_POOL_NAME);
+        // Get alive entity count of entity pool
+        const unsigned int getAliveEntityCountInEntityPool(const std::string& name = ECS::DEFAULT_ENTITY_POOL_NAME);
+        // Check is number is power of 2
+        const bool isPowerOfTwo(const unsigned int n);
+        // Round up the number to power of 2
+        void roundToNearestPowerOfTwo(unsigned int & n);
+        
+        // Creates entity and adds to entity pool
+        Entity* createEntity(const std::string& poolName = ECS::DEFAULT_ENTITY_POOL_NAME);
+        // Kill entity
+        const bool killEntity(ECS::Entity* e);
+        // Get entity by id. Returns nullptr if anything is invalid
+        Entity* getEntityById(const E_ID entityId);
+        // Get all entity in pool
+        void getAllEntitiesInPool(std::vector<ECS::Entity*>& entities, const std::string& poolName = ECS::DEFAULT_ENTITY_POOL_NAME);
+        // Get all entities that system updates
+        template<class T>void getAllEntitiesForSystem(std::vector<ECS::Entity*>& entities)
+        {
+            unsigned int totalSize = 0;
+            auto system = this->getSystem<T>();
+            if (system != nullptr)
+            {
+                for (auto poolName : system->entityPoolNames)
+                {
+                    unsigned int size = this->getAliveEntityCountInEntityPool(poolName);
+                    totalSize += size;
+                }
+                
+                entities.clear();
+                entities.reserve(totalSize);
+                
+                for (auto poolName : system->entityPoolNames)
+                {
+                    std::vector<ECS::Entity*> eVec;
+                    this->getAllEntitiesInPool(eVec, poolName);
+                    entities.insert(entities.end(), eVec.begin(), eVec.end());
+                }
+            }
+        }
+        // Move entity to Entity pool
+        const bool moveEntityToEntityPool(ECS::Entity*& entity, const std::string& entityPoolName);
+        
+        // Create component.
+        template<class T> T* createComponent()
+        {
+            T* t = new T();
+            const C_UNIQUE_ID cUniqueId = this->registerComponent(typeid(T));
+            if (cUniqueId == INVALID_C_UNIQUE_ID)
+            {
+                delete t;
+                return nullptr;
+            }
+            else
+            {
+                t->uniqueId = cUniqueId;
+                return t;
+            }
+        }
+        // Delete component.
+        template<class T> const bool deleteComponent(T*& component)
+        {
+            ECS::Component* c = component;
+            bool ret = this->deleteComponent(c, typeid(T));
+            if (ret)
+            {
+                component = nullptr;
+            }
+            return ret;
+        }
+        // Check if entity has this type of component
+        template<class T> const bool hasComponent(Entity* e)
+        {
+            return this->hasComponent(e, typeid(T));
+        }
+        // Check if entity has specific component
+        template<class T> const bool hasComponent(Entity* e, Component* c)
+        {
+            return this->hasComponent(e, typeid(T), c);
+        }
+        // Get component of this type on entity. Will only return first one if there are more than one smae types of component
+        template<class T> T* getComponent(Entity* e)
+        {
+            return static_cast<T*>(this->getComponent(e, typeid(T)));
+        }
+        // Get all componets of this type on enttiy.
+        template<class T> std::vector<T*> getComponents(Entity* e)
+        {
+            std::vector<T*> ret;
+            std::vector<Component*> component = this->getComponents(e, typeid(T));
+            
+            for(auto c : component)
+            {
+                ret.push_back(static_cast<T*>(c));
+            }
+            
+            return ret;
+        }
+        // Add new component to entity.
+        template<class T> const bool addComponent(Entity* e)
+        {
+            return this->addComponent(e, typeid(T), createComponent<T>());
+        }
+        // Add existing component to entity
+        template<class T>  const bool addComponent(Entity* e, Component* c)
+        {
+            return this->addComponent(e, typeid(T), c);
+        }
+        // Checks if entity has entity component of this type with id
+        template<class T> const bool removeComponent(Entity* e, const C_ID componentId)
+        {
+            return this->removeComponent(e, typeid(T), componentId);
+        }
+        // Remove specific component from entity
+        template<class T> const bool removeComponent(Entity* e, Component* c)
+        {
+            return this->removeComponent(e, typeid(T), c);
+        }
+        // Remove all compoennts of type
+        template<class T> const bool removeComponents(Entity* e)
+        {
+            return this->removeComponents(e, typeid(T));
+        }
+        // Get number of components of type that manager has
+        template<class T> const unsigned int getComponentCount()
+        {
+            C_UNIQUE_ID cUniqueId = this->getComponentUniqueId(typeid(T));
+            if (cUniqueId != ECS::INVALID_C_UNIQUE_ID)
+            {
+                const unsigned int poolSize = this->components.at(cUniqueId)->pool.size();
+                const unsigned int nextIndiciesSize = this->components.at(cUniqueId)->nextIndicies.size();
+                return poolSize - nextIndiciesSize;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+        
+        // Creates new system and adds to manager
+        template<class T> T* createSystem()
+        {
+            T* t = new T();
+            const S_ID systemId = this->registerSystem(typeid(T));
+            if (systemId == ECS::INVALID_S_ID)
+            {
+                delete t;
+                return nullptr;
+            }
+            else
+            {
+                t->id = systemId;
+                
+                auto find_it = this->systems.find(t->priority);
+                if (find_it != this->systems.end())
+                {
+                    // Already have other system with same priority.
+                    delete t;
+                    return nullptr;
+                }
+                
+                this->systems.insert(std::pair<int, std::unique_ptr<ECS::System, ECS::Deleter<ECS::System>>>(t->priority, std::unique_ptr<ECS::System, ECS::Deleter<ECS::System>>(t, ECS::Deleter<ECS::System>())));
+                
+                return t;
+            }
+        }
+        // Deletes system
+        template<class T> const bool deleteSystem(T*& system)
+        {
+            ECS::System* s = system;
+            bool ret = this->deleteSystem(s, typeid(T));
+            if (ret)
+            {
+                system = nullptr;
+            }
+            return ret;
+        }
+        // Check if manager has this type of system
+        template<class T> const bool hasSystem()
+        {
+            return this->hasSystem(typeid(T));
+        }
+        // Check if manager has specific system
+        template<class T> const bool hasSystem(ECS::System* system)
+        {
+            return this->hasSystem(system, typeid(T));
+        }
+        // Get system
+        template<class T> T* getSystem()
+        {
+            ECS::System* s = this->getSystem(typeid(T));
+            return static_cast<T*>(s);
+        }
+        // Get system update order
+        std::map<int, S_ID> getSystemUpdateOrder();
+        
+        // Clear manager and resets. Everything gets wiped
+        void clear();
+        
+        // Print component information. For debug
+        void printComponentsInfo();
+    };
+    
+    
+    
+    class System
+    {
+        friend class Manager;
+        friend class Deleter<System>;
+    protected:
+        /**
+         *	@name System
+         *	@brief Default constructor
+         */
+        System(const int priority);
+        /**
+         *	@name System
+         *	@brief Constructor for system.
+         *	@param componentUniqueIds Component unique ids that this system uses.
+         *	@param entityPoolNames Entity Pool names that this system will query. Automatically queries default pool. @see disableDefaultEntityPool to disable.
+         */
+        System(const int priority, std::initializer_list<C_UNIQUE_ID> componentUniqueIds, std::initializer_list<std::string> entityPoolNames);
+        
+        void* operator new(size_t sz) throw (std::bad_alloc)
+        {
+            void* mem = std::malloc(sz);
+            if (mem)
+                return mem;
+            else
+                throw std::bad_alloc();
+                }
+        void operator delete(void* ptr) throw()
+        {
+            std::free(ptr);
+        }
+    private:
+        static S_ID idCounter;
+        S_ID id;
+        Signature signature;
+        bool queriesDefaultPool;
+        std::list<std::string> entityPoolNames;
+        int priority;
+        bool active;
+    public:
+        virtual ~System() = default;
+        
+        const S_ID getId();
+        const Signature getSignature();
+        const int getPriority();
+        
+        void disbaleDefafultEntityPool();
+        void enableDefaultEntityPool();
+        
+        const bool addEntityPoolName(const std::string& entityPoolName);
+        const bool removeEntityPoolName(const std::string& entityPoolName);
+        
+        template<class T> const bool addComponentType()
+        {
+            auto m = ECS::Manager::getInstance();
+            auto cUniqueId = m->getComponentUniqueId(typeid(T));
+            try
+            {
+                this->signature.test(cUniqueId);
+                this->signature[cUniqueId] = 1;
+                return true;
+            }
+            catch (const std::out_of_range& oor)
+            {
+                return false;
+            }
+        }
+        template<class T> const bool removeComponentType()
+        {
+            auto m = ECS::Manager::getInstance();
+            auto cUniqueId = m->getComponentUniqueId(typeid(T));
+            try
+            {
+                this->signature.test(cUniqueId);
+                this->signature[cUniqueId] = 0;
+                return true;
+            }
+            catch (const std::out_of_range& oor)
+            {
+                return false;
+            }
+        }
+        
+        void deactivate();
+        void activate();
+        const bool isActive();
+        
+        virtual void update(const float delta, std::vector<ECS::Entity*>& entities) = 0;
+    };
+    
 
 	/**
 	*	@class Component
@@ -158,429 +552,6 @@ namespace ECS
 		const C_UNIQUE_ID getUniqueId();
 		// Get owner entity id of this component
 		const E_ID getOwnerId();
-	};
-
-	class System
-	{
-		friend class Manager;
-		friend class Deleter<System>;
-	protected:
-		/**
-		*	@name System
-		*	@brief Default constructor
-		*/
-		System(const int priority);
-		/**
-		*	@name System
-		*	@brief Constructor for system.
-		*	@param componentUniqueIds Component unique ids that this system uses.
-		*	@param entityPoolNames Entity Pool names that this system will query. Automatically queries default pool. @see disableDefaultEntityPool to disable.
-		*/
-		System(const int priority, std::initializer_list<C_UNIQUE_ID> componentUniqueIds, std::initializer_list<std::string> entityPoolNames);
-
-		void* operator new(size_t sz) throw (std::bad_alloc)
-		{
-			void* mem = std::malloc(sz);
-			if (mem)
-				return mem;
-			else
-				throw std::bad_alloc();
-		}
-		void operator delete(void* ptr) throw()
-		{
-			std::free(ptr);
-		}
-	private:
-		static S_ID idCounter;
-		S_ID id;
-		Signature signature;
-		bool queriesDefaultPool;
-		std::list<std::string> entityPoolNames;
-		int priority;
-		bool active;
-	public:
-		virtual ~System() = default;
-
-		const S_ID getId();
-		const Signature getSignature();
-		const int getPriority();
-
-		void disbaleDefafultEntityPool();
-		void enableDefaultEntityPool();
-
-		const bool addEntityPoolName(const std::string& entityPoolName);
-		const bool removeEntityPoolName(const std::string& entityPoolName);
-
-		template<class T> const bool addComponentType()
-		{
-			auto m = ECS::Manager::getInstance();
-			auto cUniqueId = m->getComponentUniqueId(typeid(T));
-			try
-			{
-				this->signature.test(cUniqueId);
-				this->signature[cUniqueId] = 1;
-				return true;
-			}
-			catch (const std::out_of_range& oor)
-			{
-				return false;
-			}
-		}
-		template<class T> const bool removeComponentType()
-		{
-			auto m = ECS::Manager::getInstance();
-			auto cUniqueId = m->getComponentUniqueId(typeid(T));
-			try
-			{
-				this->signature.test(cUniqueId);
-				this->signature[cUniqueId] = 0;
-				return true;
-			}
-			catch (const std::out_of_range& oor)
-			{
-				return false;
-			}
-		}
-
-		void deactivate();
-		void activate();
-		const bool isActive();
-
-		virtual void update(const float delta, std::vector<ECS::Entity*>& entities) = 0;
-	};
-    
-	/**
-	*	@class Manager
-	*	@brief The manager class that manages entire ECS.
-	*	@note This is singleton class. The instance automtically released on end of program.
-	*/
-	class Manager
-	{
-		friend class Deleter<Manager>;
-		friend class System;
-	private:
-		// Private constructor. Call getInstance for access.
-		Manager();
-		// Private constructor. Call deleteInstance to delete instance.
-		~Manager();
-		// Disable all other constructors.
-		Manager(const Manager& arg) = delete;						// Copy constructor
-		Manager(const Manager&& arg) = delete;						// Move constructor
-		Manager& operator=(const Manager& arg) = delete;			// Assignment operator
-		Manager& operator=(const Manager&& arg) = delete;			// Move operator
-
-		// Singleton instance
-		static std::unique_ptr<Manager, ECS::Deleter<Manager>> instance;
-
-		// ==================================== ENTITY ====================================
-		struct EntityPool
-		{
-			std::vector<std::unique_ptr<ECS::Entity, ECS::Deleter<ECS::Entity>>> pool;
-			std::deque<unsigned int> nextIndicies;
-			int idCounter;
-		};
-		// Entities
-		std::unordered_map<std::string, std::unique_ptr<EntityPool>> entityPools;
-		// wraps id counter if reaches max
-		void wrapEntityPoolIdCounter(const std::string& poolName);
-		// ================================================================================
-
-		// =================================== COMPONENT ==================================
-		struct ComponentPool
-		{
-			std::vector<std::unique_ptr<ECS::Component, ECS::Deleter<ECS::Component>>> pool;
-			std::deque<unsigned int> nextIndicies;
-			unsigned int idCounter;
-		};
-		// Components
-		//std::unordered_map<C_UNIQUE_ID, std::unique_ptr<ComponentPool>> components;
-		std::vector<std::unique_ptr<ComponentPool>> components;
-		// Component ID Map. class type_index <---> CID
-		std::unordered_map<std::type_index, C_UNIQUE_ID> C_UNIQUE_IDMap;
-		// Wraps id counter if reaches max
-		void wrapComponentUniqueIdCounter(const C_UNIQUE_ID cUniqueId);
-
-		const C_UNIQUE_ID getComponentUniqueId(const std::type_info& t);
-		const C_UNIQUE_ID registerComponent(const std::type_info& t);
-		const bool deleteComponent(Component*& c, const std::type_info& t);
-		const bool hasComponent(Entity* e, const std::type_info& t);
-		const bool hasComponent(Entity* e, const std::type_info& t, Component* c);
-		Component* getComponent(Entity* e, const std::type_info& t);
-		std::vector<Component*> getComponents(Entity* e, const std::type_info& t);
-		const bool addComponent(Entity* e, const std::type_info& t, Component* c);
-		const bool removeComponent(Entity* e, const std::type_info& t, const C_ID componentId);
-		const bool removeComponent(Entity* e, const std::type_info& t, Component* c);
-		const bool removeComponents(Entity* e, const std::type_info& t);
-		// ================================================================================
-		
-		// ==================================== SYSTEM ====================================
-		std::map<int/*priority*/, std::unique_ptr<ECS::System, ECS::Deleter<ECS::System>>> systems;
-		// System ID Map. class type_index <---> SID
-		std::unordered_map<std::type_index, S_ID> S_IDMap;
-		// Get SID from type info
-		const S_ID getSystemId(const std::type_info& t);
-
-		const S_ID registerSystem(const std::type_info& t);
-		const bool deleteSystem(System*& s, const std::type_info& t);
-		// ================================================================================
-	public:
-		// Get instance.
-		static Manager* getInstance();
-		// Delete instance.
-		static void deleteInstance();
-		// Check if manager is valid
-		static bool isValid();
-		// Update function. Call this every tick.
-		void update(const float delta);
-
-		// Creates new EntityPool
-		const bool createEntityPool(const std::string& name, const int maxSize = ECS::DEFAULT_ENTITY_POOL_SIZE);
-		// Deletes entitty pool
-		const bool deleteEntityPool(const std::string& name);
-		// Resize entity pool
-		const bool resizeEntityPool(const std::string& entityPoolName, const unsigned int size);
-		// Check if there is pool with same name
-		const bool hasEntityPoolName(const std::string& name);
-		// Get size of entity Pool
-		const unsigned int getEntityPoolSize(const std::string& name = ECS::DEFAULT_ENTITY_POOL_NAME);
-		// Get alive entity count of entity pool
-		const unsigned int getAliveEntityCountInEntityPool(const std::string& name = ECS::DEFAULT_ENTITY_POOL_NAME);
-		// Check is number is power of 2
-		const bool isPowerOfTwo(const unsigned int n);
-		// Round up the number to power of 2
-		void roundToNearestPowerOfTwo(unsigned int & n);
-
-		// Creates entity and adds to entity pool
-		Entity* createEntity(const std::string& poolName = ECS::DEFAULT_ENTITY_POOL_NAME);
-		// Kill entity
-		const bool killEntity(ECS::Entity* e);
-		// Get entity by id. Returns nullptr if anything is invalid
-        Entity* getEntityById(const E_ID entityId);
-		// Get all entity in pool
-		void getAllEntitiesInPool(std::vector<ECS::Entity*>& entities, const std::string& poolName = ECS::DEFAULT_ENTITY_POOL_NAME);
-		// Get all entities that system updates
-		template<class T>void getAllEntitiesForSystem(std::vector<ECS::Entity*>& entities)
-		{
-			unsigned int totalSize = 0;
-			auto system = this->getSystem<T>();
-			if (system != nullptr)
-			{
-				for (auto poolName : system->entityPoolNames)
-				{
-					unsigned int size = this->getAliveEntityCountInEntityPool(poolName);
-					totalSize += size;
-				}
-
-				entities.clear();
-				entities.reserve(totalSize);
-
-				for (auto poolName : system->entityPoolNames)
-				{
-					std::vector<ECS::Entity*> eVec;
-					this->getAllEntitiesInPool(eVec, poolName);
-					entities.insert(entities.end(), eVec.begin(), eVec.end());
-				}
-			}
-		}
-		// Move entity to Entity pool
-		const bool moveEntityToEntityPool(ECS::Entity*& entity, const std::string& entityPoolName);
-
-		// Create component.
-		template<class T> T* createComponent()
-		{
-			T* t = new T();
-			const C_UNIQUE_ID cUniqueId = this->registerComponent(typeid(T));
-			if (cUniqueId == INVALID_C_UNIQUE_ID)
-			{
-				delete t;
-				return nullptr;
-			}
-			else
-			{
-				t->uniqueId = cUniqueId;
-				return t;
-			}
-		}
-		// Delete component.
-		template<class T> const bool deleteComponent(T*& component)
-		{
-			ECS::Component* c = component;
-			bool ret = this->deleteComponent(c, typeid(T));
-			if (ret)
-			{
-				component = nullptr;
-			}
-			return ret;
-		}
-        // Check if entity has this type of component
-        template<class T> const bool hasComponent(Entity* e)
-        {
-            return this->hasComponent(e, typeid(T));
-        }
-		// Check if entity has specific component
-		template<class T> const bool hasComponent(Entity* e, Component* c)
-		{
-			return this->hasComponent(e, typeid(T), c);
-		}
-        // Get component of this type on entity. Will only return first one if there are more than one smae types of component
-        template<class T> T* getComponent(Entity* e)
-        {
-            return static_cast<T*>(this->getComponent(e, typeid(T)));
-        }
-        // Get all componets of this type on enttiy.
-        template<class T> std::vector<T*> getComponents(Entity* e)
-        {
-            std::vector<T*> ret;
-            std::vector<Component*> component = this->getComponents(e, typeid(T));
-            
-			for(auto c : component)
-            {
-				ret.push_back(static_cast<T*>(c));
-            }
-            
-            return ret;
-        }
-        // Add new component to entity.
-        template<class T> const bool addComponent(Entity* e)
-        {
-            return this->addComponent(e, typeid(T), createComponent<T>());
-        }
-		// Add existing component to entity
-        template<class T>  const bool addComponent(Entity* e, Component* c)
-        {
-            return this->addComponent(e, typeid(T), c);
-        }
-		// Checks if entity has entity component of this type with id
-		template<class T> const bool removeComponent(Entity* e, const C_ID componentId)
-		{
-			return this->removeComponent(e, typeid(T), componentId);
-		}
-		// Remove specific component from entity
-		template<class T> const bool removeComponent(Entity* e, Component* c)
-		{
-			return this->removeComponent(e, typeid(T), c);
-		}
-        // Remove all compoennts of type
-        template<class T> const bool removeComponents(Entity* e)
-        {
-            return this->removeComponents(e, typeid(T));
-        }
-		// Get number of components of type that manager has
-		template<class T> const unsigned int getComponentCount()
-		{
-			C_UNIQUE_ID cUniqueId = this->getComponentUniqueId(typeid(T));
-			if (cUniqueId != ECS::INVALID_C_UNIQUE_ID)
-			{
-				const unsigned int poolSize = this->components.at(cUniqueId)->pool.size();
-				const unsigned int nextIndiciesSize = this->components.at(cUniqueId)->nextIndicies.size();
-				return poolSize - nextIndiciesSize;
-			}
-			else
-			{
-				return 0;
-			}
-		}
-		
-		// Creates new system and adds to manager
-		template<class T> T* createSystem()
-		{
-			T* t = new T();
-			const S_ID systemId = this->registerSystem(typeid(T));
-			if (systemId == ECS::INVALID_S_ID)
-			{
-				delete t;
-				return nullptr;
-			}
-			else
-			{
-				t->id = systemId;
-
-				auto find_it = this->systems.find(t->priority);
-				if (find_it != this->systems.end())
-				{
-					// Already have other system with same priority.
-					delete t;
-					return nullptr;
-				}
-
-				this->systems.insert(std::pair<int, std::unique_ptr<ECS::System, ECS::Deleter<ECS::System>>>(t->priority, std::unique_ptr<ECS::System, ECS::Deleter<ECS::System>>(t, ECS::Deleter<ECS::System>())));
-
-				return t;
-			}
-		}
-		// Deletes system
-		template<class T> const bool deleteSystem(T*& system)
-		{
-			ECS::System* s = system;
-			bool ret = this->deleteSystem(s, typeid(T));
-			if (ret)
-			{
-				system = nullptr;
-			}
-			return ret;
-		}
-		// Check if manager has this type of system
-		template<class T> const bool hasSystem()
-		{
-			const S_ID sId = this->getSystemId(typeid(T));
-
-			for (auto& system : this->systems)
-			{
-				if (system.second->id == sId)
-				{
-					return true;
-				}
-			}
-
-			return false;
-		}
-		// Check if manager has specific system
-		template<class T> const bool hasSystem(System* system)
-		{
-			if (system == nullptr || system->id == ECS::INVALID_S_ID)
-			{
-				return false;
-			}
-
-			for (auto& s : this->systems)
-			{
-				if (s.second->id == system->id)
-				{
-					return true;
-				}
-			}
-
-			return false;
-		}
-		// Get system
-		template<class T> T* getSystem()
-		{
-			if (this->hasSystem<T>())
-			{
-				try
-				{
-					return static_cast<T*>(
-						this->systems.at(
-							this->getSystemId(typeid(T))).get());
-				}
-				catch (const std::out_of_range& oor)
-				{
-					return nullptr;
-				}
-			}
-			else
-			{
-				return nullptr;
-			}
-		}
-		// Get system update order
-		std::map<int, S_ID> getSystemUpdateOrder();
-
-		// Clear manager and resets. Everything gets wiped
-		void clear();
-
-		// Print component information. For debug
-		void printComponentsInfo();
 	};
     
     /**

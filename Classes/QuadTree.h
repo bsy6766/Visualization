@@ -60,7 +60,7 @@ public:
 	~QuadTree();
 
 	//Insert bounding box to tree
-	bool insert(ECS::Entity* entity, cocos2d::Rect& bb);
+	bool insert(ECS::Entity* entity, const cocos2d::Rect& bb);
 
 	//Set boundary
 	void setBoundary(const cocos2d::Rect& boundary);
