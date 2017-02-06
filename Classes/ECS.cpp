@@ -236,6 +236,10 @@ const bool ECS::Manager::deleteEntityPool(const std::string& name)
 	{
 		if ((*it).first == name)
 		{
+            for(auto& entity : (*it).second->pool)
+            {
+                entity->kill();
+            }
 			this->entityPools.erase(it);
 			return true;
 		}
