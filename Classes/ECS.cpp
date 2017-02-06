@@ -239,6 +239,8 @@ const bool ECS::Manager::deleteEntityPool(const std::string& name)
 			this->entityPools.erase(it);
 			return true;
 		}
+        
+        it++;
 	}
 
 	return false;
