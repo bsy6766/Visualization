@@ -253,6 +253,7 @@ private:
 	friend class FlockingScene;
 	friend class CirclePackingScene;
 	friend class RectPackingScene;
+	friend class EarClippingScene;
 
 	//Default contructor
 	SliderLabelNode() = default;

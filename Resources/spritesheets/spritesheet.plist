@@ -94,6 +94,51 @@
                 <key>textureRotated</key>
                 <false/>
             </dict>
+            <key>infoButton.png</key>
+            <dict>
+                <key>aliases</key>
+                <array/>
+                <key>spriteOffset</key>
+                <string>{0,0}</string>
+                <key>spriteSize</key>
+                <string>{30,30}</string>
+                <key>spriteSourceSize</key>
+                <string>{30,30}</string>
+                <key>textureRect</key>
+                <string>{{1,225},{30,30}}</string>
+                <key>textureRotated</key>
+                <false/>
+            </dict>
+            <key>infoButtonDisabled.png</key>
+            <dict>
+                <key>aliases</key>
+                <array/>
+                <key>spriteOffset</key>
+                <string>{0,0}</string>
+                <key>spriteSize</key>
+                <string>{30,30}</string>
+                <key>spriteSourceSize</key>
+                <string>{30,30}</string>
+                <key>textureRect</key>
+                <string>{{33,225},{30,30}}</string>
+                <key>textureRotated</key>
+                <false/>
+            </dict>
+            <key>infoButtonSelected.png</key>
+            <dict>
+                <key>aliases</key>
+                <array/>
+                <key>spriteOffset</key>
+                <string>{-1,1}</string>
+                <key>spriteSize</key>
+                <string>{28,28}</string>
+                <key>spriteSourceSize</key>
+                <string>{30,30}</string>
+                <key>textureRect</key>
+                <string>{{65,225},{28,28}}</string>
+                <key>textureRotated</key>
+                <false/>
+            </dict>
             <key>leftButton.png</key>
             <dict>
                 <key>aliases</key>
@@ -288,7 +333,7 @@
             <key>size</key>
             <string>{128,256}</string>
             <key>smartupdate</key>
-            <string>$TexturePacker:SmartUpdate:d8d6a05d47d66d3a332e9d04ccb7b4b4:31d80dbcb76bf85770f5799fbc81e69c:1de88c2a7237d4cdf78de8d8ad4f4c7e$</string>
+            <string>$TexturePacker:SmartUpdate:e90e3e9b7a93ca49fa7b3077bde357ed:5ab698e18604f508171e10fb89ef7033:1de88c2a7237d4cdf78de8d8ad4f4c7e$</string>
             <key>textureFileName</key>
             <string>spritesheet.png</string>
         </dict>

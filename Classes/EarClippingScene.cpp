@@ -1,5 +1,6 @@
 #include "EarClippingScene.h"
 #include "MainScene.h"
+#include "Utility.h"
 
 USING_NS_CC;
 
@@ -49,7 +50,24 @@ bool EarClippingScene::init()
     this->displayBoundaryBoxNode->retain();
     this->displayBoundaryBoxNode->drawNode->setLocalZOrder(static_cast<int>(Z_ORDER::BOX));
     this->addChild(this->displayBoundaryBoxNode);
+
+	// info button
+	this->infoButton = cocos2d::ui::Button::create("infoButton.png", "infoButtonSelected.png", "infoButtonDisabled.png", cocos2d::ui::Widget::TextureResType::PLIST);
+	this->infoButton->addClickEventListener(CC_CALLBACK_1(EarClippingScene::onInfoButtonClick, this));
+	auto pos = this->displayBoundary.origin;
+	pos.x -= 15.0f;
+	pos.y += (this->displayBoundary.size.height + 15.0f);
+	this->infoButton->setPosition(pos);
+	this->addChild(this->infoButton);
+
+	// instruction 
+	this->instructionLabel = cocos2d::Label::createWithTTF("Welcome to Ear Clipping algorithm visualization.\nHere you can make ONE polygon up to ONE hole.\nPlease read following direction to test it out.\n\n1. Press ENTER to start.\n2. Click in the orange box to make outer polygon.\n3. Press ENTER to prcoeed.\n4. (Optional) Click in the outer polygon to make inner polygon.\n5. Press ENTER to proceed. It will finalize polygon.\n6. (Optional) Press BACK SPACE to go back.\n7. Press ENTER again to run ear clipping algorithm.\n8. Click 'i' icon on top left to close/open this instruction.", "fonts/Rubik-Medium.ttf", 20.0f, cocos2d::Size::ZERO, cocos2d::TextHAlignment::LEFT);
+	this->instructionLabel->setAnchorPoint(cocos2d::Vec2(0, 1.0f));
+	this->instructionLabel->setPosition(this->infoButton->getPosition() + cocos2d::Vec2(20.0f, -20.0f));
+	this->addChild(this->instructionLabel, Z_ORDER::INSTRUCTION);
     
+	this->viewingInstruction = true;
+
     // Init labels node
     this->labelsNode = LabelsNode::createNode();
     this->labelsNode->setSharedLabelPosition(LabelsNode::SHARED_LABEL_POS_TYPE::QUADTREE_SCENE);
@@ -72,6 +90,41 @@ bool EarClippingScene::init()
     
     this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Status: Idle", customLabelSize);
 
+	// init more labels    
+	const int headerSize = 25;
+	const float blockGap = 22.0f;
+	const int labelSize = 20;
+
+	const float weightLastY = this->labelsNode->customLabels.back()->getBoundingBox().getMinY();
+	this->labelsNode->keyboardUsageLabelStartPos = cocos2d::Vec2(labelX, weightLastY - blockGap);
+
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Keys", headerSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Enter: Start / Proceed", labelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Back Space: Revert / Back", labelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "C: Clear all vertex", labelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "R: Restart", labelSize);
+
+	const float keysLastY = this->labelsNode->keyboardUsageLabels.back()->getBoundingBox().getMinY();
+	this->labelsNode->mouseUsageLabelStartPos = cocos2d::Vec2(labelX, keysLastY - blockGap);
+
+	this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Mouse", headerSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (In box): Add outer vertex", labelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (In outer polygon): Add outer vertex", labelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Right Click (On vertex): Remove vertex", labelSize);
+
+	// speed modifier
+	this->simulationSpeedModifier = 1.0f;
+
+	this->sliderLabelNode = SliderLabelNode::createNode();
+	const float mouseLastY = this->labelsNode->mouseUsageLabels.back()->getBoundingBox().getMinY();
+	this->sliderLabelNode->sliderStartPos = cocos2d::Vec2(labelX, mouseLastY - blockGap);
+	this->sliderLabelNode->addSlider("Simulation Speed", "Slider", 50, CC_CALLBACK_1(EarClippingScene::onSliderClick, this));
+	this->addChild(this->sliderLabelNode);
+
+	this->elapsedTime = 0;
+	this->stepDuration = 0.1f;
+
+	this->finished = false;
     
 	return true;
 }
@@ -95,7 +148,40 @@ void EarClippingScene::initECS()
 
 void EarClippingScene::update(float delta)
 {
+	this->labelsNode->updateFPSLabel(delta);
 
+	delta *= simulationSpeedModifier;
+
+	if (this->currentSceneState == SCENE_STATE::ALGORITHM_STATE)
+	{
+		this->elapsedTime += delta;
+		while (this->elapsedTime > this->stepDuration)
+		{
+			this->elapsedTime -= this->stepDuration;
+
+			Utility::Time::start();
+
+			this->runEarClipping();
+
+			Utility::Time::stop();
+
+			std::string timeTakenStr = Utility::Time::getElaspedTime();	// Microseconds
+			float timeTakenF = std::stof(timeTakenStr);	// to float
+			timeTakenF *= 0.001f; // To milliseconds
+
+			if (this->actualVerticiesSize < 3)
+			{
+				this->labelsNode->updateTimeTakenLabel("0");
+			}
+			else
+			{
+				this->labelsNode->updateTimeTakenLabel(std::to_string(timeTakenF).substr(0, 5));
+			}
+
+			this->drawTriangles();
+		}
+
+	}
 }
 
 const float EarClippingScene::determinant(const cocos2d::Vec2 &a, const cocos2d::Vec2 &b)
@@ -103,7 +189,7 @@ const float EarClippingScene::determinant(const cocos2d::Vec2 &a, const cocos2d:
     return (a.x * b.y) - (a.y * b.x);
 }
 
-void EarClippingScene::drawLinesBetweenDots(std::list<cocos2d::Vec2>& verticies, cocos2d::DrawNode& drawNode)
+void EarClippingScene::drawLinesBetweenDots(std::list<cocos2d::Vec2>& verticies, cocos2d::DrawNode& drawNode, const bool drawEnd)
 {
     drawNode.clear();
     
@@ -125,13 +211,13 @@ void EarClippingScene::drawLinesBetweenDots(std::list<cocos2d::Vec2>& verticies,
     auto last = verticies.end();
     std::advance(last, -1);
     
-    if(this->currentSceneState == SCENE_STATE::IDLE)
+    if(drawEnd)
     {
         drawNode.drawLine(*first, *last, cocos2d::Color4F::YELLOW);
     }
 }
 
-void EarClippingScene::drawTriangles(std::vector<cocos2d::Vec2> &triangles)
+void EarClippingScene::drawTriangles()
 {
     this->earClippingLineNode->clear();
     for(unsigned int i = 0; i < triangles.size(); i+=3)
@@ -181,8 +267,9 @@ const bool EarClippingScene::isCounterClockWise(const std::list<cocos2d::Vec2>& 
         
         if(next == verticies.end())
         {
-            it = verticies.begin();
+            next = verticies.begin();
             total += ((next->x - it->x) * (next->y + it->y));
+			break;
         }
     }
     
@@ -303,35 +390,37 @@ void EarClippingScene::changeState(SCENE_STATE state)
     }
     else if(this->currentSceneState == SCENE_STATE::DRAWING_OUTER_STATE)
     {
-        // End drawing outer polygon
-        this->scaleDotSizeAndColor(0.6f, this->outerVerticies.front(), cocos2d::Color3B::BLUE, "OUTER");
-        
-        // Outer verticies must be counter clock wise
-        bool cc = this->isCounterClockWise(this->outerVerticies);
-        if(!cc)
-        {
-            this->reverseVerticiesOrder(this->outerVerticies, this->outerVerticiesLabels);
-        }
-        
-//        this->drawLinesBetweenDots(this->outerVerticies);
+		if (this->outerVerticies.empty() == false)
+		{
+			// End drawing outer polygon
+			this->scaleDotSizeAndColor(0.6f, this->outerVerticies.front(), cocos2d::Color3B::BLUE, "OUTER");
+
+			// Outer verticies must be counter clock wise
+			bool cc = this->isCounterClockWise(this->outerVerticies);
+			if (!cc)
+			{
+				this->reverseVerticiesOrder(this->outerVerticies, this->outerVerticiesLabels);
+			}
+		}
     }
     else if(this->currentSceneState == SCENE_STATE::DRAWING_INNER_STATE)
     {
         // End drawing inner polygon
-        this->scaleDotSizeAndColor(0.6f, this->innerVerticies.front(), cocos2d::Color3B::BLUE, "INNER");
-        
-        // Inner verticies must be clock wise
-        bool cc = this->isCounterClockWise(this->innerVerticies);
-        if(cc)
-        {
-            this->reverseVerticiesOrder(this->innerVerticies, this->innerVerticiesLabels);
-        }
-        
-//        this->drawLinesBetweenDots(this->innerVerticies);
+		if (this->innerVerticies.empty() == false)
+		{
+			this->scaleDotSizeAndColor(0.6f, this->innerVerticies.front(), cocos2d::Color3B::BLUE, "INNER");
+
+			// Inner verticies must be clock wise
+			bool cc = this->isCounterClockWise(this->innerVerticies);
+			if (cc)
+			{
+				this->reverseVerticiesOrder(this->innerVerticies, this->innerVerticiesLabels);
+			}
+		}
     }
-    else if(this->currentSceneState == SCENE_STATE::ALGORITHM_STATE)
+    else if(this->currentSceneState == SCENE_STATE::FINALIZE_STATE)
     {
-        
+
     }
     
     this->currentSceneState = state;
@@ -339,9 +428,13 @@ void EarClippingScene::changeState(SCENE_STATE state)
 
 void EarClippingScene::addVertex(const cocos2d::Vec2& point, std::list<cocos2d::Vec2>& verticies, std::list<cocos2d::Label*>& verticiesLabels, const std::string& entityPoolName)
 {
+	bool intersect = false;
+	if (!verticies.empty())
+	{
+		intersect = this->doesPointIntersectLines(verticies, verticies.back(), point);
+	}
     // Draw outer points
     // Check if new point intersects existing lines
-    bool intersect = this->doesPointIntersectLines(verticies, verticies.back(), point);
     if(intersect == false)
     {
         // Create dot
@@ -362,15 +455,15 @@ void EarClippingScene::addVertex(const cocos2d::Vec2& point, std::list<cocos2d::
             
             if(entityPoolName == "OUTER")
             {
-                this->drawLinesBetweenDots(verticies, *this->outerLineNode);
+                this->drawLinesBetweenDots(verticies, *this->outerLineNode, false);
             }
             else if(entityPoolName == "INNER")
             {
-                this->drawLinesBetweenDots(verticies, *this->innerLineNode);
+                this->drawLinesBetweenDots(verticies, *this->innerLineNode, false);
             }
             else
             {
-                this->drawLinesBetweenDots(verticies, *this->finalLineNode);
+                this->drawLinesBetweenDots(verticies, *this->finalLineNode, false);
             }
             
             cocos2d::log("Added vertex (%f, %f), #%s", point.x, point.y, newLabel->getString().c_str());
@@ -426,12 +519,13 @@ const bool EarClippingScene::isPointInPolygon(std::list<cocos2d::Vec2>& verticie
         
         if(p2 == verticies.end())
         {
-            p1 = verticies.begin();
+            p2 = verticies.begin();
             bool intersect = this->doesSegmentIntersects(*p2, *p1, c, d);
             if(intersect)
             {
                 count++;
             }
+			break;
         }
     }
     
@@ -489,11 +583,11 @@ void EarClippingScene::removeVertex(const std::string& entityPoolName, std::list
             dot->kill();
             if(entityPoolName == "OUTER")
             {
-                this->drawLinesBetweenDots(verticies, *this->outerLineNode);
+                this->drawLinesBetweenDots(verticies, *this->outerLineNode, false);
             }
             else
             {
-                this->drawLinesBetweenDots(verticies, *this->innerLineNode);
+                this->drawLinesBetweenDots(verticies, *this->innerLineNode, false);
             }
             break;
         }
@@ -522,10 +616,14 @@ void EarClippingScene::clearVerticies(std::list<cocos2d::Vec2> &verticies, std::
     {
         this->outerLineNode->clear();
     }
-    else
+    else if(entityPoolName == "INNER")
     {
         this->innerLineNode->clear();
     }
+	else if (entityPoolName == "FINAL")
+	{
+		this->finalLineNode->clear();
+	}
 }
 
 void EarClippingScene::finalizeVerticies()
@@ -584,7 +682,7 @@ void EarClippingScene::finalizeVerticies()
             this->addVertex(p, this->finalVerticies, this->finalVerticiesLabels, "FINAL");
         }
         
-        this->drawLinesBetweenDots(this->finalVerticies, *this->finalLineNode);
+        this->drawLinesBetweenDots(this->finalVerticies, *this->finalLineNode, true);
         
         this->toggleVertexVisibility(this->outerVerticiesLabels, "OUTER", false);
         this->toggleVertexVisibility(this->innerVerticiesLabels, "INNER", false);
@@ -645,7 +743,7 @@ void EarClippingScene::finalizeVerticies()
             }
         }
         
-        this->drawLinesBetweenDots(this->finalVerticies, *this->finalLineNode);
+        this->drawLinesBetweenDots(this->finalVerticies, *this->finalLineNode, true);
         
         this->toggleVertexVisibility(this->outerVerticiesLabels, "OUTER", false);
         this->toggleVertexVisibility(this->innerVerticiesLabels, "INNER", false);
@@ -669,118 +767,44 @@ void EarClippingScene::toggleVertexVisibility(std::list<cocos2d::Label*>& vertic
     }
 }
 
-std::vector<cocos2d::Vec2> EarClippingScene::runEarClipping()
+void EarClippingScene::runEarClipping()
 {
-    const int size = static_cast<int>(this->finalVerticies.size());
-    if(size < 3)
-    {
-        return std::vector<cocos2d::Vec2>();
-    }
-    
-    if(size == 3)
-    {
-        std::vector<cocos2d::Vec2> singleTriangle;
-        for(auto point : this->finalVerticies)
-        {
-            singleTriangle.push_back(point);
-        }
-        
-        return singleTriangle;
-    }
-    
-    std::list<EarClippingScene::Vertex*> verticies;
-    
-    auto f_it = this->finalVerticies.begin();
-    for (; f_it != this->finalVerticies.end();)
-    {
-        EarClippingScene::Vertex* newVertex = new EarClippingScene::Vertex();
-        newVertex->point = *f_it;
-        newVertex->prev = nullptr;
-        newVertex->next = nullptr;
-        verticies.push_back(newVertex);
-        
-        f_it++;
-    }
-    
-    unsigned int verticiesSize = verticies.size();
-    for(unsigned int i = 0; i < verticiesSize; i++)
-    {
-        if(i >= 1 && i < verticiesSize - 1)
-        {
-            auto p_it = verticies.begin();
-            std::advance(p_it, i);
-            
-            auto prevP_it = verticies.begin();
-            std::advance(prevP_it, i - 1);
-            
-            auto nextP_it = verticies.begin();
-            std::advance(nextP_it, i + 1);
-            
-            (*p_it)->prev = *prevP_it;
-            (*p_it)->next = *nextP_it;
-        }
-    }
-    
-    verticies.front()->prev = verticies.back();
-    auto v_it = verticies.begin();
-    std::advance(v_it, 1);
-    verticies.front()->next = *v_it;
-    
-    v_it = verticies.begin();
-    std::advance(v_it, verticiesSize - 1);
-    verticies.back()->prev = *v_it;
-    verticies.back()->next = verticies.front();
-    
     cocos2d::Vec2 p;
     cocos2d::Vec2 prevP;
     cocos2d::Vec2 nextP;
     
-    std::vector<cocos2d::Vec2> triangles;
-    
-    int actualSize = verticiesSize;
-    
-    EarClippingScene::Vertex* head = verticies.front();
-    
-    while(actualSize >= 3)
-    {
-        p = head->point;
-        prevP = head->prev->point;
-        nextP = head->next->point;
-        
-//        cocos2d::log("Finidng ear");
-//        cocos2d::log("p = (%f, %f)", p.x, p.y);
-//        cocos2d::log("prevP = (%f, %f)", prevP.x, prevP.y);
-//        cocos2d::log("nextP = (%f, %f)", nextP.x, nextP.y);
-        
-        if(this->isEar(prevP, p, nextP))
-        {
-            // Ear found
-//            cocos2d::log("Found ear!");
-            triangles.push_back(prevP);
-            triangles.push_back(p);
-            triangles.push_back(nextP);
-            
-            // Remove ear
-//            cocos2d::log("Reassigning pointers");
-            head->prev->next = head->next;
-            head->next->prev = head->prev;
-//            cocos2d::log("removing p = (%f, %f)", p.x, p.y);
-//            cocos2d::log("prev's next is = (%f, %f)", head->prev->next->point.x, head->prev->next->point.y);
-//            cocos2d::log("next's prev is = (%f, %f)", head->next->prev->point.x, head->next->prev->point.y);
-            
-            actualSize--;
-        }
-        
-        head = head->next;
-    }
-    
-    for(auto v : verticies)
-    {
-        delete v;
-    }
-    verticies.clear();
-    
-    return triangles;
+	if (this->head == nullptr)
+	{
+		this->head = verticies.front();
+	}
+
+	p = head->point;
+	prevP = head->prev->point;
+	nextP = head->next->point;
+
+	if (this->isEar(prevP, p, nextP))
+	{
+		// Ear found
+		this->triangles.push_back(prevP);
+		this->triangles.push_back(p);
+		this->triangles.push_back(nextP);
+
+		// Remove ear
+		head->prev->next = head->next;
+		head->next->prev = head->prev;
+
+		this->actualVerticiesSize--;
+	}
+
+	this->head = this->head->next;
+
+	if (this->actualVerticiesSize < 3)
+	{
+		this->changeState(SCENE_STATE::FINISHED);
+		this->toggleVertexVisibility(this->finalVerticiesLabels, "FINAL", false);
+		this->drawTriangles();
+		this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Finished");
+	}
 }
 
 const bool EarClippingScene::isEar(const cocos2d::Vec2 prevP, const cocos2d::Vec2 p, const cocos2d::Vec2 nextP)
@@ -821,6 +845,96 @@ const bool EarClippingScene::isConvex(const cocos2d::Vec2 prevP, const cocos2d::
     float result = ((prevP.x * (nextP.y - p.y)) + (p.x * (prevP.y - nextP.y)) + (nextP.x * (p.y - prevP.y)));
     return result < 0;
 }
+
+void EarClippingScene::makeVerticies()
+{
+	for (auto vertex : this->verticies)
+	{
+		delete vertex;
+	}
+
+	this->verticies.clear();
+
+	auto f_it = this->finalVerticies.begin();
+	for (; f_it != this->finalVerticies.end();)
+	{
+		EarClippingScene::Vertex* newVertex = new EarClippingScene::Vertex();
+		newVertex->point = *f_it;
+		newVertex->prev = nullptr;
+		newVertex->next = nullptr;
+		this->verticies.push_back(newVertex);
+
+		f_it++;
+	}
+
+	unsigned int verticiesSize = this->verticies.size();
+	for (unsigned int i = 0; i < verticiesSize; i++)
+	{
+		if (i >= 1 && i < verticiesSize - 1)
+		{
+			auto p_it = this->verticies.begin();
+			std::advance(p_it, i);
+
+			auto prevP_it = this->verticies.begin();
+			std::advance(prevP_it, i - 1);
+
+			auto nextP_it = this->verticies.begin();
+			std::advance(nextP_it, i + 1);
+
+			(*p_it)->prev = *prevP_it;
+			(*p_it)->next = *nextP_it;
+		}
+	}
+
+	this->verticies.front()->prev = this->verticies.back();
+	auto v_it = this->verticies.begin();
+	std::advance(v_it, 1);
+	this->verticies.front()->next = *v_it;
+
+	v_it = this->verticies.begin();
+	std::advance(v_it, verticiesSize - 1);
+	this->verticies.back()->prev = *v_it;
+	this->verticies.back()->next = this->verticies.front();
+
+	this->head = nullptr;
+
+	this->actualVerticiesSize = this->verticies.size();
+}
+
+void EarClippingScene::onInfoButtonClick(cocos2d::Ref * sender)
+{
+	if (this->viewingInstruction)
+	{
+		this->instructionLabel->runAction(cocos2d::Sequence::create(cocos2d::ScaleTo::create(0.25f, 0.0f), cocos2d::FadeTo::create(0, 0), nullptr));
+	}
+	else
+	{
+		this->instructionLabel->setOpacity(255);
+		this->instructionLabel->runAction(cocos2d::ScaleTo::create(0.25f, 1.0f));
+	}
+
+	this->viewingInstruction = !this->viewingInstruction;
+}
+
+void EarClippingScene::onSliderClick(cocos2d::Ref* sender)
+{
+	// Click ended. Get value
+	float percentage = static_cast<float>(this->sliderLabelNode->sliderLabels.back().slider->getPercent());
+	//50% = 1.0(default. So multiply by 2.
+	percentage *= 2.0f;
+	// 0% == 0, 100% = 1.0f, 200% = 2.0f
+	if (percentage == 0)
+	{
+		// 0 will make simulation stop
+		percentage = 1;
+	}
+	//. Devide by 100%
+	percentage *= 0.01f;
+
+	// apply
+	this->simulationSpeedModifier = percentage;
+}
+
 
 void EarClippingScene::initInputListeners()
 {
@@ -891,52 +1005,114 @@ void EarClippingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coc
 {
     if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_ESCAPE)
     {
-        if(this->currentSceneState == SCENE_STATE::IDLE)
-        {
-            // Terminate
-            cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, MainScene::create(), cocos2d::Color3B::BLACK));
-        }
-        else
-        {
-            if(this->currentSceneState == SCENE_STATE::DRAWING_OUTER_STATE)
-            {
-                bool canFinish = this->finishAddingVertex(this->outerVerticies);
-                if(canFinish)
-                {
-                    this->changeState(SCENE_STATE::IDLE);
-                    this->drawLinesBetweenDots(this->outerVerticies, *this->outerLineNode);
-                }
-                else
-                {
-                    if(this->outerVerticies.size() < 3)
-                    {
-                        this->clearVerticies(this->outerVerticies, this->outerVerticiesLabels, "OUTER");
-                    }
-                    this->changeState(SCENE_STATE::IDLE);
-                }
-            }
-            else if(this->currentSceneState == SCENE_STATE::DRAWING_INNER_STATE)
-            {
-                
-                bool canFinish = this->finishAddingVertex(this->innerVerticies);
-                if(canFinish)
-                {
-                    this->changeState(SCENE_STATE::IDLE);
-                    this->drawLinesBetweenDots(this->innerVerticies, *this->innerLineNode);
-                }
-            }
-            else
-            {
-                if(this->innerVerticies.size() < 3)
-                {
-                    this->clearVerticies(this->innerVerticies, this->innerVerticiesLabels, "INNER");
-                }
-                this->changeState(SCENE_STATE::IDLE);
-            }
-        }
+		// Terminate
+		cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, MainScene::create(), cocos2d::Color3B::BLACK));
     }
     
-    
+
+	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_ENTER)
+	{
+		if (this->currentSceneState == SCENE_STATE::IDLE)
+		{
+			this->changeState(SCENE_STATE::DRAWING_OUTER_STATE);
+			//this->scaleDotSizeAndColor(1.0f, this->outerVerticies.front(), cocos2d::Color3B::RED, "OUTER");
+			this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Drawing outer polygon");
+		}
+		else if (this->currentSceneState == SCENE_STATE::DRAWING_OUTER_STATE)
+		{
+			bool canFinish = this->finishAddingVertex(this->outerVerticies);
+			if (canFinish)
+			{
+				this->changeState(SCENE_STATE::IDLE);
+				this->drawLinesBetweenDots(this->outerVerticies, *this->outerLineNode, true);
+				this->changeState(SCENE_STATE::DRAWING_INNER_STATE);
+				this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Drawing inner polygon");
+			}
+		}
+		else if (this->currentSceneState == SCENE_STATE::DRAWING_INNER_STATE)
+		{
+			bool canFinish = this->finishAddingVertex(this->innerVerticies);
+
+			if (canFinish == false)
+			{
+				if (this->innerVerticies.empty())
+				{
+					canFinish = true;
+				}
+			}
+
+			if (canFinish)
+			{
+				if (this->innerVerticies.empty() == false)
+				{
+					this->changeState(SCENE_STATE::IDLE);
+					this->drawLinesBetweenDots(this->innerVerticies, *this->innerLineNode, true);
+				}
+				// Finalize
+				this->changeState(SCENE_STATE::FINALIZE_STATE);
+				this->finalizeVerticies();
+				this->scaleDotSizeAndColor(0.6f, this->finalVerticies.front(), cocos2d::Color3B::GREEN, "FINAL");
+				this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Finalize polygon");
+			}
+		}
+		else if (this->currentSceneState == SCENE_STATE::FINALIZE_STATE)
+		{
+			if (!this->finalVerticies.empty())
+			{
+				// Run ear clipping algoritm
+				this->changeState(SCENE_STATE::ALGORITHM_STATE);
+				this->makeVerticies();
+				this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Running Ear Clipping");
+
+				if (this->finalVerticies.size() == 3)
+				{
+					this->triangles.clear();
+					for (auto point : this->finalVerticies)
+					{
+						this->triangles.push_back(point);
+					}
+
+					this->drawTriangles();
+
+					this->changeState(SCENE_STATE::FINISHED);
+					this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Finished");
+				}
+			}
+		}
+	}
+	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_BACKSPACE)
+	{
+		if (this->currentSceneState == SCENE_STATE::DRAWING_OUTER_STATE)
+		{
+			// If outer verticies has less than 3 verticies, it doesn't have any polygon. Can't add inner polygon
+			this->clearVerticies(this->outerVerticies, this->outerVerticiesLabels, "OUTER");
+			this->changeState(SCENE_STATE::IDLE);
+			this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Idle");
+		}
+		else if (this->currentSceneState == SCENE_STATE::DRAWING_INNER_STATE)
+		{
+			this->clearVerticies(this->innerVerticies, this->innerVerticiesLabels, "INNER");
+			this->changeState(SCENE_STATE::DRAWING_OUTER_STATE);
+			this->scaleDotSizeAndColor(1.0f, this->outerVerticies.front(), cocos2d::Color3B::RED, "OUTER");
+			this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Drawing outer polygon");
+		}
+		else if (this->currentSceneState == SCENE_STATE::FINALIZE_STATE)
+		{
+			this->clearVerticies(this->finalVerticies, this->finalVerticiesLabels, "FINAL");
+
+			this->changeState(SCENE_STATE::DRAWING_INNER_STATE);
+
+			this->toggleVertexVisibility(this->outerVerticiesLabels, "OUTER", true);
+			this->toggleVertexVisibility(this->innerVerticiesLabels, "INNER", true);
+
+			this->drawLinesBetweenDots(this->outerVerticies, *this->outerLineNode, true);
+			this->drawLinesBetweenDots(this->innerVerticies, *this->innerLineNode, false);
+
+			this->scaleDotSizeAndColor(1.0f, this->innerVerticies.front(), cocos2d::Color3B::RED, "INNER");
+			this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Drawing inner polygon");
+		}
+	}
+
     if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_C)
     {
         if(this->currentSceneState == SCENE_STATE::DRAWING_OUTER_STATE)
@@ -946,58 +1122,6 @@ void EarClippingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coc
         else if(this->currentSceneState == SCENE_STATE::DRAWING_INNER_STATE)
         {
             this->clearVerticies(this->innerVerticies, this->innerVerticiesLabels, "INNER");
-        }
-    }
-    
-    if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_1)
-    {
-        if(this->currentSceneState != SCENE_STATE::DRAWING_OUTER_STATE)
-        {
-            this->changeState(SCENE_STATE::DRAWING_OUTER_STATE);
-            this->scaleDotSizeAndColor(1.0f, this->outerVerticies.front(), cocos2d::Color3B::RED, "OUTER");
-        }
-    }
-    else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_2)
-    {
-        if(this->currentSceneState != SCENE_STATE::DRAWING_INNER_STATE)
-        {
-            // If outer verticies has less than 3 verticies, it doesn't have any polygon. Can't add inner polygon
-            if(this->outerVerticies.size() < 3)
-            {
-                return;
-            }
-            this->changeState(SCENE_STATE::DRAWING_INNER_STATE);
-            this->scaleDotSizeAndColor(1.0f, this->innerVerticies.front(), cocos2d::Color3B::RED, "INNER");
-        }
-    }
-    else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_3)
-    {
-        if(this->currentSceneState != SCENE_STATE::FINALIZE_STATE)
-        {
-            // finialize
-            // If outer verticies has less than 3 verticies, it doesn't have any polygon. Can't finalize
-            if(this->outerVerticies.size() < 3)
-            {
-                return;
-            }
-            this->changeState(SCENE_STATE::FINALIZE_STATE);
-            this->finalizeVerticies();
-            this->scaleDotSizeAndColor(0.6f, this->innerVerticies.front(), cocos2d::Color3B::GREEN, "FINAL");
-        }
-    }
-    else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_4)
-    {
-        if(this->currentSceneState != SCENE_STATE::ALGORITHM_STATE)
-        {
-            if(!this->finalVerticies.empty())
-            {
-                // Run ear clipping algoritm
-                this->changeState(SCENE_STATE::ALGORITHM_STATE);
-                std::vector<cocos2d::Vec2> triangles = this->runEarClipping();
-                this->toggleVertexVisibility(this->finalVerticiesLabels, "FINAL", false);
-                this->drawTriangles(triangles);
-                
-            }
         }
     }
 }
