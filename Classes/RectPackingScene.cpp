@@ -39,7 +39,7 @@ bool RectPackingScene::init()
 	float labelY = winSize.height - 45.0f;
 
 	// Set title
-	this->labelsNode->initTitleStr("Flocking Algorithm", cocos2d::Vec2(labelX, labelY));
+	this->labelsNode->initTitleStr("Rect Packing", cocos2d::Vec2(labelX, labelY));
 
 	labelY -= 50.0f;
 
