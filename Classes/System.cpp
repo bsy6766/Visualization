@@ -1364,15 +1364,15 @@ const bool ECS::ReckPackingSystem::insert(ECS::Entity* entity, const cocos2d::Si
 			// The rectangle's width is larger or equal than height, let's call this wide shape (I know this handles square but just being simple)
 			// In this case, we split(cut) child area vertically 
 			/*
-			area rectagnle					  area rectangle
-			*----------------*					*-----*----------*
-			|     | dh       |					|     |          |
-			|     |     dw   |					|     |          |
-			*-----*----------|		Split		|     |          |
-			|XXXXX|          |		---->		|     |          |
+                                area rectagnle					  area rectangle
+                                *----------------*					*-----*----------*
+                                |     | dh       |					|     |          |
+                                |     |     dw   |					|     |          |
+                                *-----*----------|		Split		|     |          |
+                                |XXXXX|          |		---->		|     |          |
 			new rectangle	->	|XXXXX|          |					|     |          |
 			(filled with X)		|XXXXX|          |					|     |          |
-			*-----*----------*					*-----*----------*
+                                *-----*----------*					*-----*----------*
 			*/
 
 			// Left ofigin equals to area's origin
@@ -1395,15 +1395,15 @@ const bool ECS::ReckPackingSystem::insert(ECS::Entity* entity, const cocos2d::Si
 			// In this case, we split(cut) child area horizontally 
 
 			/*
-			area rectagnle					  area rectangle
-			*----------------*					*----------------*
-			|         |      |					|                |
-			|      dh |      |					|                |
-			|         |      |		Split		|                |
-			*---------*------|		---->		*----------------*
+                                area rectagnle					  area rectangle
+                                *----------------*					*----------------*
+                                |         |      |					|                |
+                                |      dh |      |					|                |
+                                |         |      |		Split		|                |
+                                *---------*------|		---->		*----------------*
 			new rectangle	->	|XXXXXXXXX|  dw  |					|                |
 			(filled with X)		|XXXXXXXXX|      |					|                |
-			*---------*------*					*----------------*
+                                *---------*------*					*----------------*
 			*/
 
 			// Left ofigin equals to area's origin
@@ -1433,3 +1433,32 @@ void ECS::ReckPackingSystem::clear()
 }
 
 void ECS::ReckPackingSystem::update(const float delta, std::vector<ECS::Entity*>& entities) {}
+
+
+
+ECS::EarClippingSystem::EarClippingSystem()
+: ECS::System(0)
+{}
+
+void ECS::EarClippingSystem::update(const float delta, std::vector<ECS::Entity*>& entities) {}
+
+const bool ECS::EarClippingSystem::createNewDot(cocos2d::Node& parent, const std::string& entityPoolName, const cocos2d::Vec2& point)
+{
+    auto m = ECS::Manager::getInstance();
+    auto newDot = m->createEntity(entityPoolName);
+    if(newDot != nullptr)
+    {
+        auto spriteComp = m->createComponent<ECS::Sprite>();
+        spriteComp->sprite = cocos2d::Sprite::createWithSpriteFrameName("circle.png");
+        spriteComp->sprite->retain();
+        spriteComp->sprite->setPosition(point);
+        spriteComp->sprite->setColor(cocos2d::Color3B::RED);
+        parent.addChild(spriteComp->sprite);
+        newDot->addComponent<ECS::Sprite>(spriteComp);
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}

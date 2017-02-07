@@ -203,15 +203,32 @@ namespace ECS
 		// Root node
 		ECS::Entity* root;
 
+        // Initialize root entity
 		void initRoot(const cocos2d::Rect& area, const cocos2d::Vec2& shift);
+        // Create new entity with rect
 		ECS::Entity* createNewRect(const cocos2d::Rect& area, const cocos2d::Vec2& shift);
+        // Insert rectangle
 		const bool insert(const cocos2d::Size& rectSize);
+        // Insert helper
 		const bool insert(ECS::Entity* entity, const cocos2d::Size& rectSize);
+        // Clear rect packing
 		void clear();
 
 		// Update system
 		virtual void update(const float delta, std::vector<ECS::Entity*>& entities) override;
 	};
+    
+    class EarClippingSystem : public System
+    {
+    public:
+        EarClippingSystem();
+        ~EarClippingSystem() = default;
+        
+        const bool createNewDot(cocos2d::Node& parent, const std::string& entityPoolName,  const cocos2d::Vec2& point);
+        
+        // Update system
+        virtual void update(const float delta, std::vector<ECS::Entity*>& entities) override;
+    };
 }
 
 #endif

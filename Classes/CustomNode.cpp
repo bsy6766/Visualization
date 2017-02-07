@@ -356,7 +356,8 @@ void LabelsNode::setSharedLabelPosition(SHARED_LABEL_POS_TYPE type)
 	{
 	case SHARED_LABEL_POS_TYPE::QUADTREE_SCENE:
 	case SHARED_LABEL_POS_TYPE::FLOCKING_SCENE:
-	case SHARED_LABEL_POS_TYPE::RECT_PACKING_SCENE:
+    case SHARED_LABEL_POS_TYPE::RECT_PACKING_SCENE:
+    case SHARED_LABEL_POS_TYPE::EAR_CLIPPING_SCENE:
 	{
 		float height = 40.0f;
 		this->backLabel->setPosition(cocos2d::Vec2(winSize.width - 70.0f, height));

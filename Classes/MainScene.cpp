@@ -3,9 +3,7 @@
 #include "FlockingScene.h"
 #include "CirclePackingScene.h"
 #include "RectPackingScene.h"
-/*
 #include "EarClippingScene.h"
-*/
 #include "Utility.h"
 
 USING_NS_CC;
@@ -229,13 +227,11 @@ void MainScene::onMouseDown(cocos2d::Event* event)
 				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, RectPackingScene::create(), cocos2d::Color3B::BLACK));
 			}
                     break;
-				/*
             case MENU_INDEX::EAR_CLIPPING:
             {
                 cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, EarClippingScene::create(), cocos2d::Color3B::BLACK));
             }
                 break;
-				*/
 			case MENU_INDEX::EXIT:
 			{
 				cocos2d::Director::getInstance()->end();

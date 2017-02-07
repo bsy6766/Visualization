@@ -49,7 +49,8 @@ class DisplayBoundaryBoxNode : public cocos2d::Node
 private:
     friend class QuadTreeScene;
     friend class FlockingScene;
-	friend class RectPackingScene;
+    friend class RectPackingScene;
+    friend class EarClippingScene;
     
     //Default contructor
     DisplayBoundaryBoxNode() = default;
@@ -91,6 +92,7 @@ private:
 	friend class FlockingScene;
 	friend class CirclePackingScene;
 	friend class RectPackingScene;
+    friend class EarClippingScene;
 
 	enum class TYPE
 	{
@@ -127,6 +129,7 @@ private:
 		FLOCKING_SCENE,
 		CIRCLE_PACKING_SCENE,
 		RECT_PACKING_SCENE,
+        EAR_CLIPPING_SCENE,
 		FREE,
 	};
 
