@@ -207,7 +207,6 @@ Visualizes ear clipping (polygon triangulation) on single polygon with up to one
   <summary>Ear Clipping preview gif</summary>
    ![Ear Clipping Preview](https://github.com/bsy6766/Visualization/blob/master/gifs/EarClipping.gif)
 </details>
-</details>
 
 #### Outer/Inner Polygon
 In this visualization, you can make up to one polygon with one hole polygon inside. The polygon you make first is the 'outer' polygon and the one you make inside of 'outer' polygon is the 'inner' polygon, aka the hole. The inner polygon can not have any vertex out of outer polygon and vice versa for outer polygon.<br>
@@ -221,6 +220,7 @@ Press C to clear all verticies while making polygin, Press R to restart from the
 #### Reference
 This is the [Reference](https://www.geometrictools.com/Documentation/TriangulationByEarClipping.pdf) I used for handling hole.
 
+</details>
 ----
 ## Planned
 ### A* pathfinding
