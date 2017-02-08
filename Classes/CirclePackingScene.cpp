@@ -476,7 +476,7 @@ void CirclePackingScene::onMouseDown(cocos2d::Event* event)
 {
 	auto mouseEvent = static_cast<EventMouse*>(event);
 	//0 = left, 1 = right, 2 = middle
-	int mouseButton = mouseEvent->getMouseButton();
+//	int mouseButton = mouseEvent->getMouseButton();
 	float x = mouseEvent->getCursorX();
 	float y = mouseEvent->getCursorY();
 
