@@ -35,11 +35,15 @@ private:
     enum class CUSTOM_LABEL_INDEX
     {
         STATUS,
+		OUTER_VERTEX,
+		INNER_VERTEX,
+		TOTAL_TRIANGLE,
         MAX_CUSTOM_LABEL,
     };
 
 	enum class USAGE_KEY
 	{
+		NONE,
 		ENTER,	// Start, next
 		CANCEL,
 		CLEAR,
@@ -48,9 +52,10 @@ private:
 
 	enum class USAGE_MOUSE
 	{
-		ADD_VERTEX,
+		NONE,
+		ADD_OUTER_VERTEX,
+		ADD_INNER_VERTEX,
 		REMOVE_VERTEX,
-
 	};
     
     enum SCENE_STATE
@@ -97,11 +102,11 @@ private:
     void drawLinesBetweenDots(std::list<cocos2d::Vec2>& verticies, cocos2d::DrawNode& drawNode, const bool drawEnd);
     void drawTriangles();
     void scaleDotSizeAndColor(const float scale, const cocos2d::Vec2& frontPoint, const cocos2d::Color3B& color, const std::string& entityPoolName);
-    void addVertex(const cocos2d::Vec2& point, std::list<cocos2d::Vec2>& verticies, std::list<cocos2d::Label*>& verticiesLabels, const std::string& entityPoolName);
+    const bool addVertex(const cocos2d::Vec2& point, std::list<cocos2d::Vec2>& verticies, std::list<cocos2d::Label*>& verticiesLabels, const std::string& entityPoolName);
     const bool finishAddingVertex(std::list<cocos2d::Vec2>& verticies);
     const bool isPointInPolygon(std::list<cocos2d::Vec2>& verticies, const cocos2d::Vec2& point);
     const bool isPointInOrOnTriangle(const cocos2d::Vec2& a, const cocos2d::Vec2& b, const cocos2d::Vec2& c, const cocos2d::Vec2& p);
-    void removeVertex(const std::string& entityPoolName, std::list<cocos2d::Vec2>& verticies, std::list<cocos2d::Label*>& verticiesLabels, const cocos2d::Vec2& point);
+    const bool removeVertex(const std::string& entityPoolName, std::list<cocos2d::Vec2>& verticies, std::list<cocos2d::Label*>& verticiesLabels, const cocos2d::Vec2& point);
     void clearVerticies(std::list<cocos2d::Vec2>& verticies, std::list<cocos2d::Label*>& verticiesLabels, const std::string& entityPoolName);
     void finalizeVerticies();
     void toggleVertexVisibility(std::list<cocos2d::Label*>& verticiesLabels, const std::string& entityPoolName, const bool mode);
