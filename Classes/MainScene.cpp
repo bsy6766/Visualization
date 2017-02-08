@@ -4,6 +4,7 @@
 #include "CirclePackingScene.h"
 #include "RectPackingScene.h"
 #include "EarClippingScene.h"
+#include "AStarScene.h"
 #include "Utility.h"
 
 USING_NS_CC;
@@ -42,7 +43,7 @@ bool MainScene::init()
     this->labels.push_back(cocos2d::Label::createWithTTF("Circle Packing", fontPath, fontSize));
     this->labels.push_back(cocos2d::Label::createWithTTF("Rect Packing", fontPath, fontSize));
     this->labels.push_back(cocos2d::Label::createWithTTF("Ear Clipping", fontPath, fontSize));
-    //this->labels.push_back(cocos2d::Label::createWithTTF("A Star Pathfinding", fontPath, fontSize));
+    this->labels.push_back(cocos2d::Label::createWithTTF("A Star Pathfinding", fontPath, fontSize));
 	this->labels.push_back(cocos2d::Label::createWithTTF("EXIT(ESC)", fontPath, fontSize));
 
 	this->versionLabel = cocos2d::Label::createWithTTF("v0.6", fontPath, 20);
@@ -89,6 +90,9 @@ void MainScene::setDescriptionLabel()
         case MainScene::MENU_INDEX::EAR_CLIPPING:
             this->descriptionLabel->setString("Visualizes ear clipping (polygon triangulation) with drawing mode");
             break;
+		case MainScene::MENU_INDEX::A_STAR_PATHFINDING:
+			this->descriptionLabel->setString("Visualizes A* path finding");
+			break;
 		case MainScene::MENU_INDEX::EXIT:
 			this->descriptionLabel->setString("Exit");
 			break;
@@ -232,6 +236,11 @@ void MainScene::onMouseDown(cocos2d::Event* event)
                 cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, EarClippingScene::create(), cocos2d::Color3B::BLACK));
             }
                 break;
+			case MENU_INDEX::A_STAR_PATHFINDING:
+			{
+				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, AStarScene::create(), cocos2d::Color3B::BLACK));
+			}
+			break;
 			case MENU_INDEX::EXIT:
 			{
 				cocos2d::Director::getInstance()->end();
