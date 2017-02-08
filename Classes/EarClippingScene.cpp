@@ -970,9 +970,13 @@ void EarClippingScene::initInputListeners()
 
 void EarClippingScene::onMouseMove(cocos2d::Event* event) 
 {
-	//auto mouseEvent = static_cast<EventMouse*>(event);
-	//float x = mouseEvent->getCursorX();
-	//float y = mouseEvent->getCursorY();
+    auto mouseEvent = static_cast<EventMouse*>(event);
+    float x = mouseEvent->getCursorX();
+    float y = mouseEvent->getCursorY();
+    
+    auto point = cocos2d::Vec2(x, y);
+    
+    this->labelsNode->updateMouseHover(point);
 }
 
 void EarClippingScene::onMouseDown(cocos2d::Event* event) 
@@ -982,7 +986,14 @@ void EarClippingScene::onMouseDown(cocos2d::Event* event)
 	int mouseButton = mouseEvent->getMouseButton();
 	float x = mouseEvent->getCursorX();
 	float y = mouseEvent->getCursorY();
-    cocos2d::Vec2 point(x, y);
+    
+    auto point = cocos2d::Vec2(x, y);
+    
+    bool ret = this->labelsNode->updateMouseDown(point);
+    if (ret)
+    {
+        return;
+    }
     
     if(mouseButton == 0)
     {
