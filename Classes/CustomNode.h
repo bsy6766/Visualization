@@ -1,8 +1,8 @@
 #ifndef CUSTOM_NODE_H
 #define CUSTOM_NODE_H
 
-#include "cocos2d.h"
-#include "ui/CocosGUI.h"
+#include <cocos2d.h>
+#include <ui/CocosGUI.h>
 #include <string>
 #include <vector>
 

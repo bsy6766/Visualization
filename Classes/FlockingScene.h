@@ -1,8 +1,8 @@
 #ifndef FLOCKINGSCENE_H
 #define FLOCKINGSCENE_H
 
-#include "cocos2d.h"
-#include "ui/CocosGUI.h"
+#include <cocos2d.h>
+#include <ui/CocosGUI.h>
 #include "ECS.h"
 #include "CustomNode.h"
 #include "Component.h"

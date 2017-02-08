@@ -1,8 +1,8 @@
 #ifndef CIRCLEPACKINGSCENE_H
 #define CIRCLEPACKINGSCENE_H
 
-#include "cocos2d.h"
-#include "ui/CocosGUI.h"
+#include <cocos2d.h>
+#include <ui/CocosGUI.h>
 #include "QuadTree.h"
 #include "ECS.h"
 #include "CustomNode.h"

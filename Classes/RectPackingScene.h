@@ -1,7 +1,7 @@
 #ifndef RECTPACKINGSCENE_H
 #define RECTPACKINGSCENE_H
 
-#include "cocos2d.h"
+#include <cocos2d.h>
 #include "CustomNode.h"
 #include "System.h"
 #include "Component.h"

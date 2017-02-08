@@ -1,7 +1,7 @@
 #ifndef QTREESCENE_H
 #define QTREESCENE_H
 
-#include "cocos2d.h"
+#include <cocos2d.h>
 #include "Component.h"
 #include "System.h"
 #include "ECS.h"

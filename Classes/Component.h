@@ -1,7 +1,7 @@
 #ifndef COMPONENT_H
 #define COMPONENT_H
 
-#include "cocos2d.h"
+#include <cocos2d.h>
 #include "ECS.h"
 
 /**

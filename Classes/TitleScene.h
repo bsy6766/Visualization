@@ -1,7 +1,7 @@
 #ifndef TITLESCENE_H
 #define TITLESCENE_H
 
-#include "cocos2d.h"
+#include <cocos2d.h>
 
 class TitleScene : public cocos2d::Scene
 {

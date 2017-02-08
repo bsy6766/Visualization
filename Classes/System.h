@@ -4,7 +4,7 @@
 #include "Component.h"
 #include "ECS.h"
 #include "QuadTree.h"
-#include "cocos2d.h"
+#include <cocos2d.h>
 
 namespace ECS
 {

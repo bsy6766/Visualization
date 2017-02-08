@@ -1,8 +1,8 @@
 #ifndef EARCLIPPINGSCENE_H
 #define EARCLIPPINGSCENE_H
 
-#include "cocos2d.h"
-#include "ui\CocosGUI.h"
+#include <cocos2d.h>
+#include <ui/CocosGUI.h>
 #include "Component.h"
 #include "System.h"
 #include "ECS.h"
