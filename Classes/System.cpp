@@ -823,6 +823,8 @@ bool ECS::FlockingSystem::updateMouseDown(const int mouseButton, cocos2d::Vec2 &
 
 		return false;
 	}
+    
+    return false;
 }
 
 
@@ -1032,7 +1034,7 @@ int ECS::CirclePackingSystem::spawnCircles(cocos2d::Node& parent)
 	int count = 0;
 	int attempt = 0;
 
-	auto m = ECS::Manager::getInstance();
+//	auto m = ECS::Manager::getInstance();
 
 	if (!this->circleSpawnPointsWithColor.empty())
 	{
