@@ -2,6 +2,7 @@
 Visualizes simple game techniques for 2D or anything I found interesting.<br>
 Although these are made for 2D, some techniques can be expanded to 3D (i.e. QuadTree to OcTree or 3D flocking with additional axis)<br>
 This project uses my own implementation of ECS (Entity Component System).<br>
+There aren't details about each algorithm on this page since they are all well known and have lots of documents, articles and tutorials out there on the internet. I recommend you to search on google if you are interested. Else, see reference that I linked on each project description to see what did I use as reference.<br>
 <br>
 **There are preview GIF for each algorithm below on Algorithm section**
 
@@ -180,6 +181,7 @@ Press S to save circle packed image. Path: Working directory(Directory where you
 #### Note
 Visualizes rectangle packing in fixed size of area. This is also called as sprite packing, texture packing, etc.<br>
 Generates hundreds of random sized rectangle and tries to fit int fixed size of area.<br>
+See Reference below to see details about algorithm.<br>
 
 #### Preview (Expand/Collapse)
 <details> 
@@ -192,14 +194,35 @@ This is the [Reference](http://blackpawn.com/texts/lightmaps/default.html) I use
 
 #### Rect
 Rect is a just rentagle. I used cocos2d-x's Rect class.
-
-
 </details>
+
+
+<details>
+<summary><b>Ear Clipping</b></summary>
+#### Note
+Visualizes ear clipping (polygon triangulation) on single polygon with up to one hole inside.<br>
+
+#### Preview (Expand/Collapse)
+<details> 
+  <summary>Ear Clipping preview gif</summary>
+   ![Ear Clipping Preview](https://github.com/bsy6766/Visualization/blob/master/gifs/EarClipping.gif)
+</details>
+</details>
+
+#### Outer/Inner Polygon
+In this visualization, you can make up to one polygon with one hole polygon inside. The polygon you make first is the 'outer' polygon and the one you make inside of 'outer' polygon is the 'inner' polygon, aka the hole. The inner polygon can not have any vertex out of outer polygon and vice versa for outer polygon.<br>
+Note: The reason why the polygon can have up to one inner polygon is that one inner polygon was enough to demonstrate than having multiple holes. Since this visualizes core concept of ear clipping, I thought making an program to manage and let user interact to make multiple inner polygons (holes) was too much to do. <Br>
+
+#### Steps
+Unlike other visualizations, this algorithm requires you to follow the steps. Instructions can be found on information button, which is placed on top left corner of the screen, and it will be displayed by default at the start.<br>
+ENTER key is the key to proceed and BACK SPACE is the key to go back.<br>
+Press C to clear all verticies while making polygin, Press R to restart from the beginning.<br>
+
+#### Reference
+This is the [Reference](https://www.geometrictools.com/Documentation/TriangulationByEarClipping.pdf) I used for handling hole.
 
 ----
 ## Planned
-### Ear clipping polygon triangulation
-Polygon generation/draw with ear clipping algorithm
 ### A* pathfinding
 Visualizes A* pathfinding step by step
 ### Vector Math 
@@ -219,7 +242,8 @@ Used [Rubik](https://www.fontsquirrel.com/fonts/rubik) by Hubert & Fischer
 
 
 ## ChangeLog
-V0.8 Using new ECS implementation of mine [link](https://github.com/bsy6766/ECS)<br>
+v0.9 Added Ear Clipping visualization.<br>
+v0.8 Using new ECS implementation of mine [link](https://github.com/bsy6766/ECS)<br>
 v0.7 Added Rect Packing visualization.<br>
 v0.6 Refined.<br>
 v0.5 Added Circle Packing visualization.<br>
