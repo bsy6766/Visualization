@@ -15,7 +15,29 @@ bool AStarScene::init()
 		return false;
 	}
 
-	this->scheduleUpdate();
+    this->scheduleUpdate();
+    
+    // init display boundary box node which draws outer line of simulation display box
+    this->displayBoundaryBoxNode = DisplayBoundaryBoxNode::createNode();
+    this->displayBoundaryBoxNode->setPosition(cocos2d::Vec2::ZERO);
+    this->displayBoundaryBoxNode->displayBoundary = cocos2d::Rect(0, 0, 650, 650);
+    this->displayBoundaryBoxNode->drawDisplayBoundaryBox();
+    this->displayBoundaryBoxNode->retain();
+    this->displayBoundaryBoxNode->drawNode->setLocalZOrder(static_cast<int>(Z_ORDER::BOX));
+    this->addChild(this->displayBoundaryBoxNode);
+    
+    // Init labels node
+    this->labelsNode = LabelsNode::createNode();
+    this->labelsNode->setSharedLabelPosition(LabelsNode::SHARED_LABEL_POS_TYPE::RECT_PACKING_SCENE);
+    this->addChild(this->labelsNode);
+    
+    auto winSize = cocos2d::Director::getInstance()->getVisibleSize();
+    // Starting pos
+    float labelX = winSize.height - 10.0f;
+    float labelY = winSize.height - 45.0f;
+    
+    // Set title
+    this->labelsNode->initTitleStr("A* Pathfinding", cocos2d::Vec2(labelX, labelY));
 
 	return true;
 }

@@ -1,7 +1,8 @@
 #ifndef ASTARSCENE_H
 #define ASTARSCENE_H
 
-#include "cocos2d.h"
+#include <cocos2d.h>
+#include "CustomNode.h"
 
 class AStarScene : public cocos2d::Scene
 {
@@ -31,6 +32,14 @@ private:
 
 	void initInputListeners();
 	void releaseInputListeners();
+    
+    enum Z_ORDER
+    {
+        BOX
+    };
+    
+    LabelsNode* labelsNode;
+    DisplayBoundaryBoxNode* displayBoundaryBoxNode;
 
 public:
 	//simple creator func
