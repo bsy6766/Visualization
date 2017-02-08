@@ -12,3 +12,4 @@ proj.linux/
 proj.tizen/
 proj.win10/
 proj.win8.1-universal/
+*.tps
