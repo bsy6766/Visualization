@@ -13,7 +13,8 @@ Cocos2d-X 3.13 ~ 3.14.1<br>
 C++
 
 ## Performance
-Performance of each algorithm are different. Some algorithm, Quad Tree for example, limits the size of total entities, but some algorithm can have more than 10000 entities like Circle Packing.<br> I am trying to make the program to run at 60fps, which it does on my machine, but I am more focusing on implementing algorithm than optimization at this moment.<br>
+Performance of each algorithm are different. Some algorithm, Quad Tree for example, limits the size of total entities, but some algorithm can have more than 10000 entities like Circle Packing.<br> 
+**I am trying to make the program to run at 60fps, which it does on my machine, but I am more focusing on implementing algorithm than optimization at this moment.<br>**
 
 ## Working/Tested Platforms
 Windows 10<br>
@@ -219,12 +220,38 @@ Press C to clear all verticies while making polygin, Press R to restart from the
 
 #### Reference
 This is the [Reference](https://www.geometrictools.com/Documentation/TriangulationByEarClipping.pdf) I used for handling hole.
+</details>
+
+<details>
+<summary><b>A Star Pathfinding</b></summary>
+#### Note
+Visualizes A Star Pathfinding in 2D grid. 
+
+#### Preview (Expand/Collapse)
+<details> 
+  <summary>A Star preview gif</summary>
+   ![A Star Preview](https://github.com/bsy6766/Visualization/blob/master/gifs/AStar.gif)
+</details>
+
+#### Reference
+This is the [Reference](https://en.wikipedia.org/wiki/A*_search_algorithm#Pseudocode) I used for. My code is slightly modded and implemented in different way.<Br>
+The algorithm is well known enough to not explain anything here. There are tons of reference you can find on Google.
+
+#### Auto/Step mode
+Press ENTER to run pathfinding algorithm.<br>
+Press LEFT SHIFT + ENTER to run pathfinding algorithm step by step.<br>
+
+#### Blocks (Obstacle)
+You can add blocks in grid. <br>
+LEFT CLICK on cell to toggle block.<br>
+Press B to randomize block on grid. This doesn't guarantee the viable path from start to end.<br>
 
 </details>
+
 ----
 ## Planned
-### A* pathfinding
-Visualizes A* pathfinding step by step
+### Optimization
+Optimize all visualization.
 ### Vector Math 
 Visualizes dot and cross product (i.e. Patrol detects player if player is in his sight range with angle)
 ### Audio spectrum
@@ -242,6 +269,7 @@ Used [Rubik](https://www.fontsquirrel.com/fonts/rubik) by Hubert & Fischer
 
 
 ## ChangeLog
+v0.10 Added A Star Pathfinding visualization. Memory leak checked with OS X Instrument.<br>
 v0.9 Added Ear Clipping visualization.<br>
 v0.8 Using new ECS implementation of mine [link](https://github.com/bsy6766/ECS)<br>
 v0.7 Added Rect Packing visualization.<br>
