@@ -78,6 +78,8 @@ private:
     LabelsNode* labelsNode;
     DisplayBoundaryBoxNode* displayBoundaryBoxNode;
 	cocos2d::DrawNode* bgDrawNode;
+	SliderLabelNode* sliderLabelNode;
+	float simulationSpeedModifier;
 	cocos2d::Sprite* hoveringCellSprite;
 	std::vector<ECS::Entity*> cells;
 	cocos2d::Sprite* draggingStartSprite;
@@ -93,7 +95,7 @@ private:
 	float elapsedTime;
 	float stepDuration;
 	bool shiftPressing;
-    bool updateScheduled;
+    bool stepMode;
 
 	struct hashCCVec2
 	{
@@ -136,6 +138,8 @@ private:
 	void revertPath();
 	void insertCellToOpenSet(ECS::Cell* cell);
 	void clearBlocks();
+	// On slider finishes click on slider
+	void onSliderClick(cocos2d::Ref* sender);
 
 public:
 	//simple creator func

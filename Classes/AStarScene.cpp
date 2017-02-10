@@ -17,11 +17,11 @@ bool AStarScene::init()
 		return false;
 	}
 
-    //this->scheduleUpdate();
+    this->scheduleUpdate();
 
 	this->pause = false;
 	this->finished = true;
-    this->updateScheduled = false;
+    this->stepMode = false;
     this->cleared = true;
     
     // init display boundary box node which draws outer line of simulation display box
@@ -144,6 +144,15 @@ bool AStarScene::init()
 
 	this->shiftPressing = false;
 
+	// speed modifier
+	this->simulationSpeedModifier = 1.0f;
+
+	this->sliderLabelNode = SliderLabelNode::createNode();
+	const float mouseLastY = this->labelsNode->mouseUsageLabels.back()->getBoundingBox().getMinY();
+	this->sliderLabelNode->sliderStartPos = cocos2d::Vec2(labelX, mouseLastY - blockGap);
+	this->sliderLabelNode->addSlider("Simulation Speed", "Slider", 50, CC_CALLBACK_1(AStarScene::onSliderClick, this));
+	this->addChild(this->sliderLabelNode);
+
 	return true;
 }
 
@@ -214,17 +223,30 @@ void AStarScene::onEnter()
 
 void AStarScene::update(float delta)
 {
-	if (finished)
+	this->labelsNode->updateFPSLabel(delta);
+
+	if (this->finished || this->pause || this->stepMode)
 	{
 		return;
 	}
+
+	delta *= this->simulationSpeedModifier;
 
 	this->elapsedTime += delta;
 	while (this->elapsedTime >= this->stepDuration)
 	{
 		this->elapsedTime -= this->stepDuration;
 
+		Utility::Time::start();
+
 		this->findPath();
+
+		Utility::Time::stop();
+
+		std::string timeTakenStr = Utility::Time::getElaspedTime();	// Microseconds
+		float timeTakenF = std::stof(timeTakenStr);	// to float
+		timeTakenF *= 0.001f; // To milliseconds
+		this->labelsNode->updateTimeTakenLabel(std::to_string(timeTakenF).substr(0, 5));
 	}
 }
 
@@ -250,12 +272,14 @@ void AStarScene::findPath()
             //cocos2d::log("Finished!");
             this->finished = true;
             this->retracePath(current);
-            this->unscheduleUpdate();
-            this->updateScheduled = false;
+            this->stepMode = false;
             this->endingCell->getComponent<ECS::Cell>()->previousCell = current;
 			this->pause = false;
 
 			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::PAUSE), cocos2d::Color3B::WHITE, false);
+			this->labelsNode->updateTimeTakenLabel("0");
+
+			this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::PATH_LENGTH), "Path length: " + std::to_string(this->path.size()));
             return;
         }
 
@@ -285,7 +309,7 @@ void AStarScene::findPath()
 			// Add to openSet if not opened yet
 			if (neighborComp->state != ECS::Cell::STATE::OPENED)
 			{
-                neighborComp->setState(ECS::Cell::STATE::OPENED);
+				neighborComp->setState(ECS::Cell::STATE::OPENED);
 				//this->openSet.insert(std::pair<int, ECS::Cell*>(neighborComp->f, neighborComp));
 				this->insertCellToOpenSet(neighborComp);
 			}
@@ -296,7 +320,7 @@ void AStarScene::findPath()
 			}
 
 			// Recompute costs. This is the better path. So set current cell as previous cell of this neighbor cell.
-            // Before we update, remove from openSet and reinsert with updated f score
+			// Before we update, remove from openSet and reinsert with updated f score
 			auto it = this->openSet.begin();
 			for (; it != this->openSet.end(); )
 			{
@@ -311,8 +335,8 @@ void AStarScene::findPath()
 			neighborComp->g = newGScore;									// g = Distance from start
 			neighborComp->f = neighborComp->g + neighborComp->h;			// f = g + h
 			neighborComp->previousCell = current;
-            
-            //this->openSet.insert(std::pair<int, ECS::Cell*>(neighborComp->f, neighborComp));
+
+			//this->openSet.insert(std::pair<int, ECS::Cell*>(neighborComp->f, neighborComp));
 			this->insertCellToOpenSet(neighborComp);
 		}
 
@@ -363,10 +387,12 @@ void AStarScene::cancelDragging()
 	this->draggingStart = false;
 	this->draggingStartSprite->setVisible(false);
 	this->startingCell->getComponent<ECS::Cell>()->setState(ECS::Cell::STATE::START);
+	this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::DRAG_START), cocos2d::Color3B::WHITE, false);
 
 	this->draggingEnd = false;
 	this->draggingEndSprite->setVisible(false);
 	this->endingCell->getComponent<ECS::Cell>()->setState(ECS::Cell::STATE::END);
+	this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::DRAG_END), cocos2d::Color3B::WHITE, false);
 }
 
 void AStarScene::resetPathFinding()
@@ -578,6 +604,25 @@ void AStarScene::clearBlocks()
 	}
 }
 
+void AStarScene::onSliderClick(cocos2d::Ref* sender)
+{
+	// Click ended. Get value
+	float percentage = static_cast<float>(this->sliderLabelNode->sliderLabels.back().slider->getPercent());
+	//50% = 1.0(default. So multiply by 2.
+	percentage *= 2.0f;
+	// 0% == 0, 100% = 1.0f, 200% = 2.0f
+	if (percentage == 0)
+	{
+		// 0 will make simulation stop
+		percentage = 1;
+	}
+	//. Devide by 100%
+	percentage *= 0.01f;
+
+	// apply
+	this->simulationSpeedModifier = percentage;
+}
+
 void AStarScene::updateScore()
 {
     for (auto cell : this->cells)
@@ -667,21 +712,25 @@ void AStarScene::onMouseDown(cocos2d::Event* event)
 					{
 					case ECS::Cell::STATE::EMPTY:
 						comp->setState(ECS::Cell::STATE::BLOCK);
+						this->labelsNode->playAnimation(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::TOGGLE_BLOCK));
 						break;
 					case ECS::Cell::STATE::BLOCK:
 						comp->setState(ECS::Cell::STATE::EMPTY);
+						this->labelsNode->playAnimation(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::TOGGLE_BLOCK));
 						break;
 					case ECS::Cell::STATE::START:
 						this->draggingStart = true;
 						this->draggingStartSprite->setVisible(true);
 						this->draggingStartSprite->setPosition(this->cursorPointToCellPos(point));
 						comp->setState(ECS::Cell::STATE::EMPTY);
+						this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::DRAG_START), cocos2d::Color3B::GREEN);
 						break;
 					case ECS::Cell::STATE::END:
 						this->draggingEnd = true;
 						this->draggingEndSprite->setVisible(true);
 						this->draggingEndSprite->setPosition(this->cursorPointToCellPos(point));
 						comp->setState(ECS::Cell::STATE::EMPTY);
+						this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::DRAG_END), cocos2d::Color3B::GREEN);
 						break;
 					case ECS::Cell::STATE::PATH:
 					case ECS::Cell::STATE::OPENED:
@@ -732,6 +781,7 @@ void AStarScene::onMouseUp(cocos2d::Event* event)
 								this->draggingStartSprite->setVisible(false);
                                 this->updateScore();
 							}
+							this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::DRAG_START), cocos2d::Color3B::WHITE);
 							break;
 						}
 
@@ -750,6 +800,7 @@ void AStarScene::onMouseUp(cocos2d::Event* event)
 								this->draggingEndSprite->setVisible(false);
                                 this->updateScore();
 							}
+							this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::DRAG_END), cocos2d::Color3B::WHITE);
 							break;
 						}
 					}
@@ -794,12 +845,10 @@ void AStarScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
 			this->pause = !this->pause;
 			if (pause)
 			{
-				this->unscheduleUpdate();
 				this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::PAUSE), cocos2d::Color3B::GREEN);
 			}
 			else
 			{
-				this->scheduleUpdate();
 				this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::PAUSE), cocos2d::Color3B::WHITE);
 			}
 		}
@@ -817,16 +866,24 @@ void AStarScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
                 if (this->shiftPressing)
                 {
                     // Step mode
-                    this->unscheduleUpdate();
-                    this->findPath();
+					this->stepMode = true;
+					Utility::Time::start();
+
+					this->findPath();
+
+					Utility::Time::stop();
+
+					std::string timeTakenStr = Utility::Time::getElaspedTime();	// Microseconds
+					float timeTakenF = std::stof(timeTakenStr);	// to float
+					timeTakenF *= 0.001f; // To milliseconds
+					this->labelsNode->updateTimeTakenLabel(std::to_string(timeTakenF).substr(0, 5));
 
 					this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::AUTO), cocos2d::Color3B::WHITE, false);
 					this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::MANUAL), cocos2d::Color3B::GREEN);
                 }
                 else
                 {
-                    this->scheduleUpdate();
-                    this->updateScheduled = true;
+                    this->stepMode = false;
 					this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::AUTO), cocos2d::Color3B::GREEN);
 					this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::MANUAL), cocos2d::Color3B::WHITE, false);
                 }
@@ -839,21 +896,28 @@ void AStarScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
 			// Algorithm is running
 			if (this->shiftPressing)
 			{
-                if(this->updateScheduled)
+                if(!this->stepMode)
                 {
-                    this->unscheduleUpdate();
-                    this->updateScheduled = false;
+                    this->stepMode = true;
 					this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::AUTO), cocos2d::Color3B::WHITE, false);
 					this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::MANUAL), cocos2d::Color3B::GREEN);
                 }
+				Utility::Time::start();
+
 				this->findPath();
+
+				Utility::Time::stop();
+
+				std::string timeTakenStr = Utility::Time::getElaspedTime();	// Microseconds
+				float timeTakenF = std::stof(timeTakenStr);	// to float
+				timeTakenF *= 0.001f; // To milliseconds
+				this->labelsNode->updateTimeTakenLabel(std::to_string(timeTakenF).substr(0, 5));
 			}
 			else
             {
-                if(!this->updateScheduled)
+                if(this->stepMode)
                 {
-                    this->scheduleUpdate();
-                    this->updateScheduled = true;
+                    this->stepMode = false;
 					this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::AUTO), cocos2d::Color3B::GREEN);
 					this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::MANUAL), cocos2d::Color3B::WHITE, false);
                 }
@@ -968,6 +1032,7 @@ void AStarScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
 		{
 			auto comp = cell->getComponent<ECS::Cell>();
 			comp->setState(ECS::Cell::STATE::EMPTY);
+			comp->previousCell = nullptr;
 		}
         
         this->startingCell->getComponent<ECS::Cell>()->setState(ECS::Cell::STATE::START);
@@ -982,10 +1047,9 @@ void AStarScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
 
 		cancelDragging();
         
-        if(this->updateScheduled)
+        if(this->stepMode)
         {
-            this->updateScheduled = false;
-            this->unscheduleUpdate();
+            this->stepMode = false;
         }
         
         this->updateScore();
@@ -994,6 +1058,9 @@ void AStarScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
 		this->labelsNode->playAnimation(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::RESET));
 		this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::AUTO), cocos2d::Color3B::WHITE, false);
 		this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::MANUAL), cocos2d::Color3B::WHITE, false);
+
+		this->labelsNode->updateTimeTakenLabel("0");
+		this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::PATH_LENGTH), "Path length: NA");
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_C)
 	{
