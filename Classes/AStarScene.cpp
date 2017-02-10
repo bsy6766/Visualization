@@ -20,6 +20,8 @@ bool AStarScene::init()
 
 	this->pause = false;
 	this->finished = true;
+    this->updateScheduled = false;
+    this->cleared = true;
     
     // init display boundary box node which draws outer line of simulation display box
     this->displayBoundaryBoxNode = DisplayBoundaryBoxNode::createNode();
@@ -99,7 +101,6 @@ bool AStarScene::init()
 	this->stepDuration = 0.03f;
 
 	this->shiftPressing = false;
-	this->stepMode = false;
 
 	return true;
 }
@@ -134,18 +135,8 @@ void AStarScene::initECS()
 
 	this->cells.back()->getComponent<ECS::Cell>()->setState(ECS::Cell::STATE::END);
 	this->endingCell = this->cells.back();
-
-	for (auto cell : this->cells)
-	{
-		auto cellComp = cell->getComponent<ECS::Cell>();
-
-		auto startComp = this->startingCell->getComponent<ECS::Cell>();
-		auto endComp = this->endingCell->getComponent<ECS::Cell>();
-
-		cellComp->g = fabsf(startComp->position.distance(cellComp->position));		// g = Distance from start
-		cellComp->h = fabsf(endComp->position.distance(cellComp->position));		// h = Distance from end
-		cellComp->f = cellComp->g + cellComp->h;			// f = g + h
-	}
+    
+    this->updateScore();
 }
 
 void AStarScene::createNewCell(const cocos2d::Vec2 & position)
@@ -186,11 +177,6 @@ void AStarScene::update(float delta)
 		return;
 	}
 
-	if (stepMode)
-	{
-		return;
-	}
-
 	this->elapsedTime += delta;
 	while (this->elapsedTime >= this->stepDuration)
 	{
@@ -214,20 +200,24 @@ void AStarScene::findPath()
 		// Get cell with lowest f score.
 		ECS::Cell* current = this->openSet.begin()->second;
 		// Pop it from openset
-		this->openSet.erase(this->openSet.begin());
+        this->openSet.erase(this->openSet.begin());
+        
+        if (current->position == dest)
+        {
+            // You arrived! Finish.
+            //cocos2d::log("Finished!");
+            this->finished = true;
+            this->retracePath(current);
+            this->unscheduleUpdate();
+            this->updateScheduled = false;
+            this->endingCell->getComponent<ECS::Cell>()->previousCell = current;
+            return;
+        }
+
 		// Mark as closed
-		if (current->state != ECS::Cell::STATE::START)
+        if (current->state == ECS::Cell::STATE::OPENED)
 		{
 			current->setState(ECS::Cell::STATE::CLOSED);
-		}
-
-		if (current->position == dest)
-		{
-			// You arrived! Finish.
-			//cocos2d::log("Finished!");
-			this->finished = true;
-			this->retracePath(current);
-			return;
 		}
 
 		// Get neighbors
@@ -250,7 +240,7 @@ void AStarScene::findPath()
 			// Add to openSet if not opened yet
 			if (neighborComp->state != ECS::Cell::STATE::OPENED)
 			{
-				neighborComp->setState(ECS::Cell::STATE::OPENED);
+                neighborComp->setState(ECS::Cell::STATE::OPENED);
 				this->openSet.insert(std::pair<int, ECS::Cell*>(neighborComp->f, neighborComp));
 			}
 			else if (newGScore >= neighborComp->g)
@@ -259,11 +249,28 @@ void AStarScene::findPath()
 				continue;
 			}
 
-			// Recompute costs.
+			// Recompute costs. This is the better path. So set current cell as previous cell of this neighbor cell.
+            // Before we update, remove from openSet and reinsert with updated f score
+            auto find_it = this->openSet.begin();
+            for (; find_it != this->openSet.end(); )
+            {
+                if(find_it->first == static_cast<int>(neighborComp->f))
+                {
+                    if(find_it->second->position == neighborComp->position)
+                    {
+                        this->openSet.erase(find_it);
+                        break;
+                    }
+                }
+                
+                find_it++;
+            }
 			neighborComp->g = newGScore;									// g = Distance from start
 			//neighborComp->h = fabsf(dest.distance(neighborComp->position));		// h = Distance from end
 			neighborComp->f = neighborComp->g + neighborComp->h;			// f = g + h
 			neighborComp->previousCell = current;
+            
+            this->openSet.insert(std::pair<int, ECS::Cell*>(neighborComp->f, neighborComp));
 		}
 
 		this->retracePath(current);
@@ -295,7 +302,7 @@ cocos2d::Vec2 AStarScene::cursorPointToCellPos(const cocos2d::Vec2& point)
 
 unsigned int AStarScene::cellPosToIndex(const cocos2d::Vec2& cellPos)
 {
-	cocos2d::log("cellPos = (%f, %f)", cellPos.x, cellPos.y);
+//	cocos2d::log("cellPos = (%f, %f)", cellPos.x, cellPos.y);
 	auto actualCellPos = cellPos;
 	actualCellPos -= this->displayBoundaryBoxNode->displayBoundary.origin;
 	int x = static_cast<int>(actualCellPos.x) / 26;
@@ -322,7 +329,6 @@ void AStarScene::cancelDragging()
 void AStarScene::resetPathFinding()
 {
 	this->openSet.clear();
-	this->closedSet.clear();
 	this->path.clear();
 
 	// Add start 
@@ -342,7 +348,7 @@ void AStarScene::resetPathFinding()
 
 std::vector<unsigned int> AStarScene::getNeightborIndicies(unsigned int currentIndex)
 {
-	cocos2d::log("Getting neighbors for index: %d", currentIndex);
+//	cocos2d::log("Getting neighbors for index: %d", currentIndex);
 	int rowSize = 25;
 	int colSize = 25;
 
@@ -510,6 +516,21 @@ void AStarScene::revertPath()
 	}
 }
 
+void AStarScene::updateScore()
+{
+    for (auto cell : this->cells)
+    {
+        auto cellComp = cell->getComponent<ECS::Cell>();
+        
+        auto startComp = this->startingCell->getComponent<ECS::Cell>();
+        auto endComp = this->endingCell->getComponent<ECS::Cell>();
+        
+        cellComp->g = fabsf(startComp->position.distance(cellComp->position));		// g = Distance from start
+        cellComp->h = fabsf(endComp->position.distance(cellComp->position));		// h = Distance from end
+        cellComp->f = cellComp->g + cellComp->h;			// f = g + h
+    }
+}
+
 void AStarScene::initInputListeners()
 {
 	this->mouseInputListener = EventListenerMouse::create();
@@ -647,6 +668,7 @@ void AStarScene::onMouseUp(cocos2d::Event* event)
 								this->startingCell = cell;
 								this->draggingStart = false;
 								this->draggingStartSprite->setVisible(false);
+                                this->updateScore();
 							}
 							break;
 						}
@@ -664,6 +686,7 @@ void AStarScene::onMouseUp(cocos2d::Event* event)
 								this->endingCell = cell;
 								this->draggingEnd = false;
 								this->draggingEndSprite->setVisible(false);
+                                this->updateScore();
 							}
 							break;
 						}
@@ -719,30 +742,45 @@ void AStarScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
 	{
 		if (finished)
 		{
-			// Algorithm is finished.
-			this->resetPathFinding();
-			finished = false;
-			if (this->shiftPressing)
-			{
-				// Step mode
-				this->unscheduleUpdate();
-				this->findPath();
-			}
-			else
-			{
-				this->scheduleUpdate();
-			}
+            if(this->cleared)
+            {
+                // Algorithm is finished.
+                this->resetPathFinding();
+                finished = false;
+                if (this->shiftPressing)
+                {
+                    // Step mode
+                    this->unscheduleUpdate();
+                    this->findPath();
+                }
+                else
+                {
+                    this->scheduleUpdate();
+                    this->updateScheduled = true;
+                }
+                
+                this->cleared = false;
+            }
 		}
 		else
 		{
 			// Algorithm is running
 			if (this->shiftPressing)
 			{
+                if(this->updateScheduled)
+                {
+                    this->unscheduleUpdate();
+                    this->updateScheduled = false;
+                }
 				this->findPath();
 			}
 			else
-			{
-				this->scheduleUpdate();
+            {
+                if(!this->updateScheduled)
+                {
+                    this->scheduleUpdate();
+                    this->updateScheduled = true;
+                }
 			}
 		}
 	}
@@ -755,8 +793,8 @@ void AStarScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
 			auto comp = cell->getComponent<ECS::Cell>();
 			if (comp->state == ECS::Cell::STATE::OPENED || comp->state == ECS::Cell::STATE::CLOSED)
 			{
-				comp->cellLabel->setString(std::to_string(static_cast<int>(comp->f)));
-			}
+            }
+            comp->cellLabel->setString(std::to_string(static_cast<int>(comp->f)));
 		}
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_G)
@@ -767,8 +805,8 @@ void AStarScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
 			auto comp = cell->getComponent<ECS::Cell>();
 			if (comp->state == ECS::Cell::STATE::OPENED || comp->state == ECS::Cell::STATE::CLOSED)
 			{
-				comp->cellLabel->setString(std::to_string(static_cast<int>(comp->g)));
-			}
+            }
+            comp->cellLabel->setString(std::to_string(static_cast<int>(comp->g)));
 		}
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_H)
@@ -779,8 +817,8 @@ void AStarScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
 			auto comp = cell->getComponent<ECS::Cell>();
 			if (comp->state == ECS::Cell::STATE::OPENED || comp->state == ECS::Cell::STATE::CLOSED)
 			{
-				comp->cellLabel->setString(std::to_string(static_cast<int>(comp->h)));
-			}
+            }
+            comp->cellLabel->setString(std::to_string(static_cast<int>(comp->h)));
 		}
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_R)
@@ -792,14 +830,28 @@ void AStarScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
 			auto comp = cell->getComponent<ECS::Cell>();
 			comp->setState(ECS::Cell::STATE::EMPTY);
 		}
-
-		this->cells.front()->getComponent<ECS::Cell>()->setState(ECS::Cell::STATE::START);
-		this->startingCell = this->cells.front();
-
-		this->cells.back()->getComponent<ECS::Cell>()->setState(ECS::Cell::STATE::END);
-		this->endingCell = this->cells.back();
+        
+        this->startingCell->getComponent<ECS::Cell>()->setState(ECS::Cell::STATE::START);
+        this->endingCell->getComponent<ECS::Cell>()->setState(ECS::Cell::STATE::END);
+        
+        this->pause = false;
+        this->finished = true;
+        this->elapsedTime = 0;
+        
+        this->openSet.clear();
+        this->path.clear();
 
 		cancelDragging();
+        
+        if(this->updateScheduled)
+        {
+            this->updateScheduled = false;
+            this->unscheduleUpdate();
+        }
+        
+        this->updateScore();
+        
+        this->cleared = true;
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_C)
 	{

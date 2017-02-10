@@ -245,7 +245,7 @@ void ECS::Cell::setState(const STATE state)
 	{
 		// Don't change color of this cell is either start or end
 		this->cellSprite->stopAllActions();
-		this->cellSprite->runAction(cocos2d::TintTo::create(0.0f, color));
+        this->cellSprite->setColor(color);
 	}
 
 	this->state = state;

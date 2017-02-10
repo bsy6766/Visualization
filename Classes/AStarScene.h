@@ -59,11 +59,12 @@ private:
 	bool draggingEnd;
 	bool pause;
 	bool finished;
+    bool cleared;
 	bool allowDiagonal;
 	float elapsedTime;
 	float stepDuration;
 	bool shiftPressing;
-	bool stepMode;
+    bool updateScheduled;
 
 	struct hashCCVec2
 	{
@@ -74,7 +75,6 @@ private:
 	};
 
 	std::multimap<int/*f*/, ECS::Cell*> openSet;
-	std::unordered_set<cocos2d::Vec2, hashCCVec2> closedSet;
 	std::list<ECS::Cell*> path;
 
 	void initECS();
@@ -83,6 +83,7 @@ private:
 	cocos2d::Vec2 cursorPointToCellPos(const cocos2d::Vec2& point);
 	unsigned int cellPosToIndex(const cocos2d::Vec2& cellPos);
 	void cancelDragging();
+    void updateScore();
 	void resetPathFinding();
 	std::vector<unsigned int> getNeightborIndicies(unsigned int currentIndex);
 	void retracePath(ECS::Cell* currentCell);
