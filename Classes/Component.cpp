@@ -185,3 +185,87 @@ const float RectPackingNode::getAreaHeight()
 {
 	return this->area.size.height;
 }
+
+
+
+ECS::Cell::LABEL_STATE ECS::Cell::labelState = ECS::Cell::LABEL_STATE::NONE;
+
+ECS::Cell::Cell()
+: ECS::Component()
+, g(0)
+, h(0)
+, f(0)
+, state(STATE::EMPTY)
+, position(cocos2d::Vec2::ZERO)
+, cellSprite(nullptr)
+, cellLabel(nullptr)
+, previousCell(nullptr)
+{}
+
+ECS::Cell::~Cell()
+{}
+
+void ECS::Cell::setState(const STATE state)
+{
+	cocos2d::Color3B color = cocos2d::Color3B::WHITE;
+
+	switch (state)
+	{
+	case STATE::EMPTY:
+		color = cocos2d::Color3B::WHITE;
+		this->cellLabel->setString("");
+		break;
+	case STATE::BLOCK:
+		color = cocos2d::Color3B::BLACK;
+		this->cellLabel->setString("");
+		break;
+	case STATE::PATH:
+		color = cocos2d::Color3B::BLUE;
+		break;
+	case STATE::START:
+		color = cocos2d::Color3B(0, 255, 255);
+		this->cellLabel->setString("S");
+		break;
+	case STATE::END:
+		this->cellLabel->setString("E");
+		color = cocos2d::Color3B(0, 255, 255);
+		break;
+	case STATE::OPENED:
+		color = cocos2d::Color3B::GREEN;
+		break;
+	case STATE::CLOSED:
+		color = cocos2d::Color3B::RED;
+		break;
+	default:
+		return;
+		break;
+	}
+
+	if (this->state != STATE::START && this->state != STATE::END)
+	{
+		// Don't change color of this cell is either start or end
+		this->cellSprite->stopAllActions();
+		this->cellSprite->runAction(cocos2d::TintTo::create(0.0f, color));
+	}
+
+	this->state = state;
+}
+
+void ECS::Cell::updateLabel()
+{
+	switch (ECS::Cell::labelState)
+	{
+	case LABEL_STATE::F:
+		this->cellLabel->setString(std::to_string(static_cast<int>(f)));
+		break;
+	case LABEL_STATE::G:
+		this->cellLabel->setString(std::to_string(static_cast<int>(g)));
+		break;
+	case LABEL_STATE::H:
+		this->cellLabel->setString(std::to_string(static_cast<int>(h)));
+		break;
+	default:
+		break;
+	}
+}
+

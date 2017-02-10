@@ -3,6 +3,10 @@
 
 #include <cocos2d.h>
 #include "CustomNode.h"
+#include <map>
+#include <unordered_set>
+#include <map>
+#include "Component.h"
 
 class AStarScene : public cocos2d::Scene
 {
@@ -35,11 +39,54 @@ private:
     
     enum Z_ORDER
     {
+		CELL,
+		GRID_LINE,
+		HOVER,
+		DRAG,
         BOX
     };
     
     LabelsNode* labelsNode;
     DisplayBoundaryBoxNode* displayBoundaryBoxNode;
+	cocos2d::DrawNode* bgDrawNode;
+	cocos2d::Sprite* hoveringCellSprite;
+	std::vector<ECS::Entity*> cells;
+	cocos2d::Sprite* draggingStartSprite;
+	cocos2d::Sprite* draggingEndSprite;
+	ECS::Entity* startingCell;
+	ECS::Entity* endingCell;
+	bool draggingStart;
+	bool draggingEnd;
+	bool pause;
+	bool finished;
+	bool allowDiagonal;
+	float elapsedTime;
+	float stepDuration;
+	bool shiftPressing;
+	bool stepMode;
+
+	struct hashCCVec2
+	{
+		size_t operator()(const cocos2d::Vec2& vec2) const
+		{
+			return vec2.x;
+		}
+	};
+
+	std::multimap<int/*f*/, ECS::Cell*> openSet;
+	std::unordered_set<cocos2d::Vec2, hashCCVec2> closedSet;
+	std::list<ECS::Cell*> path;
+
+	void initECS();
+	void createNewCell(const cocos2d::Vec2& position);
+	void findPath();
+	cocos2d::Vec2 cursorPointToCellPos(const cocos2d::Vec2& point);
+	unsigned int cellPosToIndex(const cocos2d::Vec2& cellPos);
+	void cancelDragging();
+	void resetPathFinding();
+	std::vector<unsigned int> getNeightborIndicies(unsigned int currentIndex);
+	void retracePath(ECS::Cell* currentCell);
+	void revertPath();
 
 public:
 	//simple creator func

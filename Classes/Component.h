@@ -142,6 +142,61 @@ namespace ECS
 		// The rectangle this node have. Must be leaf.
 		cocos2d::Rect rect;
 	};
+
+	class Cell : public Component
+	{
+	public:
+		Cell();
+		~Cell();
+		Cell(Cell const&) = delete;
+		void operator=(Cell const&) = delete;
+
+		enum STATE
+		{
+			EMPTY,
+			BLOCK,
+			PATH,
+			START,
+			END,
+			OPENED,
+			CLOSED,
+		};
+
+		enum LABEL_STATE
+		{
+			G,
+			H,
+			F,
+			NONE
+		};
+
+		STATE state;
+		static LABEL_STATE labelState;
+
+		float g;
+		float h;
+		float f;
+
+		cocos2d::Vec2 position;
+
+		cocos2d::Sprite* cellSprite;
+		cocos2d::Label* cellLabel;
+
+		ECS::Cell* previousCell;
+
+		void setState(const STATE state);
+		void updateLabel();
+	};
+
+	class CellComparator
+	{
+	public:
+		bool operator() (const Cell* left, const Cell* right)
+		{
+			// Smaller f score goes first
+			return left->f <= right->f;
+		}
+	};
 }
 
 #endif
