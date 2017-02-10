@@ -392,7 +392,7 @@ void LabelsNode::setSharedLabelPosition(SHARED_LABEL_POS_TYPE type)
 void LabelsNode::onExit()
 {
     cocos2d::Node::onExit();
-    this->labelAnimation->retain();
+    this->labelAnimation->release();
 }
 
 
