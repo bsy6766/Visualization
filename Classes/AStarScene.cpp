@@ -691,6 +691,8 @@ void AStarScene::onMouseMove(cocos2d::Event* event)
 
 void AStarScene::onMouseDown(cocos2d::Event* event) 
 {
+	if (this->finished == false) return;
+
 	auto mouseEvent = static_cast<EventMouse*>(event);
 	//0 = left, 1 = right, 2 = middle
 	int mouseButton = mouseEvent->getMouseButton();
