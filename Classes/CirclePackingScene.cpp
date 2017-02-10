@@ -350,38 +350,14 @@ void CirclePackingScene::runCirclePacking(const ECS::CirclePackingSystem::IMAGE_
 		this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Running");
 	}
 
-	/*
-    // Reset flag
-    this->finished = false;
-	// Delete quadTree
-	releaseQuadTree();
-	// Reset counter
-	this->growingCircleCount = 0;
-	// Reset existing circles
-	this->resetCircles();
-	// update image index
-	this->currentImageIndex = imageIndex;
-	// reset spawn point
-	this->findCircleSpawnPoint(imageIndex);
-	// set max circles size
-	this->maxCircles = this->circleSpawnPointsWithColor.size();
-	this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::POSSIBLE_SPAWN_POINTS), "Possible spawn points: " + std::to_string(this->circleSpawnPointsWithColor.size()));
-	// initialize circles
-	initCircles();
-	// update image name label
-	this->setImageNameAndSizeLabel();
-	// Re-initialize QuadTree
-	initQuadTree();
-    // Change status
-	if (this->pause)
-	{
-		this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Paused");
-	}
-	else
-	{
-		this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Running");
-	}
-	*/
+    for(auto sprite : this->imageSprites)
+    {
+        sprite->setVisible(false);
+    }
+    
+    this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::SHOW_ORIGINAL_IMAGE), cocos2d::Color3B::WHITE, false);
+    
+    this->showOriginalImage = false;
 }
 
 void CirclePackingScene::setImageNameAndSizeLabel()
