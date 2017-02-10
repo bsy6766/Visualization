@@ -7,10 +7,15 @@
 #include "AStarScene.h"
 #include "Utility.h"
 
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+
 USING_NS_CC;
 
 MainScene* MainScene::createScene()
 {
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 	MainScene* newMainScene = MainScene::create();
 	return newMainScene;
 }
@@ -273,4 +278,6 @@ void MainScene::onExit()
 {
 	cocos2d::Scene::onExit();
 	releaseInputListeners();
+
+	_CrtDumpMemoryLeaks();
 }

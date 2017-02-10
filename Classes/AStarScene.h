@@ -37,6 +37,35 @@ private:
 	void initInputListeners();
 	void releaseInputListeners();
     
+	enum class CUSTOM_LABEL_INDEX
+	{
+		STATUS,
+		PATH_LENGTH,
+	};
+
+	enum class USAGE_KEY
+	{
+		NONE,
+		PAUSE,
+		AUTO,
+		MANUAL,
+		RESET,
+		CLEAR_BLOCK,
+		RANDOMIZE_BLOCK,
+		ALLOW_DIAGONAL,
+		F,
+		G,
+		H,
+	};
+
+	enum class USAGE_MOUSE
+	{
+		NONE,
+		TOGGLE_BLOCK,
+		DRAG_START,
+		DRAG_END
+	};
+
     enum Z_ORDER
     {
 		CELL,
@@ -74,7 +103,24 @@ private:
 		}
 	};
 
-	std::multimap<int/*f*/, ECS::Cell*> openSet;
+	struct compareCell
+	{
+		bool operator()(const ECS::Cell* first, const ECS::Cell* second)
+		{
+			if (first->f == second->f)
+			{
+				return first->h < second->h;
+			}
+			else
+			{
+				return first->f < second->f;
+			}
+		}
+	};
+
+
+	//std::multimap<int/*f*/, ECS::Cell*> openSet;
+	std::list<ECS::Cell*> openSet;
 	std::list<ECS::Cell*> path;
 
 	void initECS();
@@ -88,6 +134,8 @@ private:
 	std::vector<unsigned int> getNeightborIndicies(unsigned int currentIndex);
 	void retracePath(ECS::Cell* currentCell);
 	void revertPath();
+	void insertCellToOpenSet(ECS::Cell* cell);
+	void clearBlocks();
 
 public:
 	//simple creator func

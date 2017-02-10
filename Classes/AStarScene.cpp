@@ -1,5 +1,6 @@
 #include "AStarScene.h"
 #include "MainScene.h"
+#include "Utility.h"
 
 USING_NS_CC;
 
@@ -83,19 +84,60 @@ bool AStarScene::init()
 	this->draggingEndSprite->setVisible(false);
 	this->addChild(this->draggingEndSprite, Z_ORDER::DRAG);
     
-    // Init labels node
-    this->labelsNode = LabelsNode::createNode();
-    this->labelsNode->setSharedLabelPosition(LabelsNode::SHARED_LABEL_POS_TYPE::RECT_PACKING_SCENE);
-    this->addChild(this->labelsNode);
-    
-    auto winSize = cocos2d::Director::getInstance()->getVisibleSize();
-    // Starting pos
-    float labelX = winSize.height - 10.0f;
-    float labelY = winSize.height - 45.0f;
-    
-    // Set title
-    this->labelsNode->initTitleStr("A* Pathfinding", cocos2d::Vec2(labelX, labelY));
+	// Init labels node
+	this->labelsNode = LabelsNode::createNode();
+	this->labelsNode->setSharedLabelPosition(LabelsNode::SHARED_LABEL_POS_TYPE::QUADTREE_SCENE);
+	this->addChild(this->labelsNode);
 
+	auto winSize = cocos2d::Director::getInstance()->getVisibleSize();
+
+	// Starting pos
+	float labelX = winSize.height - 10.0f;
+	float labelY = winSize.height - 45.0f;
+
+	// Set title
+	this->labelsNode->initTitleStr("A Star", cocos2d::Vec2(labelX, labelY));
+
+	labelY -= 50.0f;
+
+	// Init custom labels
+	this->labelsNode->customLabelStartPos = cocos2d::Vec2(labelX, labelY);
+
+	// Set size
+	const int customLabelSize = 25;
+
+	this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Status: Idle", customLabelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Path length: NA", customLabelSize);
+	
+	// Calculate next label block y
+	const float customLastY = this->labelsNode->customLabels.back()->getBoundingBox().getMinY();
+	const float blockGap = 22.0f;
+
+	this->labelsNode->keyboardUsageLabelStartPos = cocos2d::Vec2(labelX, customLastY - blockGap);
+
+	const int headerSize = 25;
+	const int labelSize = 20;
+
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Keys (Green = enabled)", headerSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Space: Toggle update", labelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Enter: Find path (Auto)", labelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Left Shift Enter: Find path (Step)", labelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "R: Reset", labelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "C: Clear all blocks", labelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "B: Randomize grid with blocks", labelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "D: Allow diagonal", labelSize);
+	this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::ALLOW_DIAGONAL), cocos2d::Color3B::GREEN);
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "F: Toggle F scores", labelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "G: Toggle G scores", labelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "H: Toggle H scores", labelSize);
+
+	const float keysLastY = this->labelsNode->keyboardUsageLabels.back()->getBoundingBox().getMinY();
+	this->labelsNode->mouseUsageLabelStartPos = cocos2d::Vec2(labelX, keysLastY - blockGap);
+
+	this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Mouse", headerSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (On Cell): Toggle Block", labelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (Drag S Cell): Move source cell", labelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (Drag E Cell): Move destination cell", labelSize);
 
 	this->elapsedTime = 0;
 	this->stepDuration = 0.03f;
@@ -198,9 +240,9 @@ void AStarScene::findPath()
 		this->revertPath();
 
 		// Get cell with lowest f score.
-		ECS::Cell* current = this->openSet.begin()->second;
+		ECS::Cell* current = this->openSet.front();
 		// Pop it from openset
-        this->openSet.erase(this->openSet.begin());
+		this->openSet.pop_front();
         
         if (current->position == dest)
         {
@@ -211,6 +253,9 @@ void AStarScene::findPath()
             this->unscheduleUpdate();
             this->updateScheduled = false;
             this->endingCell->getComponent<ECS::Cell>()->previousCell = current;
+			this->pause = false;
+
+			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::PAUSE), cocos2d::Color3B::WHITE, false);
             return;
         }
 
@@ -241,7 +286,8 @@ void AStarScene::findPath()
 			if (neighborComp->state != ECS::Cell::STATE::OPENED)
 			{
                 neighborComp->setState(ECS::Cell::STATE::OPENED);
-				this->openSet.insert(std::pair<int, ECS::Cell*>(neighborComp->f, neighborComp));
+				//this->openSet.insert(std::pair<int, ECS::Cell*>(neighborComp->f, neighborComp));
+				this->insertCellToOpenSet(neighborComp);
 			}
 			else if (newGScore >= neighborComp->g)
 			{
@@ -251,26 +297,23 @@ void AStarScene::findPath()
 
 			// Recompute costs. This is the better path. So set current cell as previous cell of this neighbor cell.
             // Before we update, remove from openSet and reinsert with updated f score
-            auto find_it = this->openSet.begin();
-            for (; find_it != this->openSet.end(); )
-            {
-                if(find_it->first == static_cast<int>(neighborComp->f))
-                {
-                    if(find_it->second->position == neighborComp->position)
-                    {
-                        this->openSet.erase(find_it);
-                        break;
-                    }
-                }
-                
-                find_it++;
-            }
+			auto it = this->openSet.begin();
+			for (; it != this->openSet.end(); )
+			{
+				if ((*it)->position == neighborComp->position)
+				{
+					this->openSet.erase(it);
+					break;
+				}
+				it++;
+			}
+
 			neighborComp->g = newGScore;									// g = Distance from start
-			//neighborComp->h = fabsf(dest.distance(neighborComp->position));		// h = Distance from end
 			neighborComp->f = neighborComp->g + neighborComp->h;			// f = g + h
 			neighborComp->previousCell = current;
             
-            this->openSet.insert(std::pair<int, ECS::Cell*>(neighborComp->f, neighborComp));
+            //this->openSet.insert(std::pair<int, ECS::Cell*>(neighborComp->f, neighborComp));
+			this->insertCellToOpenSet(neighborComp);
 		}
 
 		this->retracePath(current);
@@ -343,7 +386,8 @@ void AStarScene::resetPathFinding()
 	endComp->h = 0;																// h = Distance from end
 	endComp->f = endComp->g + endComp->h;										// f = g + h
 
-	this->openSet.insert(std::pair<int, ECS::Cell*>(startComp->f, startComp));
+	//this->openSet.insert(std::pair<int, ECS::Cell*>(startComp->f, startComp));
+	this->insertCellToOpenSet(startComp);
 }
 
 std::vector<unsigned int> AStarScene::getNeightborIndicies(unsigned int currentIndex)
@@ -512,6 +556,24 @@ void AStarScene::revertPath()
 		if (cell->state == ECS::Cell::STATE::PATH)
 		{
 			cell->setState(ECS::Cell::STATE::CLOSED);
+		}
+	}
+}
+
+void AStarScene::insertCellToOpenSet(ECS::Cell * cell)
+{
+	this->openSet.push_back(cell);
+	this->openSet.sort(AStarScene::compareCell());
+}
+
+void AStarScene::clearBlocks()
+{
+	for (auto cell : this->cells)
+	{
+		auto comp = cell->getComponent<ECS::Cell>();
+		if (comp->state == ECS::Cell::STATE::BLOCK)
+		{
+			comp->setState(ECS::Cell::STATE::EMPTY);
 		}
 	}
 }
@@ -727,14 +789,19 @@ void AStarScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
 
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_SPACE)
 	{
-		this->pause = !this->pause;
-		if (pause)
+		if (this->finished == false)
 		{
-			this->unscheduleUpdate();
-		}
-		else
-		{
-			this->scheduleUpdate();
+			this->pause = !this->pause;
+			if (pause)
+			{
+				this->unscheduleUpdate();
+				this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::PAUSE), cocos2d::Color3B::GREEN);
+			}
+			else
+			{
+				this->scheduleUpdate();
+				this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::PAUSE), cocos2d::Color3B::WHITE);
+			}
 		}
 	}
 
@@ -752,11 +819,16 @@ void AStarScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
                     // Step mode
                     this->unscheduleUpdate();
                     this->findPath();
+
+					this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::AUTO), cocos2d::Color3B::WHITE, false);
+					this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::MANUAL), cocos2d::Color3B::GREEN);
                 }
                 else
                 {
                     this->scheduleUpdate();
                     this->updateScheduled = true;
+					this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::AUTO), cocos2d::Color3B::GREEN);
+					this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::MANUAL), cocos2d::Color3B::WHITE, false);
                 }
                 
                 this->cleared = false;
@@ -771,6 +843,8 @@ void AStarScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
                 {
                     this->unscheduleUpdate();
                     this->updateScheduled = false;
+					this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::AUTO), cocos2d::Color3B::WHITE, false);
+					this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::MANUAL), cocos2d::Color3B::GREEN);
                 }
 				this->findPath();
 			}
@@ -780,6 +854,8 @@ void AStarScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
                 {
                     this->scheduleUpdate();
                     this->updateScheduled = true;
+					this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::AUTO), cocos2d::Color3B::GREEN);
+					this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::MANUAL), cocos2d::Color3B::WHITE, false);
                 }
 			}
 		}
@@ -787,38 +863,101 @@ void AStarScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
 
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_F)
 	{
-		ECS::Cell::labelState = ECS::Cell::LABEL_STATE::F;
-		for (auto cell : this->cells)
+		if (ECS::Cell::labelState == ECS::Cell::LABEL_STATE::F)
 		{
-			auto comp = cell->getComponent<ECS::Cell>();
-			if (comp->state == ECS::Cell::STATE::OPENED || comp->state == ECS::Cell::STATE::CLOSED)
+			ECS::Cell::labelState = ECS::Cell::LABEL_STATE::NONE;
+			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::F), cocos2d::Color3B::WHITE);
+
+			for (auto cell : this->cells)
 			{
-            }
-            comp->cellLabel->setString(std::to_string(static_cast<int>(comp->f)));
+				auto comp = cell->getComponent<ECS::Cell>();
+				if (comp->state == ECS::Cell::STATE::OPENED || comp->state == ECS::Cell::STATE::CLOSED)
+				{
+					comp->cellLabel->setString("");
+				}
+			}
+		}
+		else
+		{
+			ECS::Cell::labelState = ECS::Cell::LABEL_STATE::F;
+			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::F), cocos2d::Color3B::GREEN);
+			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::G), cocos2d::Color3B::WHITE, false);
+			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::H), cocos2d::Color3B::WHITE, false);
+
+			for (auto cell : this->cells)
+			{
+				auto comp = cell->getComponent<ECS::Cell>();
+				if (comp->state == ECS::Cell::STATE::OPENED || comp->state == ECS::Cell::STATE::CLOSED)
+				{
+					comp->cellLabel->setString(std::to_string(static_cast<int>(comp->f)));
+				}
+			}
 		}
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_G)
 	{
-		ECS::Cell::labelState = ECS::Cell::LABEL_STATE::G;
-		for (auto cell : this->cells)
+		if (ECS::Cell::labelState == ECS::Cell::LABEL_STATE::G)
 		{
-			auto comp = cell->getComponent<ECS::Cell>();
-			if (comp->state == ECS::Cell::STATE::OPENED || comp->state == ECS::Cell::STATE::CLOSED)
+			ECS::Cell::labelState = ECS::Cell::LABEL_STATE::NONE;
+			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::G), cocos2d::Color3B::WHITE);
+
+			for (auto cell : this->cells)
 			{
-            }
-            comp->cellLabel->setString(std::to_string(static_cast<int>(comp->g)));
+				auto comp = cell->getComponent<ECS::Cell>();
+				if (comp->state == ECS::Cell::STATE::OPENED || comp->state == ECS::Cell::STATE::CLOSED)
+				{
+					comp->cellLabel->setString("");
+				}
+			}
+		}
+		else
+		{
+			ECS::Cell::labelState = ECS::Cell::LABEL_STATE::G;
+			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::G), cocos2d::Color3B::GREEN);
+			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::F), cocos2d::Color3B::WHITE, false);
+			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::H), cocos2d::Color3B::WHITE, false);
+
+			for (auto cell : this->cells)
+			{
+				auto comp = cell->getComponent<ECS::Cell>();
+				if (comp->state == ECS::Cell::STATE::OPENED || comp->state == ECS::Cell::STATE::CLOSED)
+				{
+					comp->cellLabel->setString(std::to_string(static_cast<int>(comp->g)));
+				}
+			}
 		}
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_H)
 	{
-		ECS::Cell::labelState = ECS::Cell::LABEL_STATE::H;
-		for (auto cell : this->cells)
+		if (ECS::Cell::labelState == ECS::Cell::LABEL_STATE::H)
 		{
-			auto comp = cell->getComponent<ECS::Cell>();
-			if (comp->state == ECS::Cell::STATE::OPENED || comp->state == ECS::Cell::STATE::CLOSED)
+			ECS::Cell::labelState = ECS::Cell::LABEL_STATE::NONE;
+			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::H), cocos2d::Color3B::WHITE);
+
+			for (auto cell : this->cells)
 			{
-            }
-            comp->cellLabel->setString(std::to_string(static_cast<int>(comp->h)));
+				auto comp = cell->getComponent<ECS::Cell>();
+				if (comp->state == ECS::Cell::STATE::OPENED || comp->state == ECS::Cell::STATE::CLOSED)
+				{
+					comp->cellLabel->setString("");
+				}
+			}
+		}
+		else
+		{
+			ECS::Cell::labelState = ECS::Cell::LABEL_STATE::H;
+			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::H), cocos2d::Color3B::GREEN);
+			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::G), cocos2d::Color3B::WHITE, false);
+			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::F), cocos2d::Color3B::WHITE, false);
+
+			for (auto cell : this->cells)
+			{
+				auto comp = cell->getComponent<ECS::Cell>();
+				if (comp->state == ECS::Cell::STATE::OPENED || comp->state == ECS::Cell::STATE::CLOSED)
+				{
+					comp->cellLabel->setString(std::to_string(static_cast<int>(comp->h)));
+				}
+			}
 		}
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_R)
@@ -852,21 +991,53 @@ void AStarScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::
         this->updateScore();
         
         this->cleared = true;
+		this->labelsNode->playAnimation(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::RESET));
+		this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::AUTO), cocos2d::Color3B::WHITE, false);
+		this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::MANUAL), cocos2d::Color3B::WHITE, false);
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_C)
 	{
-		for (auto cell : this->cells)
+		if (this->finished && this->cleared)
 		{
-			auto comp = cell->getComponent<ECS::Cell>();
-			if (comp->state == ECS::Cell::STATE::BLOCK)
-			{
-				comp->setState(ECS::Cell::STATE::EMPTY);
-			}
+			this->clearBlocks();
+			this->labelsNode->playAnimation(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::CLEAR_BLOCK));
 		}
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_D)
 	{
-		this->allowDiagonal = !this->allowDiagonal;
+		if (this->finished)
+		{
+			this->allowDiagonal = !this->allowDiagonal;
+
+			if (this->allowDiagonal)
+			{
+				this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::ALLOW_DIAGONAL), cocos2d::Color3B::GREEN);
+			}
+			else
+			{
+				this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::ALLOW_DIAGONAL), cocos2d::Color3B::WHITE);
+			}
+		}
+	}
+	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_B)
+	{
+		if (this->cleared)
+		{
+			this->labelsNode->playAnimation(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::RANDOMIZE_BLOCK));
+			this->clearBlocks();
+
+			for (auto cell : this->cells)
+			{
+				auto comp = cell->getComponent<ECS::Cell>();
+				if (comp->state == ECS::Cell::STATE::EMPTY)
+				{
+					if (Utility::Random::randomIntRollCheck(20))
+					{
+						comp->setState(ECS::Cell::STATE::BLOCK);
+					}
+				}
+			}
+		}
 	}
 }
 
