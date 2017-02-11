@@ -25,17 +25,13 @@ Ubuntu 16.04<br>
 #### Download Links
 <details>
 <summary><b>Win32</b></summary>
-Executable is available [**here**](https://drive.google.com/open?id=0BxL3wp7rb67tNmNvdXZ1emJXMTg). Download the zip file and open it with your archieve tool. Then run Visualization.exe.<br>
+Executable is available [**here (Google Drive)**](https://drive.google.com/open?id=0BxL3wp7rb67tNmNvdXZ1emJXMTg). Download the zip file and open it with your archieve tool. Then run Visualization.exe.<br>
 **Note: For Windows, you need Visual c++ Redistributable to run the program. Error message will tell you which DLL you are missing. Google the name of DLL for solution. Also, program might won't open if anti-virus blocks it.**
 </details>
 <details>
 <summary><b>Mac OS X</b></summary>
-Application is available [**here**](https://drive.google.com/open?id=0BxL3wp7rb67tTDJNZGNXQ2wtSkk). Download the zip file and open it with your archieve tool. Then run Visualization.exe.<br>
+Application is available [**here (Google Drive)**](https://drive.google.com/open?id=0BxL3wp7rb67tTDJNZGNXQ2wtSkk). Download the zip file and open it with your archieve tool. Then run Visualization.exe.<br>
 **Note: Haven't tested on any other OS X versions than Sierra. Please open issue if there is any problem.**
-</details>
-<details>
-<summary><b>~~Linux~~</b></summary>
-In progress
 </details>
 
 ## How to build on your machine
