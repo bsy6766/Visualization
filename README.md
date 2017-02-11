@@ -31,18 +31,23 @@ Executable is available [**here (Google Drive)**](https://drive.google.com/open?
 <details>
 <summary><b>Mac OS X</b></summary>
 Application is available [**here (Google Drive)**](https://drive.google.com/open?id=0BxL3wp7rb67tTDJNZGNXQ2wtSkk). Download the zip file and open it with your archieve tool. Then run Visualization.exe.<br>
-**Note: Haven't tested on any other OS X versions than Sierra. Please open issue if there is any problem.**
+**Note: The application only tested with OS X Sierra. **
+</details>
+<details>
+<summary><b>~~Linux~~</b></summary>
+In progress. Maybe.
 </details>
 
 ## How to build on your machine
 <details>
 <summary><b>Steps</b></summary>
 **Note: I didn't upload entire Cocos2d-X project due to huge size (<200mb initial, <4Gb after building). If you know how Cocos2d-X works, then skip below steps and do it your way. Sources and resources can be found easily in repo folder.**<br>
-- 1. Create new Cocos2d-X project. Version 3.13 version is preferred but any version after that will work (I hope).
+- 1. Create new Cocos2d-X project with version 3.13 or higher.
 - 2. Copy Classes folder and Releases folder in repo folder.
 - 3. Paste to new Cocos2d-X project folder (where default Classes and Resources folder exists).
 - 4. Overwrite if needed.
-- 5. Open up the project and build.
+- 5. Open project and add source and header file to project. 
+- 6. Build for release mode and run.
 </details>
 
 
@@ -257,7 +262,7 @@ Ken Perlin's Simplex Noise. Generates noise image and shake.
 
 ----
 ## Font
-Used [Rubik](https://www.fontsquirrel.com/fonts/rubik) by Hubert & Fischer
+Used [Rubik](https://www.fontsquirrel.com/fonts/rubik) by Hubert & Fischer.
 
 ##Todo List
 - Test build on linux
