@@ -5,6 +5,7 @@
 #include "RectPackingScene.h"
 #include "EarClippingScene.h"
 #include "AStarScene.h"
+#include "VisibilityScene.h"
 #include "Utility.h"
 
 USING_NS_CC;
@@ -44,6 +45,7 @@ bool MainScene::init()
     this->labels.push_back(cocos2d::Label::createWithTTF("Rect Packing", fontPath, fontSize));
     this->labels.push_back(cocos2d::Label::createWithTTF("Ear Clipping", fontPath, fontSize));
     this->labels.push_back(cocos2d::Label::createWithTTF("A Star Pathfinding", fontPath, fontSize));
+	this->labels.push_back(cocos2d::Label::createWithTTF("Visibility", fontPath, fontSize));
 	this->labels.push_back(cocos2d::Label::createWithTTF("EXIT(ESC)", fontPath, fontSize));
 
 	this->versionLabel = cocos2d::Label::createWithTTF("v0.6", fontPath, 20);
@@ -92,6 +94,9 @@ void MainScene::setDescriptionLabel()
             break;
 		case MainScene::MENU_INDEX::A_STAR_PATHFINDING:
 			this->descriptionLabel->setString("Visualizes A* path finding");
+			break;
+		case MainScene::MENU_INDEX::VISIBILITY:
+			this->descriptionLabel->setString("Visualizes visibility");
 			break;
 		case MainScene::MENU_INDEX::EXIT:
 			this->descriptionLabel->setString("Exit");
@@ -240,7 +245,12 @@ void MainScene::onMouseDown(cocos2d::Event* event)
 			{
 				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, AStarScene::create(), cocos2d::Color3B::BLACK));
 			}
-			break;
+				break;
+			case MENU_INDEX::VISIBILITY:
+			{
+				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, VisibilityScene::create(), cocos2d::Color3B::BLACK));
+			}
+				break;
 			case MENU_INDEX::EXIT:
 			{
 				cocos2d::Director::getInstance()->end();

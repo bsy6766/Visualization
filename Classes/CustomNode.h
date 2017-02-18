@@ -52,6 +52,7 @@ private:
     friend class RectPackingScene;
     friend class EarClippingScene;
     friend class AStarScene;
+	friend class VisibilityScene;
     
     //Default contructor
     DisplayBoundaryBoxNode() = default;
@@ -95,6 +96,7 @@ private:
 	friend class RectPackingScene;
     friend class EarClippingScene;
     friend class AStarScene;
+	friend class VisibilityScene;
 
 	enum class TYPE
 	{
@@ -132,6 +134,7 @@ private:
 		CIRCLE_PACKING_SCENE,
 		RECT_PACKING_SCENE,
         EAR_CLIPPING_SCENE,
+		VISIBLITY_SCENE,
 		FREE,
 	};
 

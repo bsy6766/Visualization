@@ -599,8 +599,6 @@ const cocos2d::Vec2 ECS::FlockingSystem::getAlignment(ECS::Entity* boid, std::li
 {
 	cocos2d::Vec2 sumDirVec = cocos2d::Vec2::ZERO;
 
-	const cocos2d::Vec2 boidPos = boid->getComponent<ECS::Sprite>()->sprite->getPosition();
-
 	for (auto nearBoid : nearBoids)
 	{
 		auto dirVecComp = nearBoid->getComponent<ECS::DirectionVector>();
@@ -1114,7 +1112,7 @@ void ECS::CirclePackingSystem::createNewCircle(cocos2d::Node& parent, SpawnPoint
 	// update sprite comp
 	auto spriteComp = m->createComponent<ECS::Sprite>();
 	spriteComp->sprite = cocos2d::Sprite::createWithSpriteFrameName("circle_100.png");
-	spriteComp->sprite->retain();
+	//spriteComp->sprite->retain();
 	spriteComp->sprite->setScale(0.02f);
 	spriteComp->sprite->setPosition(spawnPoint.point);
 	spriteComp->sprite->setColor(cocos2d::Color3B(spawnPoint.color));
@@ -1452,7 +1450,7 @@ const bool ECS::EarClippingSystem::createNewDot(cocos2d::Node& parent, const std
     {
         auto spriteComp = m->createComponent<ECS::Sprite>();
         spriteComp->sprite = cocos2d::Sprite::createWithSpriteFrameName("circle.png");
-        spriteComp->sprite->retain();
+        //spriteComp->sprite->retain();
         spriteComp->sprite->setPosition(point);
         spriteComp->sprite->setColor(cocos2d::Color3B::RED);
         parent.addChild(spriteComp->sprite);

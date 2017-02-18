@@ -39,7 +39,7 @@ Sprite::Sprite() : ECS::Component()
 
 Sprite::~Sprite()
 {
-	this->sprite->release();
+	//this->sprite->release();
 	this->sprite->removeFromParentAndCleanup(true);
 }
 

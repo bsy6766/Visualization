@@ -70,7 +70,7 @@ bool EarClippingScene::init()
 
     // Init labels node
     this->labelsNode = LabelsNode::createNode();
-    this->labelsNode->setSharedLabelPosition(LabelsNode::SHARED_LABEL_POS_TYPE::QUADTREE_SCENE);
+    this->labelsNode->setSharedLabelPosition(LabelsNode::SHARED_LABEL_POS_TYPE::EAR_CLIPPING_SCENE);
     this->addChild(this->labelsNode);
 
     // Starting pos

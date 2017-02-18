@@ -44,6 +44,7 @@ private:
         RECT_PACKING,
         EAR_CLIPPING,
 		A_STAR_PATHFINDING,
+		VISIBILITY,
 		EXIT,
 	};
 
