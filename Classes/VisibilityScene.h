@@ -7,68 +7,26 @@
 #include "Component.h"
 #include "System.h"
 
-struct EndPoint;
-struct Segment;
-
-struct EndPoint : public cocos2d::Vec2
-{
-	bool begin;
-	float angle;
-	bool visualize;
-	Segment* segment;
-
-	EndPoint::EndPoint() : begin(false), angle(0), visualize(0), segment(nullptr) {}
-};
-
-struct EndPointComparator
-{
-	int operator()(EndPoint* a, EndPoint* b)
-	{
-		// smaller angle goes first, begin goes first
-		if (a->angle == b->angle)
-		{
-			if (!a->begin && b->begin)
-			{
-				return false;
-			}
-			if (a->begin && !b->begin)
-			{
-				return true;
-			}
-		}
-		else
-		{
-			if (a->angle > b->angle)
-			{
-				return false;
-			}
-			else
-			{
-				return true;
-			}
-			//return a->angle < b->angle;
-		}
-		return false;
-	}
-};
-
 struct Segment
 {
-	EndPoint* p1;
-	EndPoint* p2;
-	float d;
+	cocos2d::Vec2 p1;
+	cocos2d::Vec2 p2;
+};
 
-	Segment::Segment() : p1(nullptr), p2(nullptr), d(0) {}
-	Segment::~Segment()
-	{
-		if (p1) delete p1;
-		if (p2) delete p2;
-	}
+struct Vertex
+{
+	cocos2d::Vec2 vertex;
+	bool boundaryVisible;
+	bool isBounday;
+	cocos2d::Vec2 boundaryVertex;	// Only if wall is visible
+	float angle;
+};
 
-	bool operator==(const Segment& other) const
+struct VertexComparator
+{
+	bool operator()(const Vertex& a, const Vertex& b)
 	{
-		return (this->p1->x == other.p1->x) && (this->p1->y == other.p1->y)
-			&& (this->p2->x == other.p2->x) && (this->p2->y == other.p2->y);
+		return a.angle < b.angle;
 	}
 };
 
@@ -103,7 +61,10 @@ private:
 
 	enum Z_ORDER
 	{
-		BOX
+		WALL,
+		RAYCAST,
+		TRIANGLE,
+		BOX,
 	};
 
 	enum class CUSTOM_LABEL_INDEX
@@ -127,14 +88,24 @@ private:
 	cocos2d::Vec2 newBoxDest;
 	cocos2d::DrawNode* newBoxDrawNode;
 	cocos2d::DrawNode* visiableAreaDrawNode;
-	std::vector<cocos2d::Vec2> verticies;
 
 	LabelsNode* labelsNode;
 	DisplayBoundaryBoxNode* displayBoundaryBoxNode;
 	cocos2d::Rect displayBoundary;
 
-	std::vector<EndPoint*> endPoints;
-	std::vector<Segment*> segments;
+	cocos2d::DrawNode* raycastDrawNode;
+	cocos2d::DrawNode* triangleDrawNode;
+	cocos2d::Vec2 mousePos;
+
+	std::vector<Vertex> intersects;
+
+	std::vector<cocos2d::Vec2> lightPositions;
+
+	std::vector<cocos2d::Vec2> wallUniquePoints;
+	std::vector<cocos2d::Vec2> boundaryUniquePoints;
+
+	std::vector<Segment*> wallSegments;
+	std::vector<Segment*> boundarySegments;
 
 	// init ECS
 	void initECS();
@@ -142,28 +113,20 @@ private:
 	void createNewBox();
 	// Create new light entity
 	void createNewLight(const cocos2d::Vec2& position);
-	// Sweep area
-	void sweep();
 	// load map
 	void loadMap();
-	// load boundary
-	void loadBoundary();
 	// load rect
-	void loadRect(const cocos2d::Rect& rect);
-	// Add segment
-	void addSegment(EndPoint& p1, EndPoint& p2);
-	// Set light location
-	void setLightLocation();
-	// Check if segment a is front of b
-	bool checkSegmentInFrontOf(Segment* a, Segment* b, const cocos2d::Vec2& relativeOf/*light position*/);
-	// Check if point is left of segment
-	bool isLeftOf(Segment* segment, const cocos2d::Vec2& point);
-	// Get slightly short version of point
-	const cocos2d::Vec2 interpolate(const cocos2d::Vec2& p, const cocos2d::Vec2& q, const float ratio);
-	// add triangle
-	void addTriangle(float angle1, float angle2, Segment* segment, const cocos2d::Vec2& lightPos);
-	// Get point where line intersects
-	const cocos2d::Vec2 getIntersectingPoint(const cocos2d::Vec2& p1, const cocos2d::Vec2& p2, const cocos2d::Vec2& p3, const cocos2d::Vec2& p4);
+	void loadRect(const cocos2d::Rect& rect, std::vector<Segment*>& segments);
+	// load segments
+	void addSegment(const cocos2d::Vec2& p1, const cocos2d::Vec2& p2, std::vector<Segment*>& segments);
+	// Get intersecting point where raycast hits
+	float getIntersectingPoint(const cocos2d::Vec2& rayStart, const cocos2d::Vec2& rayEnd, const Segment* segment, cocos2d::Vec2& intersection);
+	// cast rays
+	void findIntersectsWithRaycasts();
+	// draw triangles
+	void drawTriangles();
+	// Check if intersecting point is on bounday
+	bool isPointOnBoundary(const cocos2d::Vec2& point);
 public:
 	//simple creator func
 	static VisibilityScene* createScene();

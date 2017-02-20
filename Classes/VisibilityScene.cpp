@@ -65,6 +65,14 @@ bool VisibilityScene::init()
 	this->visiableAreaDrawNode = cocos2d::DrawNode::create();
 	this->addChild(this->visiableAreaDrawNode);
 
+	//temp
+	this->raycastDrawNode = cocos2d::DrawNode::create();
+	this->addChild(this->raycastDrawNode, Z_ORDER::RAYCAST);
+	this->triangleDrawNode = cocos2d::DrawNode::create();
+	this->addChild(this->triangleDrawNode, Z_ORDER::TRIANGLE);
+
+	this->mousePos = cocos2d::Vec2::ZERO;
+
 	return true;
 }
 
@@ -75,19 +83,23 @@ void VisibilityScene::onEnter()
 	initECS();
 
 	initInputListeners();
+
+	this->newBoxOrigin = cocos2d::Vec2(100, 100);
+	this->newBoxDest = cocos2d::Vec2(200, 200);
+	createNewBox();
 }
 
 void VisibilityScene::initECS()
 {
 	auto m = ECS::Manager::getInstance();
-	m->createEntityPool("BOX", 32);
+	m->createEntityPool("WALL", 32);
 	m->createEntityPool("LIGHT", 16);
 }
 
 void VisibilityScene::createNewBox()
 {
 	auto m = ECS::Manager::getInstance();
-	auto newBox = m->createEntity("BOX");
+	auto newBox = m->createEntity("WALL");
 
 	auto spriteComp = m->createComponent<ECS::Sprite>();
 	spriteComp->sprite = cocos2d::Sprite::createWithSpriteFrameName("square_100.png");
@@ -98,7 +110,8 @@ void VisibilityScene::createNewBox()
 	float scaleY = boxSize.y * 0.01f;
 	spriteComp->sprite->setScaleX(scaleX);
 	spriteComp->sprite->setScaleY(scaleY);
-	this->addChild(spriteComp->sprite);
+	spriteComp->sprite->setOpacity(50);
+	this->addChild(spriteComp->sprite, Z_ORDER::WALL);
 
 	newBox->addComponent<ECS::Sprite>(spriteComp);
 }
@@ -114,360 +127,555 @@ void VisibilityScene::createNewLight(const cocos2d::Vec2& position)
 	this->addChild(spriteComp->sprite);
 
 	newLight->addComponent<ECS::Sprite>(spriteComp);
-}
 
-void VisibilityScene::sweep()
-{
-	cocos2d::log("Sweeping...");
-	std::vector<cocos2d::Vec2> output;
-
-	std::list<Segment*> open;
-	float beginAngle = 0;
-
-	float maxAngle = 999.0f;
-
-	std::vector<ECS::Entity*> lights;
-	ECS::Manager::getInstance()->getAllEntitiesInPool(lights, "LIGHT");
-
-	auto spriteComp = lights.at(0)->getComponent<ECS::Sprite>();
-	auto pos = spriteComp->sprite->getPosition();
-
-	cocos2d::log("Sort end points");
-	std::sort(this->endPoints.begin(), this->endPoints.end(), EndPointComparator());
-
-	for (auto ep : this->endPoints)
-	{
-		float degreeAngle = ep->angle * 180.0f / M_PI;
-		cocos2d::log("Angle: %f (%f), pos: (%f, %f), v: %d, b: %d", ep->angle, degreeAngle, ep->x, ep->y, ep->visualize, ep->begin);
-	}
-
-	cocos2d::log("\nSweeping end points...");
-	for (int i = 0; i < 2; i++)
-	{
-		if (i == 0)
-		{
-			cocos2d::log("Pre-sweeping...");
-		}
-		else
-		{
-			cocos2d::log("Post-sweeping...");
-		}
-		for (auto endPoint : this->endPoints)
-		{
-			cocos2d::log("");
-			float degreeAngle = endPoint->angle * 180.0f / M_PI;
-			cocos2d::log("EndPoint Angle: %f (%f), pos: (%f, %f), v: %d, b: %d", endPoint->angle, degreeAngle, endPoint->x, endPoint->y, endPoint->visualize, endPoint->begin);
-			if (i == 1 && endPoint->angle > maxAngle)
-			{
-				break;
-			}
-
-			Segment* oldSegment = open.empty() ? nullptr : open.front();
-
-			if (oldSegment == nullptr)
-			{
-				cocos2d::log("oldSegment is nullptr.");
-			}
-			else
-			{
-				cocos2d::log("oldSegment p1: (%f, %f), p2: (%f, %f)", oldSegment->p1->x, oldSegment->p1->y, oldSegment->p2->x, oldSegment->p2->y);
-			}
-
-			if (endPoint->begin)
-			{
-				auto it = open.begin();
-				while (it != open.end() && (*it) != nullptr && this->checkSegmentInFrontOf(endPoint->segment, (*it), pos))
-				{
-					it++;
-				}
-
-				if (it == open.end())
-				{
-					open.push_back(endPoint->segment);
-					cocos2d::log("Adding segment to open!");
-					cocos2d::log("segment p1: (%f, %f), p2: (%f, %f)", endPoint->segment->p1->x, endPoint->segment->p1->y, endPoint->segment->p2->x, endPoint->segment->p2->y);
-				}
-				else
-				{
-					open.insert(it, endPoint->segment);
-					cocos2d::log("Adding segment in to open!");
-					cocos2d::log("segment p1: (%f, %f), p2: (%f, %f)", endPoint->segment->p1->x, endPoint->segment->p1->y, endPoint->segment->p2->x, endPoint->segment->p2->y);
-				}
-			}
-			else
-			{
-				auto find_it = open.begin();
-				for (; find_it != open.end();)
-				{
-					if ((*find_it)->p1 == endPoint->segment->p1)
-					{
-						cocos2d::log("Removing segment from open!");
-						cocos2d::log("segment p1: (%f, %f), p2: (%f, %f)", (*find_it)->p1->x, (*find_it)->p1->y, (*find_it)->p2->x, (*find_it)->p2->y);
-						//delete *find_it;
-						open.erase(find_it);
-						break;
-					}
-
-					find_it++;
-				}
-			}
-
-			Segment* newSegment = open.empty() ? nullptr : open.front();
-			if (newSegment == nullptr)
-			{
-				cocos2d::log("newSegment is nullptr.");
-			}
-			else
-			{
-				cocos2d::log("newSegment p1: (%f, %f), p2: (%f, %f)", newSegment->p1->x, newSegment->p1->y, newSegment->p2->x, newSegment->p2->y);
-			}
-			if (oldSegment != nullptr && newSegment != nullptr)
-			{
-				bool same = newSegment->p1 == oldSegment->p1;
-				if (!same)
-				{
-					if (i == 1)
-					{
-						// add triangle
-						this->addTriangle(beginAngle, endPoint->angle, oldSegment, pos);
-					}
-					beginAngle = endPoint->angle;
-				}
-			}
-		}
-	}
+	this->lightPositions.push_back(position);
 }
 
 void VisibilityScene::loadMap()
 {
-	// clear vectors
-	this->endPoints.clear();
-	this->segments.clear();
+	// clear all
+	this->wallUniquePoints.clear();
+	this->boundaryUniquePoints.clear();
 
-	// Load edge of map (boundary)
-	cocos2d::log("Loading boundary segments...");
-	this->loadBoundary();
+	for (auto segment : this->wallSegments)
+	{
+		if (segment) delete segment;
+	}
 
-	// Load blocks(boxes)
-	std::vector<ECS::Entity*> boxes;
-	ECS::Manager::getInstance()->getAllEntitiesInPool(boxes, "BOX");
+	this->wallSegments.clear();
 
-	cocos2d::log("Loading boxes...");
-	for (auto box : boxes)
+	for (auto segment : this->boundarySegments)
+	{
+		if (segment) delete segment;
+	}
+
+	this->boundarySegments.clear();
+
+	// Add boundary
+	this->boundaryUniquePoints.push_back(cocos2d::Vec2(this->displayBoundary.getMinX(), this->displayBoundary.getMaxY()));  //top left
+	this->boundaryUniquePoints.push_back(cocos2d::Vec2(this->displayBoundary.getMaxX(), this->displayBoundary.getMaxY()));  //top right
+	this->boundaryUniquePoints.push_back(cocos2d::Vec2(this->displayBoundary.getMinX(), this->displayBoundary.getMinY()));  //bottom left
+	this->boundaryUniquePoints.push_back(cocos2d::Vec2(this->displayBoundary.getMaxX(), this->displayBoundary.getMinY()));  //bottom right
+
+	this->loadRect(this->displayBoundary, this->boundarySegments);
+
+	// Add walls
+	std::vector<ECS::Entity*> walls;
+	ECS::Manager::getInstance()->getAllEntitiesInPool(walls, "WALL");
+
+	for (auto box : walls)
 	{
 		auto comp = box->getComponent<ECS::Sprite>();
 		auto bb = comp->sprite->getBoundingBox();
 
-		this->loadRect(bb);
+		this->wallUniquePoints.push_back(cocos2d::Vec2(bb.getMinX(), bb.getMaxY()));  //top left
+		this->wallUniquePoints.push_back(cocos2d::Vec2(bb.getMaxX(), bb.getMaxY()));  //top right
+		this->wallUniquePoints.push_back(cocos2d::Vec2(bb.getMinX(), bb.getMinY()));  //bottom left
+		this->wallUniquePoints.push_back(cocos2d::Vec2(bb.getMaxX(), bb.getMinY()));  //bottom right
+
+		this->loadRect(bb, this->wallSegments);
 	}
 
-	// Load walls
 }
 
-void VisibilityScene::loadBoundary()
-{
-	cocos2d::log("Boundary origin: (%f, %f), size: (%f, %f)", this->displayBoundary.origin.x, this->displayBoundary.origin.y, this->displayBoundary.size.width, this->displayBoundary.size.height);
-	this->loadRect(this->displayBoundary);
-}
-
-void VisibilityScene::loadRect(const cocos2d::Rect& rect)
+void VisibilityScene::loadRect(const cocos2d::Rect& rect, std::vector<Segment*>& segments)
 {
 	// Going clock wise from top left point, first point is begin and second point is not
-	{
-		// Top segment
-		EndPoint* topLeft = new EndPoint();
-		topLeft->x = rect.getMinX();
-		topLeft->y = rect.getMaxY();
 
-		EndPoint* topRight = new EndPoint();
-		topRight->x = rect.getMaxX();
-		topRight->y = rect.getMaxY();
+	cocos2d::Vec2 topLeft = cocos2d::Vec2(rect.getMinX(), rect.getMaxY());
+	cocos2d::Vec2 topRight = cocos2d::Vec2(rect.getMaxX(), rect.getMaxY());
+	cocos2d::Vec2 bottomLeft = cocos2d::Vec2(rect.getMinX(), rect.getMinY());
+	cocos2d::Vec2 bottomRight = cocos2d::Vec2(rect.getMaxX(), rect.getMinY());
 
-		this->addSegment(*topLeft, *topRight);
-	}
+	// Top segment
+	this->addSegment(topLeft, topRight, segments);
 
-	{
-		// right segment
-		EndPoint* topRight = new EndPoint();
-		topRight->x = rect.getMaxX();
-		topRight->y = rect.getMaxY();
+	// right segment
+	this->addSegment(topRight, bottomRight, segments);
 
-		EndPoint* bottomRight = new EndPoint();
-		bottomRight->x = rect.getMaxX();
-		bottomRight->y = rect.getMinY();
+	// bottom segment
+	this->addSegment(bottomRight, bottomLeft, segments);
 
-		this->addSegment(*topRight, *bottomRight);
-	}
-
-	{
-		// bottom segment
-		EndPoint* bottomRight = new EndPoint();
-		bottomRight->x = rect.getMaxX();
-		bottomRight->y = rect.getMinY();
-
-		EndPoint* bottomLeft = new EndPoint();
-		bottomLeft->x = rect.getMinX();
-		bottomLeft->y = rect.getMinY();
-
-		this->addSegment(*bottomRight, *bottomLeft);
-	}
-
-	{
-		// Left segment
-		EndPoint* topLeft = new EndPoint();
-		topLeft->x = rect.getMinX();
-		topLeft->y = rect.getMaxY();
-
-		EndPoint* bottomLeft = new EndPoint();
-		bottomLeft->x = rect.getMinX();
-		bottomLeft->y = rect.getMinY();
-
-		this->addSegment(*bottomLeft, *topLeft);
-	}
+	// Left segment
+	this->addSegment(bottomLeft, topLeft, segments);
 }
 
-void VisibilityScene::addSegment(EndPoint& p1, EndPoint& p2)
+void VisibilityScene::addSegment(const cocos2d::Vec2& p1, const cocos2d::Vec2& p2, std::vector<Segment*>& segments)
 {
 	Segment* segment = new Segment();
-	p1.segment = segment;
-	p2.segment = segment;
 
-	p1.visualize = true;
-	p2.visualize = false;
+	segment->p1 = p1;
+	segment->p2 = p2;
 
-	segment->p1 = &p1;
-	segment->p2 = &p2;
-	
-	segment->d = 0;
+	segments.push_back(segment);
 
-	this->segments.push_back(segment);
-
-	this->endPoints.push_back(&p1);
-	this->endPoints.push_back(&p2);
-
-	cocos2d::log("Added segment p1: (%f, %f), p2: (%f, %f)", p1.x, p1.y, p2.x, p2.y);
+	//cocos2d::log("Added segment p1: (%f, %f), p2: (%f, %f)", p1.x, p1.y, p2.x, p2.y);
 }
 
-void VisibilityScene::setLightLocation()
+float VisibilityScene::getIntersectingPoint(const cocos2d::Vec2 & rayStart, const cocos2d::Vec2 & rayEnd, const Segment * segment, cocos2d::Vec2 & intersection)
 {
-	std::vector<ECS::Entity*> lights;
-	ECS::Manager::getInstance()->getAllEntitiesInPool(lights, "LIGHT");
-	
-	auto spriteComp = lights.at(0)->getComponent<ECS::Sprite>();
-	auto pos = spriteComp->sprite->getPosition();
+	auto& rs = rayStart;
+	auto& re = rayEnd;
 
-	cocos2d::log("Setting light location");
+	auto& sp1 = segment->p1;
+	auto& sp2 = segment->p2;
 
-	for (auto segment : this->segments)
+	auto rd = re - rs;
+	auto sd = sp2 - sp1;
+
+	auto rsd = sp1 - rs;
+
+	auto rdxsd = rd.cross(sd);
+	auto rsdxrd = rsd.cross(rd);
+
+	float t = rsd.cross(sd) / rdxsd;
+	float u = rsd.cross(rd) / rdxsd;
+
+	//cocos2d::log("u = %f", u);
+	//cocos2d::log("t = %f", t);
+
+	if (rdxsd == 0)
 	{
-		// The original article use distance sqaured for optimization, but it says sqrt in real practice is fast enough to use.
-		// I'm going to use cocos2d-x's built-in distance function, which uses sqrt.
-		//float dx = ((segment->p1->x + segment->p2->x) * 0.5f) - pos.x;
-		//float dy = ((segment->p1->y + segment->p2->y) * 0.5f) - pos.y;
-
-		cocos2d::Vec2 half = cocos2d::Vec2(segment->p1->x, segment->p1->y) + cocos2d::Vec2(segment->p2->x, segment->p2->y);
-		half *= 0.5f;
-		segment->d = half.distance(pos);
-
-		// Get angle from light position
-		segment->p1->angle = atan2(segment->p1->y - pos.y, segment->p1->x - pos.x);
-		segment->p2->angle = atan2(segment->p2->y - pos.y, segment->p2->x - pos.x);
-
-		float dAngle = segment->p2->angle - segment->p1->angle;
-		if (dAngle <= -M_PI)
+		/*
+		if (rsdxrd == 0)
 		{
-			dAngle += (M_PI * 2.0f);
+			cocos2d::log("colinear");
 		}
-		if (dAngle > M_PI)
+		else
 		{
-			dAngle -= (M_PI * 2.0f);
+			cocos2d::log("Parallel and not intersecting");
 		}
+		*/
 
-		segment->p1->begin = (dAngle > 0.0f);
-		segment->p2->begin = !segment->p2->begin;
-
-		cocos2d::log("Segment p1: (%f, %f), p2: (%f, %f)", segment->p1->x, segment->p1->y, segment->p2->x, segment->p2->y);
-		cocos2d::log("p1 angle: %f, p2 angle: %f", segment->p1->angle, segment->p2->angle);
-		cocos2d::log("d: %f", segment->d);
-	}
-}
-
-bool VisibilityScene::checkSegmentInFrontOf(Segment * a, Segment * b, const cocos2d::Vec2 & relativeOf)
-{
-	bool A1 = isLeftOf(a, interpolate(*b->p1, *b->p2, 0.01f));
-	bool A2 = isLeftOf(a, interpolate(*b->p2, *b->p1, 0.01f));
-	bool A3 = isLeftOf(a, relativeOf);
-
-	bool B1 = isLeftOf(b, interpolate(*a->p1, *a->p2, 0.01f));
-	bool B2 = isLeftOf(b, interpolate(*b->p2, *b->p1, 0.01f));
-	bool B3 = isLeftOf(b, relativeOf);
-
-	if (B1 == B2 && B2 != B3) return true;
-	if (A1 == A2 && A2 == A3) return true;
-	if (A1 == A2 && A2 != A3) return false;
-	if (B1 == B2 && B2 == B3) return false;
-
-	return false;
-}
-
-bool VisibilityScene::isLeftOf(Segment * segment, const cocos2d::Vec2 & point)
-{
-	// Cross product. If result is negative, point is on left from segment. 0 == parallel
-	float crossProduct = (segment->p2->x - segment->p1->x) * (point.y - segment->p1->y)
-						- (segment->p2->y - segment->p1->y) * (point.x - segment->p1->x);
-
-	return crossProduct < 0;
-}
-
-const cocos2d::Vec2 VisibilityScene::interpolate(const cocos2d::Vec2 & p, const cocos2d::Vec2 & q, const float ratio)
-{
-	return cocos2d::Vec2((p.x * (1.0f - ratio)) + (q.x * ratio), (p.y * (1.0f - ratio)) + (q.y * ratio));
-}
-
-void VisibilityScene::addTriangle(float angle1, float angle2, Segment * segment, const cocos2d::Vec2 & lightPos)
-{
-	auto p1 = lightPos;
-	auto p2 = cocos2d::Vec2(lightPos.x + cosf(angle1), lightPos.y + sinf(angle1));
-	auto p3 = cocos2d::Vec2::ZERO;
-	auto p4 = cocos2d::Vec2::ZERO;
-
-	if (segment != nullptr)
-	{
-		p3.x = segment->p1->x;
-		p3.y = segment->p1->y;
-		p4.x = segment->p2->x;
-		p4.y = segment->p2->y;
+		intersection = cocos2d::Vec2::ZERO;
+		return -1;
 	}
 	else
 	{
-		p3.x = lightPos.x + cosf(angle1) * 500.0f;
-		p3.y = lightPos.y + sinf(angle1) * 500.0f;
-		p4.x = lightPos.x + cosf(angle2) * 500.0f;
-		p4.y = lightPos.y + sinf(angle2) * 500.0f;
+		if (0 <= t &&  0 <= u && u <= 1.0f)
+		{
+			//cocos2d::log("Intersecting");
+			intersection.x = rayStart.x + (t * rd.x);
+			intersection.y = rayStart.y + (t * rd.y);
+			return t;
+		}
 	}
 
-	auto pointBegin = getIntersectingPoint(p3, p4, p1, p2);
-
-	p2.x = lightPos.x + cosf(angle2);
-	p2.y = lightPos.y + sinf(angle2);
-
-	auto pointEnd = getIntersectingPoint(p3, p4, p1, p2);
-
-	verticies.push_back(pointBegin);
-	verticies.push_back(lightPos);
-	verticies.push_back(pointEnd);
+	//cocos2d::log("Not colinear nor parallel, but doesn't intersect");
+	return 0;
 }
 
-const cocos2d::Vec2 VisibilityScene::getIntersectingPoint(const cocos2d::Vec2 & p1, const cocos2d::Vec2 & p2, const cocos2d::Vec2 & p3, const cocos2d::Vec2 & p4)
+void VisibilityScene::findIntersectsWithRaycasts()
 {
-	float s = ((p4.x - p3.x) * (p1.y - p3.y) - (p4.y - p3.y) * (p1.x - p3.x))
-		/ ((p4.y - p3.y) * (p2.x - p1.x) - (p4.x - p3.x) * (p2.y - p1.y));
-	return cocos2d::Vec2(p1.x + s * (p2.x - p1.x), p1.y + s * (p2.y - p1.y));
+	if (this->lightPositions.empty())
+	{
+		return;
+	}
+
+	//auto lightPos = this->lightPositions.at(0);
+	auto lightPos = mousePos;
+
+	if (this->displayBoundary.containsPoint(lightPos))
+	{
+		// load the map and generate segments
+		this->loadMap();
+
+		// Raycast once for boundary and once for walls
+		// First, check with walls.
+		// key point is that we skip segment that has unique point, because we just want to check if ray hits other segments.
+
+		// clear intersecting points
+		intersects.clear();
+
+		// Iterate through wall unique point and calculate angles
+		std::vector<float> wallUniqueAngles;
+		for (auto uniquePoint : this->wallUniquePoints)
+		{
+			float angle = atan2(uniquePoint.y - lightPos.y, uniquePoint.x - lightPos.x);
+			wallUniqueAngles.push_back(angle);
+			//wallUniqueAngles.push_back(angle - 0.0001f);
+			//wallUniqueAngles.push_back(angle + 0.0001f);
+		}
+
+		// Iterate through boundary unique point and calculate angles
+		std::vector<float> boundaryUniqueAngles;
+		for (auto uniquePoint : this->boundaryUniquePoints)
+		{
+			float angle = atan2(uniquePoint.y - lightPos.y, uniquePoint.x - lightPos.x);
+			boundaryUniqueAngles.push_back(angle);
+			//boundaryUniqueAngles.push_back(angle - 0.0001f);
+			//boundaryUniqueAngles.push_back(angle + 0.0001f);
+		}
+
+		// Now iterate the angle we calculated above, create ray and see if hits any segments
+		std::vector<Segment*> allSegments;
+		for (auto s : this->boundarySegments)
+		{
+			allSegments.push_back(s);
+		}
+
+		for (auto s : this->wallSegments)
+		{
+			allSegments.push_back(s);
+		}
+
+		int wallIndex = 0;	// for unique point
+		int indexCounter = 0;
+		for (auto angle : wallUniqueAngles)
+		{
+			int hitCount = 0;	// increment everytime ray hits segment
+
+			float degree = angle * 180.0f / M_PI;
+			//cocos2d::log("angle = %f", degree);
+			if (45.0f == fabsf(degree))
+			{
+				//cocos2d::log("45 degree");
+			}
+			if (135.0f == fabsf(degree))
+			{
+				//cocos2d::log("135 degree");
+			}
+			float dx = cosf(angle);
+			float dy = sinf(angle);
+
+			auto rayStart = lightPos;
+			auto rayEnd = cocos2d::Vec2(rayStart.x + dx, rayStart.y + dy);
+
+			// Zero will mean no hit
+			cocos2d::Vec2 closestIntersection = cocos2d::Vec2::ZERO;
+			cocos2d::Vec2 farthestIntersection = cocos2d::Vec2::ZERO;
+
+			bool parallel = false;
+
+			for (auto segment : allSegments)
+			{
+				auto p1 = cocos2d::Vec2(segment->p1.x, segment->p1.y);
+				auto p2 = cocos2d::Vec2(segment->p2.x, segment->p2.y);
+
+				if (p1 == this->wallUniquePoints.at(wallIndex) || p2 == this->wallUniquePoints.at(wallIndex))
+				{
+					// Don't check segment that includes the unique point we are raycasting.
+					continue;
+				}
+
+				cocos2d::Vec2 intersectingPoint;
+				auto dist = this->getIntersectingPoint(rayStart, rayEnd, segment, intersectingPoint);
+
+				if (dist > 0)
+				{
+					// count
+					hitCount++;
+
+					if (closestIntersection == cocos2d::Vec2::ZERO)
+					{
+						// Haven't find any intersection yet. Set as closest
+						closestIntersection = intersectingPoint;
+						farthestIntersection = intersectingPoint;
+					}
+					else
+					{
+						// Check if new intersecting point we found is closer to light position(where ray starts)
+						if (intersectingPoint.distance(rayStart) < closestIntersection.distance(rayStart))
+						{
+							// If so, set as closest
+							closestIntersection = intersectingPoint;
+						}
+
+						if (intersectingPoint.distance(rayStart) > farthestIntersection.distance(rayStart))
+						{
+							farthestIntersection = intersectingPoint;
+						}
+					}
+				}
+				// else if dist == 0, didn't intersect
+				else if (dist < 0)
+				{
+					// it's parallel
+					parallel = true;
+					//cocos2d::log("Parallel");
+				}
+				// else, didn't hit this segment
+			}
+			// end of segment interation
+
+			if (hitCount == 1)
+			{
+				// Only hit once, which must be boundary.
+				// This also means that unique point is visiable from light.
+				// We are using intersection with boundary instead of unique point because
+				// Light doesn't stop where it intersects with wall. It goes until it hits the end (boundary).
+				Vertex v;
+				v.boundaryVisible = true;
+				v.isBounday = false;
+				v.vertex = this->wallUniquePoints.at(wallIndex);
+				v.boundaryVertex = closestIntersection;
+				v.angle = angle;
+				intersects.push_back(v);
+			}
+			else
+			{
+				if (hitCount > 1)
+				{
+					// Check if closest intersecting point is closer than unique point
+					auto dist = closestIntersection.distance(rayStart);
+					auto maxDist = wallUniquePoints.at(wallIndex).distance(rayStart);
+					if (dist > maxDist)
+					{
+						// Closest intersecting point is further than unique point from light position. 
+						// Add unique point as intersecting point.
+						Vertex v;
+						// in this case, it's not boundary
+						v.boundaryVisible = false;
+						v.isBounday = false;
+						v.vertex = wallUniquePoints.at(wallIndex);
+						if (degree == 45.0f || degree == 135.0f || degree == -45.0f || degree == -135.0f)
+						{
+							//cocos2d::log("Degree 45, adding (%f, %f)", wallUniquePoints.at(wallIndex).x, wallUniquePoints.at(wallIndex).y);
+						}
+						//v.vertex = closestIntersection;
+						if (parallel)
+						{
+							v.boundaryVisible = true;
+							v.boundaryVertex = farthestIntersection;
+						}
+						else
+						{
+							if (hitCount % 2 == 0)
+							{
+								v.boundaryVisible = false;
+								v.boundaryVertex = cocos2d::Vec2::ZERO;
+							}
+							else
+							{
+								if (degree == 45.0f || degree == 135.0f || degree == -45.0f || degree == -135.0f)
+								{
+									// Corner cases. Unlike other ray, if angle between segment and ray is 45, 135, -45, -135, treat as single hit
+									v.boundaryVisible = false;
+									v.boundaryVertex = cocos2d::Vec2::ZERO;
+								}
+								else
+								{
+									v.boundaryVisible = true;
+									v.boundaryVertex = closestIntersection;
+								}
+							}
+						}
+						v.angle = angle;
+						intersects.push_back(v);
+					}
+				}
+				// If it's 0, it's bug.
+			}
+
+			wallIndex++;
+		}
+
+		int boundaryIndex = 0;
+		for (auto angle : boundaryUniqueAngles)
+		{
+			float dx = cosf(angle);
+			float dy = sinf(angle);
+
+			auto rayStart = lightPos;
+			auto rayEnd = cocos2d::Vec2(rayStart.x + dx, rayStart.y + dy);
+
+			// Zero will mean no hit
+			cocos2d::Vec2 closestIntersection = cocos2d::Vec2::ZERO;
+
+			for (auto segment : allSegments)
+			{
+				auto p1 = cocos2d::Vec2(segment->p1.x, segment->p1.y);
+				auto p2 = cocos2d::Vec2(segment->p2.x, segment->p2.y);
+
+				if (p1 == this->boundaryUniquePoints.at(boundaryIndex) || p2 == this->boundaryUniquePoints.at(boundaryIndex))
+				{
+					// Don't check segment that includes the unique point we are raycasting.
+					continue;
+				}
+
+				cocos2d::Vec2 intersectingPoint;
+				auto dist = this->getIntersectingPoint(rayStart, rayEnd, segment, intersectingPoint);
+
+				if (dist != 0)
+				{
+					if (closestIntersection == cocos2d::Vec2::ZERO)
+					{
+						// Haven't find any intersection yet. Set as closest
+						closestIntersection = intersectingPoint;
+					}
+					else
+					{
+						// Check if new intersecting point we found is closer to light position(where ray starts)
+						if (intersectingPoint.distance(rayStart) < closestIntersection.distance(rayStart))
+						{
+							// If so, set as closest
+							closestIntersection = intersectingPoint;
+						}
+					}
+				}
+			}
+
+			if (closestIntersection == cocos2d::Vec2::ZERO)
+			{
+				// Ray didn't hit any segment. Closest intersecting point will be the unique point
+				Vertex v;
+				v.boundaryVisible = false;
+				v.isBounday = true;
+				v.vertex = boundaryUniquePoints.at(boundaryIndex);
+				v.boundaryVertex = cocos2d::Vec2::ZERO;
+				v.angle = angle;
+				intersects.push_back(v);
+			}
+			// Else, ray hit segment. We ignore
+
+			boundaryIndex++;
+		}
+
+		this->raycastDrawNode->clear();
+
+		for (auto intersect : intersects)
+		{
+			float degree = intersect.angle * 180.0f / M_PI;
+			auto color = cocos2d::Color4F::RED;
+			color.a = 0.5f;
+			if (intersect.boundaryVisible)
+			{
+				this->raycastDrawNode->drawLine(lightPos, intersect.boundaryVertex, color);
+			}
+			else
+			{
+				this->raycastDrawNode->drawLine(lightPos, intersect.vertex, color);
+			}
+		}
+	}
+}
+
+void VisibilityScene::drawTriangles()
+{
+	this->triangleDrawNode->clear();
+	std::vector<cocos2d::Vec2> verticies;
+
+	auto centerPos = this->mousePos;
+
+	// Sort intersecting points by angle.
+	std::sort(this->intersects.begin(), this->intersects.end(), VertexComparator());
+
+	// Generate vertex for triangle. 
+	auto size = this->intersects.size();
+	bool prevEndedWithBoundayVisible = false;
+	for (unsigned int i = 0; i < size; i++)
+	{
+		// First, add center point
+		verticies.push_back(centerPos);		
+		
+		int index = i + 1;
+		if (index == size)
+		{
+			index = 0;
+		}
+
+		auto& v2 = intersects.at(i);
+		auto& v3 = intersects.at(index);
+		verticies.push_back(v2.vertex);
+		verticies.push_back(v3.vertex);
+		/*
+		if (v2.isBounday)
+		{
+			if (v3.isBounday)
+			{
+				verticies.push_back(v2.vertex);
+				verticies.push_back(v3.vertex);
+			}
+			else
+			{
+				if (v3.boundaryVisible)
+				{
+					verticies.push_back(intersects.at(i).vertex);
+					verticies.push_back(intersects.at(index).boundaryVertex);
+				}
+				else
+				{
+					// can't reach?
+					verticies.push_back(v2.vertex);
+					verticies.push_back(v3.vertex);
+				}
+			}
+		}
+		else
+		{
+			if(v3.isBounday)
+			{
+				verticies.push_back(v2.boundaryVertex);
+				verticies.push_back(v3.vertex);
+			}
+			else
+			{
+				if (v3.boundaryVisible)
+				{
+					if (v2.boundaryVisible)
+					{
+						if (prevEndedWithBoundayVisible)
+						{
+							verticies.push_back(v2.boundaryVertex);
+							verticies.push_back(v3.boundaryVertex);
+						}
+						else
+						{
+							verticies.push_back(v2.vertex);
+							verticies.push_back(v3.vertex);
+						}
+					}
+					else
+					{
+						verticies.push_back(v2.vertex);
+						verticies.push_back(v3.vertex);
+					}
+				}
+				else
+				{
+					verticies.push_back(v2.vertex);
+					verticies.push_back(v3.vertex);
+				}
+			}
+		}
+
+		if (v3.boundaryVisible)
+		{
+			//prevEndedWithBoundayVisible = true;
+		}
+		else
+		{
+			//prevEndedWithBoundayVisible = false;
+		}
+		*/
+	}
+
+	size = verticies.size();
+	auto color = cocos2d::Color4F::GREEN;
+	color.a = 0.2f;
+	for (unsigned int i = 0; i < size; i+=3)
+	{
+		this->triangleDrawNode->drawTriangle(verticies.at(i), verticies.at(i + 1), verticies.at(i + 2), color);
+	}
+}
+
+bool VisibilityScene::isPointOnBoundary(const cocos2d::Vec2 & point)
+{
+	if (point.x == this->displayBoundary.getMinX() || point.x == this->displayBoundary.getMaxX() || 
+		point.y == this->displayBoundary.getMinY() || point.y == this->displayBoundary.getMinY())
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 void VisibilityScene::update(float delta)
 {
 	this->labelsNode->updateFPSLabel(delta);
+
 }
 
 void VisibilityScene::initInputListeners()
@@ -495,6 +703,8 @@ void VisibilityScene::onMouseMove(cocos2d::Event* event)
 
 	cocos2d::Vec2 point = cocos2d::Vec2(x, y);
 
+	this->mousePos = point;
+
 	if (this->displayBoundary.containsPoint(point))
 	{
 		if (this->currentMode == MODE::BOX)
@@ -520,15 +730,19 @@ void VisibilityScene::onMouseMove(cocos2d::Event* event)
 					point.y = this->newBoxOrigin.y - 100.0f;
 				}
 
-				float fx = floorf(point.x);
-				float fy = floorf(point.y);
-				this->newBoxDest = cocos2d::Vec2(fx, fy);
+				//float fx = floorf(point.x);
+				//float fy = floorf(point.y);
+				//this->newBoxDest = cocos2d::Vec2(fx, fy);
+				this->newBoxDest = point;
 
 				this->newBoxDrawNode->clear();
 				this->newBoxDrawNode->drawSolidRect(this->newBoxOrigin, this->newBoxDest, cocos2d::Color4F::ORANGE);
 				this->newBoxDrawNode->drawRect(this->newBoxOrigin, this->newBoxDest, cocos2d::Color4F::YELLOW);
 			}
 		}
+
+		this->findIntersectsWithRaycasts();
+		this->drawTriangles();
 	}
 
 }
@@ -549,14 +763,15 @@ void VisibilityScene::onMouseDown(cocos2d::Event* event)
 		{
 			// Box mode. draw new box
 			auto m = ECS::Manager::getInstance();
-			auto boxCount = m->getAliveEntityCountInEntityPool("BOX");
+			auto boxCount = m->getAliveEntityCountInEntityPool("WALL");
 			if (boxCount < 32)
 			{
 				// still can make another box
 				this->draggingBox = true;
-				float fx = floorf(point.x);
-				float fy = floorf(point.y);
-				this->newBoxOrigin = cocos2d::Vec2(fx, fy);
+				//float fx = floorf(point.x);
+				//float fy = floorf(point.y);
+				//this->newBoxOrigin = cocos2d::Vec2(fx, fy);
+				this->newBoxOrigin = point;
 			}
 			else
 			{
@@ -593,6 +808,7 @@ void VisibilityScene::onMouseUp(cocos2d::Event* event)
 
 				// Make new box
 				this->createNewBox();
+				cocos2d::log("Creating new box origin (%f, %f), size (%f, %f)", this->newBoxOrigin.x, this->newBoxOrigin.y, this->newBoxDest.x, this->newBoxDest.y);
 
 				this->newBoxDrawNode->clear();
 			}
@@ -642,24 +858,15 @@ void VisibilityScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coco
 	{
 		this->currentMode = MODE::IDLE;
 		this->loadMap();
-		this->setLightLocation();
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_SPACE)
 	{
-		this->sweep();
+		this->findIntersectsWithRaycasts();
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_1)
 	{
 		this->visiableAreaDrawNode->clear();
-
-		auto size = this->verticies.size();
-		for (unsigned int i = 0; i < size; i += 3)
-		{
-			this->visiableAreaDrawNode->drawTriangle(this->verticies.at(i), this->verticies.at(i + 1), this->verticies.at(i + 2), cocos2d::Color4F::GREEN);
-			this->visiableAreaDrawNode->drawLine(this->verticies.at(i), this->verticies.at(i + 1), cocos2d::Color4F::ORANGE);
-			this->visiableAreaDrawNode->drawLine(this->verticies.at(i+1), this->verticies.at(i + 2), cocos2d::Color4F::ORANGE);
-			this->visiableAreaDrawNode->drawLine(this->verticies.at(i + 2), this->verticies.at(i), cocos2d::Color4F::ORANGE);
-		}
+		this->drawTriangles();
 	}
 }
 
@@ -684,7 +891,7 @@ void VisibilityScene::onExit()
 
 	ECS::Manager::deleteInstance();
 
-	for (auto segment : this->segments)
+	for (auto segment : this->wallSegments)
 	{
 		delete segment;
 	}
