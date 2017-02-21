@@ -480,11 +480,24 @@ void VisibilityScene::findIntersectsWithRaycasts()
 								if (degree == 45.0f || degree == 135.0f || degree == -45.0f || degree == -135.0f)
 								{
 									// However, there are some corner cases.
-									// If angle between segment and ray is 45, 135, -45, -135, treat as single hit
-									v.boundaryVisible = false;
-									v.otherWallVisible = false;
-									v.extendedVertex = cocos2d::Vec2::ZERO;
-									v.wallID = uniquePointWallID;
+									// If angle between segment and ray is 45, 135, -45, -135, there are two cases.
+									// First, closest intersecting point is in same wall.
+									// Second, closest intersecting point is boundary or segment from other wall.
+									if (wallID == uniquePointWallID)
+									{
+										v.boundaryVisible = false;
+										v.otherWallVisible = false;
+										v.extendedVertex = cocos2d::Vec2::ZERO;
+										v.wallID = uniquePointWallID;
+									}
+									else
+									{
+										v.boundaryVisible = false;
+										v.otherWallVisible = true;
+										v.extendedVertex = closestIntersection;
+										v.wallID = uniquePointWallID;
+									}
+									cocos2d::log("corner case, hit count = %d", hitCount);
 								}
 								else
 								{
@@ -493,7 +506,7 @@ void VisibilityScene::findIntersectsWithRaycasts()
 									v.boundaryVisible = false;
 									v.otherWallVisible = true;
 									v.extendedVertex = closestIntersection;
-									v.wallID = wallID;
+									v.wallID = uniquePointWallID;
 								}
 							}
 						}
@@ -650,25 +663,86 @@ void VisibilityScene::drawTriangles()
 			verticies.push_back(v2.extendedVertex);
 			verticies.push_back(v3.vertex);
 		}
-		// Case #3
+		// Case #3 (Corner cases)
 		else
 		{
 			// v2 and v3 both are not boundary.
 			// This means both v2 and v3 is wall unique point.
-			if ((v2.boundaryVisible && !v3.boundaryVisible) || (!v2.boundaryVisible && v3.boundaryVisible))
+			if (v2.boundaryVisible && !v3.boundaryVisible)
 			{
-				// Case 3-3
-				// If only either v2 or v3 can see the boundary, but not both, use vertex
+				// v2 can be extended to boundary but v3 isn't
+				// Check if v3 can be extended to other wall
 				verticies.push_back(v2.vertex);
-				verticies.push_back(v3.vertex);
+
+				if (v3.otherWallVisible)
+				{
+					if (v2.wallID == v3.wallID)
+					{
+						verticies.push_back(v3.vertex);
+					}
+					else
+					{
+						verticies.push_back(v3.extendedVertex);
+					}
+				}
+				else
+				{
+					verticies.push_back(v3.vertex);
+				}
+
+				continue;
 			}
-			else if ((v2.otherWallVisible && !v3.otherWallVisible) || (!v2.otherWallVisible && v3.otherWallVisible))
+			
+			if (!v2.boundaryVisible && v3.boundaryVisible)
+			{
+				// v2 cannot be extended to boundary but v3 can
+				// check if v2 can extended to other wall
+				if (v2.otherWallVisible)
+				{
+					if (v2.wallID == v3.wallID)
+					{
+						verticies.push_back(v2.vertex);
+					}
+					else
+					{
+						verticies.push_back(v2.extendedVertex);
+					}
+				}
+				else
+				{
+					verticies.push_back(v2.vertex);
+				}
+
+				verticies.push_back(v3.vertex);
+
+				continue;
+			}
+
+			if (v2.boundaryVisible && v3.boundaryVisible)
+			{
+				// both v2 and v3 can see boundary.
+				// if two point is in same wall, use vertex. Else, extended vertex
+				if (v2.wallID == v3.wallID)
+				{
+					verticies.push_back(v2.vertex);
+					verticies.push_back(v3.vertex);
+				}
+				else
+				{
+					verticies.push_back(v2.extendedVertex);
+					verticies.push_back(v3.extendedVertex);
+				}
+
+				continue;
+			}
+			
+			if ((v2.otherWallVisible && !v3.otherWallVisible) || (!v2.otherWallVisible && v3.otherWallVisible))
 			{
 				// Case 3-4
 				// If only either v2 or v3 can be extended to other wall, but not both, use extendedVertex if so.
 				if (v2.otherWallVisible)
 				{
-					if (v2.wallID != v3.wallID)
+					if (v2.wallID == v3.wallID)
 					{
 						verticies.push_back(v2.vertex);
 					}
@@ -684,7 +758,7 @@ void VisibilityScene::drawTriangles()
 
 				if (v3.otherWallVisible)
 				{
-					if (v2.wallID != v3.wallID)
+					if (v2.wallID == v3.wallID)
 					{
 						verticies.push_back(v3.vertex);
 					}
@@ -709,9 +783,22 @@ void VisibilityScene::drawTriangles()
 				}
 				else
 				{
-					// If both v2 and v3 is not on same segment, use extendedVertex
-					verticies.push_back(v2.extendedVertex);
-					verticies.push_back(v3.extendedVertex);
+					// If both v2 and v3 is not on same segment, check distance, 
+					// Farther intersecting point uses vertex
+					auto v2Dist = v2.extendedVertex.distance(centerPos);
+					auto v3Dist = v3.extendedVertex.distance(centerPos);
+
+					if (v2Dist < v3Dist)
+					{
+						// v2 is closer.
+						verticies.push_back(v2.extendedVertex);
+						verticies.push_back(v3.vertex);
+					}
+					else
+					{
+						verticies.push_back(v2.vertex);
+						verticies.push_back(v3.extendedVertex);
+					}
 				}
 			}
 		}
