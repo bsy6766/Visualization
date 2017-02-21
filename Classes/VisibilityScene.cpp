@@ -87,6 +87,9 @@ void VisibilityScene::onEnter()
 	this->newBoxOrigin = cocos2d::Vec2(100, 100);
 	this->newBoxDest = cocos2d::Vec2(200, 200);
 	createNewBox();
+	this->newBoxOrigin = cocos2d::Vec2(150, 300);
+	this->newBoxDest = cocos2d::Vec2(250, 400);
+	createNewBox();
 }
 
 void VisibilityScene::initECS()
@@ -322,6 +325,7 @@ void VisibilityScene::findIntersectsWithRaycasts()
 		// Iterate through walls first
 		for (auto angle : wallUniqueAngles)
 		{
+			cocos2d::log("\n");
 			int hitCount = 0;	// increment everytime ray hits segment
 
 			// Get direction of ray
@@ -371,7 +375,6 @@ void VisibilityScene::findIntersectsWithRaycasts()
 					{
 						// Haven't find any intersection yet. Set as closest
 						closestIntersection = intersectingPoint;
-						secondClosestIntersection = intersectingPoint;
 					}
 					else
 					{
@@ -380,29 +383,26 @@ void VisibilityScene::findIntersectsWithRaycasts()
 						if (intersectDist < closestIntersection.distance(rayStart))
 						{
 							// If so, set as closest
+							secondClosestIntersection = closestIntersection;
 							closestIntersection = intersectingPoint;
 						}
 						else
 						{
-							if (closestIntersection == secondClosestIntersection)
+							if (uniquePointWallID != wallID)
 							{
-								secondClosestIntersection = intersectingPoint;
-							}
-							else
-							{
-								if (intersectDist < secondClosestIntersection.distance(rayStart))
+								if (secondClosestIntersection == cocos2d::Vec2::ZERO)
 								{
 									secondClosestIntersection = intersectingPoint;
 								}
+								else
+								{
+									if (intersectDist < secondClosestIntersection.distance(rayStart))
+									{
+										secondClosestIntersection = intersectingPoint;
+									}
+								}
 							}
 						}
-
-						//// Check if new intersecting point we found is farther than farthest intersecting point.
-						//if (intersectingPoint.distance(rayStart) > secondClosestIntersection.distance(rayStart))
-						//{
-						//	// If so, set as farthest
-						//	secondClosestIntersection = intersectingPoint;
-						//}
 					}
 				}
 				// else if dist == 0, didn't intersect. Do nothing.
@@ -451,21 +451,25 @@ void VisibilityScene::findIntersectsWithRaycasts()
 						if (parallel)
 						{
 							// The ray and segment was parallel.
-							if (hitCount % 2 == 0)
+							// hit count is always even number for parallel
+							if (hitCount == 2)
 							{
+								// Didn't hit any other walls, just itself and boundary
 								v.boundaryVisible = true;
 								v.otherWallVisible = false;
 								v.wallID = uniquePointWallID;
 								v.extendedWallID = -1;
+								v.extendedVertex = secondClosestIntersection;
 							}
 							else
 							{
+								// Hit some other walls before it reach the boundary.
 								v.boundaryVisible = false;
 								v.otherWallVisible = true;
-								v.wallID = wallID;
+								v.wallID = uniquePointWallID;
 								v.extendedWallID = wallID;
+								v.extendedVertex = secondClosestIntersection;
 							}
-							v.extendedVertex = secondClosestIntersection;
 						}
 						else
 						{
