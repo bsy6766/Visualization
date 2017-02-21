@@ -157,7 +157,7 @@ void VisibilityScene::loadMap()
 	this->boundaryUniquePoints.push_back(cocos2d::Vec2(this->displayBoundary.getMinX(), this->displayBoundary.getMinY()));  //bottom left
 	this->boundaryUniquePoints.push_back(cocos2d::Vec2(this->displayBoundary.getMaxX(), this->displayBoundary.getMinY()));  //bottom right
 
-	this->loadRect(this->displayBoundary, this->boundarySegments);
+	this->loadRect(this->displayBoundary, this->boundarySegments, -1/*boundary isn't wall. so use -1*/);
 
 	// Add walls
 	std::vector<ECS::Entity*> walls;
@@ -173,12 +173,12 @@ void VisibilityScene::loadMap()
 		this->wallUniquePoints.push_back(cocos2d::Vec2(bb.getMinX(), bb.getMinY()));  //bottom left
 		this->wallUniquePoints.push_back(cocos2d::Vec2(bb.getMaxX(), bb.getMinY()));  //bottom right
 
-		this->loadRect(bb, this->wallSegments);
+		this->loadRect(bb, this->wallSegments, box->getId());
 	}
 
 }
 
-void VisibilityScene::loadRect(const cocos2d::Rect& rect, std::vector<Segment*>& segments)
+void VisibilityScene::loadRect(const cocos2d::Rect& rect, std::vector<Segment*>& segments, const int wallID)
 {
 	// Going clock wise from top left point, first point is begin and second point is not
 
@@ -188,24 +188,26 @@ void VisibilityScene::loadRect(const cocos2d::Rect& rect, std::vector<Segment*>&
 	cocos2d::Vec2 bottomRight = cocos2d::Vec2(rect.getMaxX(), rect.getMinY());
 
 	// Top segment
-	this->addSegment(topLeft, topRight, segments);
+	this->addSegment(topLeft, topRight, segments, wallID);
 
 	// right segment
-	this->addSegment(topRight, bottomRight, segments);
+	this->addSegment(topRight, bottomRight, segments, wallID);
 
 	// bottom segment
-	this->addSegment(bottomRight, bottomLeft, segments);
+	this->addSegment(bottomRight, bottomLeft, segments, wallID);
 
 	// Left segment
-	this->addSegment(bottomLeft, topLeft, segments);
+	this->addSegment(bottomLeft, topLeft, segments, wallID);
 }
 
-void VisibilityScene::addSegment(const cocos2d::Vec2& p1, const cocos2d::Vec2& p2, std::vector<Segment*>& segments)
+void VisibilityScene::addSegment(const cocos2d::Vec2& p1, const cocos2d::Vec2& p2, std::vector<Segment*>& segments, const int wallID)
 {
 	Segment* segment = new Segment();
 
 	segment->p1 = p1;
 	segment->p2 = p2;
+
+	segment->wallID = wallID;
 
 	segments.push_back(segment);
 
@@ -267,24 +269,18 @@ float VisibilityScene::getIntersectingPoint(const cocos2d::Vec2 & rayStart, cons
 
 void VisibilityScene::findIntersectsWithRaycasts()
 {
-	if (this->lightPositions.empty())
-	{
-		return;
-	}
+	// Don't need to find if there is no light
+	if (this->lightPositions.empty()) return;
 
 	//auto lightPos = this->lightPositions.at(0);
-	auto lightPos = mousePos;
+	auto lightPos = mousePos;	//debug
 
 	if (this->displayBoundary.containsPoint(lightPos))
 	{
-		// load the map and generate segments
+		// load the map and generate segments.
 		this->loadMap();
 
-		// Raycast once for boundary and once for walls
-		// First, check with walls.
-		// key point is that we skip segment that has unique point, because we just want to check if ray hits other segments.
-
-		// clear intersecting points
+		// clear intersecting points.
 		intersects.clear();
 
 		// Iterate through wall unique point and calculate angles
@@ -293,8 +289,6 @@ void VisibilityScene::findIntersectsWithRaycasts()
 		{
 			float angle = atan2(uniquePoint.y - lightPos.y, uniquePoint.x - lightPos.x);
 			wallUniqueAngles.push_back(angle);
-			//wallUniqueAngles.push_back(angle - 0.0001f);
-			//wallUniqueAngles.push_back(angle + 0.0001f);
 		}
 
 		// Iterate through boundary unique point and calculate angles
@@ -303,9 +297,9 @@ void VisibilityScene::findIntersectsWithRaycasts()
 		{
 			float angle = atan2(uniquePoint.y - lightPos.y, uniquePoint.x - lightPos.x);
 			boundaryUniqueAngles.push_back(angle);
-			//boundaryUniqueAngles.push_back(angle - 0.0001f);
-			//boundaryUniqueAngles.push_back(angle + 0.0001f);
 		}
+
+		// So at this point, we have all unique point and angle calculated.
 
 		// Now iterate the angle we calculated above, create ray and see if hits any segments
 		std::vector<Segment*> allSegments;
@@ -319,25 +313,22 @@ void VisibilityScene::findIntersectsWithRaycasts()
 			allSegments.push_back(s);
 		}
 
+		// Eventhough we use both boudary and wall segment for raycasting, we need separate 
+		// list of unique points to determine if we really need the intersecting point.
+		// More details on below comments
+
 		int wallIndex = 0;	// for unique point
-		int indexCounter = 0;
+
+		// Iterate through walls first
 		for (auto angle : wallUniqueAngles)
 		{
 			int hitCount = 0;	// increment everytime ray hits segment
 
-			float degree = angle * 180.0f / M_PI;
-			//cocos2d::log("angle = %f", degree);
-			if (45.0f == fabsf(degree))
-			{
-				//cocos2d::log("45 degree");
-			}
-			if (135.0f == fabsf(degree))
-			{
-				//cocos2d::log("135 degree");
-			}
+			// Get direction of ray
 			float dx = cosf(angle);
 			float dy = sinf(angle);
 
+			// Generate raycast vec2 points
 			auto rayStart = lightPos;
 			auto rayEnd = cocos2d::Vec2(rayStart.x + dx, rayStart.y + dy);
 
@@ -345,26 +336,36 @@ void VisibilityScene::findIntersectsWithRaycasts()
 			cocos2d::Vec2 closestIntersection = cocos2d::Vec2::ZERO;
 			cocos2d::Vec2 farthestIntersection = cocos2d::Vec2::ZERO;
 
+			// This flag is for corner case where raycast is parallel to segment
 			bool parallel = false;
+			// Keep tracks the wallID of segment that raycast intersected.
+			int wallID = -1;
+			int uniquePointWallID = -1;
 
+			// Iterate through all segments
 			for (auto segment : allSegments)
 			{
+				// Convert to cocos2d::Vec2
 				auto p1 = cocos2d::Vec2(segment->p1.x, segment->p1.y);
 				auto p2 = cocos2d::Vec2(segment->p2.x, segment->p2.y);
 
 				if (p1 == this->wallUniquePoints.at(wallIndex) || p2 == this->wallUniquePoints.at(wallIndex))
 				{
 					// Don't check segment that includes the unique point we are raycasting.
+					uniquePointWallID = segment->wallID;
 					continue;
 				}
 
+				// Get intersecting point
 				cocos2d::Vec2 intersectingPoint;
 				auto dist = this->getIntersectingPoint(rayStart, rayEnd, segment, intersectingPoint);
 
+				// check the distance. if dist is 0, ray didn't hit any segments. If dist is -1, it's parallel to segment.
 				if (dist > 0)
 				{
-					// count
-					hitCount++;
+					hitCount++;		// Increment counter
+
+					wallID = segment->wallID;	// Keep track wallID
 
 					if (closestIntersection == cocos2d::Vec2::ZERO)
 					{
@@ -381,39 +382,40 @@ void VisibilityScene::findIntersectsWithRaycasts()
 							closestIntersection = intersectingPoint;
 						}
 
+						// Check if new intersecting point we found is farther than farthest intersecting point.
 						if (intersectingPoint.distance(rayStart) > farthestIntersection.distance(rayStart))
 						{
+							// If so, set as farthest
 							farthestIntersection = intersectingPoint;
 						}
 					}
 				}
-				// else if dist == 0, didn't intersect
+				// else if dist == 0, didn't intersect. Do nothing.
 				else if (dist < 0)
 				{
 					// it's parallel
 					parallel = true;
-					//cocos2d::log("Parallel");
 				}
-				// else, didn't hit this segment
 			}
 			// end of segment interation
 
 			if (hitCount == 1)
 			{
-				// Only hit once, which must be boundary.
-				// This also means that unique point is visiable from light.
-				// We are using intersection with boundary instead of unique point because
-				// Light doesn't stop where it intersects with wall. It goes until it hits the end (boundary).
+				// Only hit once, which must be boundary segment.
+				// In this case, it means that this intersecting point is visible from light and can be
+				// extended to the boundary. 
 				Vertex v;
-				v.boundaryVisible = true;
-				v.isBounday = false;
-				v.vertex = this->wallUniquePoints.at(wallIndex);
-				v.boundaryVertex = closestIntersection;
-				v.angle = angle;
+				v.boundaryVisible = true;								// light can see boundary
+				v.isBounday = false;									// It's wall not boundary
+				v.vertex = this->wallUniquePoints.at(wallIndex);		// Ray hit the unique point. 
+				v.extendedVertex = closestIntersection;					// But can be extended to boundary, which is closests point
+				v.angle = angle;										// Store angle for sorting
+				v.wallID = uniquePointWallID;							// Keep track which wall are we dealing with
 				intersects.push_back(v);
 			}
 			else
 			{
+				// Ray hit more than 1 segment. This means ray hit boundary segment and additional wall segment(s)
 				if (hitCount > 1)
 				{
 					// Check if closest intersecting point is closer than unique point
@@ -421,48 +423,88 @@ void VisibilityScene::findIntersectsWithRaycasts()
 					auto maxDist = wallUniquePoints.at(wallIndex).distance(rayStart);
 					if (dist > maxDist)
 					{
-						// Closest intersecting point is further than unique point from light position. 
-						// Add unique point as intersecting point.
+						// Closest intersecting point is further than unique point from light position.
+						// This means that there weren't any closests intersecting point than unique point.
+						// Therefore, unique point will be the closest intersecting point.
 						Vertex v;
-						// in this case, it's not boundary
-						v.boundaryVisible = false;
-						v.isBounday = false;
-						v.vertex = wallUniquePoints.at(wallIndex);
-						if (degree == 45.0f || degree == 135.0f || degree == -45.0f || degree == -135.0f)
-						{
-							//cocos2d::log("Degree 45, adding (%f, %f)", wallUniquePoints.at(wallIndex).x, wallUniquePoints.at(wallIndex).y);
-						}
-						//v.vertex = closestIntersection;
+						v.boundaryVisible = false;							// Light can't see the boundary
+						v.isBounday = false;								// Therefore, it's not boundary
+						v.vertex = wallUniquePoints.at(wallIndex);			// As said above, unique point is closest.
+
 						if (parallel)
 						{
-							v.boundaryVisible = true;
-							v.boundaryVertex = farthestIntersection;
-						}
-						else
-						{
+							// The ray and segment was parallel.
 							if (hitCount % 2 == 0)
 							{
-								v.boundaryVisible = false;
-								v.boundaryVertex = cocos2d::Vec2::ZERO;
+								v.boundaryVisible = true;
+								v.otherWallVisible = false;
+								v.wallID = uniquePointWallID;
 							}
 							else
 							{
+								v.boundaryVisible = false;
+								v.otherWallVisible = true;
+								v.wallID = wallID;
+							}
+							v.extendedVertex = farthestIntersection;
+						}
+						else
+						{
+							// The ray wasn't parallel
+							if (hitCount % 2 == 0)
+							{
+								// hit count is even. 
+								// First of all, because we don't check hit with segments that contains unique point,
+								// maximum number of hit that can be happen on the segments on same wll is 1. 
+								// Also this means that maximum number of hit for single wall is 2.
+								// So if the hit count is even number, which means
+								// hitCount = boundary hit(1) + segment from same wall(1) + (number of walls that ray hit * 2)
+								// So if hit count is even, vertex will be the same (unique point. see above comments)
+								// and light can't see the boundary.
+								v.boundaryVisible = false;
+								v.otherWallVisible = false;
+								v.extendedVertex = cocos2d::Vec2::ZERO;
+								v.wallID = uniquePointWallID;
+							}
+							else
+							{
+								// hit count is odd.
+								// As commented above, if hit count is odd, then hit count can be defined as
+								// hitCount = boundary hit(1) + (number of walls that ray hit * 2)
+								// Unlikely, when hit count is even, ray didn't hit any segments that are on same wall that unique point is.
+								// So basically ray passed the unique point and some other walls and reached the boundary.
+								// Important point is that, it surely hit the other wall(s), because hit count is odd but not 1.
+								// Therefore, vertex remains the same (unique point. see above comments),
+								// and light can see the other wall not boundary
+								float degree = angle * 180.0f / M_PI;
 								if (degree == 45.0f || degree == 135.0f || degree == -45.0f || degree == -135.0f)
 								{
-									// Corner cases. Unlike other ray, if angle between segment and ray is 45, 135, -45, -135, treat as single hit
+									// However, there are some corner cases.
+									// If angle between segment and ray is 45, 135, -45, -135, treat as single hit
 									v.boundaryVisible = false;
-									v.boundaryVertex = cocos2d::Vec2::ZERO;
+									v.otherWallVisible = false;
+									v.extendedVertex = cocos2d::Vec2::ZERO;
+									v.wallID = uniquePointWallID;
 								}
 								else
 								{
-									v.boundaryVisible = true;
-									v.boundaryVertex = closestIntersection;
+									// If it's not a corner case,
+									// As it said, boundary is not visible but wall
+									v.boundaryVisible = false;
+									v.otherWallVisible = true;
+									v.extendedVertex = closestIntersection;
+									v.wallID = wallID;
 								}
 							}
 						}
-						v.angle = angle;
+						
+						v.angle = angle;			// Angle for sorting
 						intersects.push_back(v);
 					}
+					// Else, closest intersecting point is closer to light position that unique point.
+					// This means that ray hit some segment before it reached the the unique point.
+					// Then, it also means unique point is not visible from light. 
+					// Therefore, we can ignore this interseting point because it's just extra.
 				}
 				// If it's 0, it's bug.
 			}
@@ -520,10 +562,12 @@ void VisibilityScene::findIntersectsWithRaycasts()
 				// Ray didn't hit any segment. Closest intersecting point will be the unique point
 				Vertex v;
 				v.boundaryVisible = false;
+				v.otherWallVisible = false;
 				v.isBounday = true;
 				v.vertex = boundaryUniquePoints.at(boundaryIndex);
-				v.boundaryVertex = cocos2d::Vec2::ZERO;
+				v.extendedVertex = cocos2d::Vec2::ZERO;
 				v.angle = angle;
+				v.wallID = -1;
 				intersects.push_back(v);
 			}
 			// Else, ray hit segment. We ignore
@@ -535,12 +579,11 @@ void VisibilityScene::findIntersectsWithRaycasts()
 
 		for (auto intersect : intersects)
 		{
-			float degree = intersect.angle * 180.0f / M_PI;
 			auto color = cocos2d::Color4F::RED;
 			color.a = 0.5f;
-			if (intersect.boundaryVisible)
+			if (intersect.boundaryVisible || intersect.otherWallVisible)
 			{
-				this->raycastDrawNode->drawLine(lightPos, intersect.boundaryVertex, color);
+				this->raycastDrawNode->drawLine(lightPos, intersect.extendedVertex, color);
 			}
 			else
 			{
@@ -565,7 +608,7 @@ void VisibilityScene::drawTriangles()
 	bool prevEndedWithBoundayVisible = false;
 	for (unsigned int i = 0; i < size; i++)
 	{
-		// First, add center point
+		// First, add center position, which is position of light
 		verticies.push_back(centerPos);		
 		
 		int index = i + 1;
@@ -576,78 +619,102 @@ void VisibilityScene::drawTriangles()
 
 		auto& v2 = intersects.at(i);
 		auto& v3 = intersects.at(index);
-		verticies.push_back(v2.vertex);
-		verticies.push_back(v3.vertex);
-		/*
-		if (v2.isBounday)
+
+		// Second and thrid vertex have several cases.
+		// The triangle we want to draw depends on each unique intersecting points.
+		// Because light travels until hits the boundary, some unique points must be extended to the boundary.
+		// Also, there are few corner cases 
+
+		// Case #1
+		if (v2.isBounday && v3.isBounday)
 		{
-			if (v3.isBounday)
+			// v2 is boundary, v3 is boundary.
+			// In this case, triangle is formed only with boundary unique points.
+			verticies.push_back(v2.vertex);
+			verticies.push_back(v3.vertex);
+		}
+		// Case #2
+		else if (v2.isBounday && !v3.isBounday)
+		{
+			// v2 is boundary but v3 isn't.
+			// In this case, v2 is boundary unique point and v3 is wall unique point.
+			// Because light travel till boundary, use extendedBertex for v3.
+			verticies.push_back(v2.vertex);
+			verticies.push_back(v3.extendedVertex);
+		}
+		// Case #4
+		else if (!v2.isBounday && v3.isBounday)
+		{
+			// v2 is not boundary but v3 is.
+			// This is the opposite case of case #2. 
+			verticies.push_back(v2.extendedVertex);
+			verticies.push_back(v3.vertex);
+		}
+		// Case #3
+		else
+		{
+			// v2 and v3 both are not boundary.
+			// This means both v2 and v3 is wall unique point.
+			if ((v2.boundaryVisible && !v3.boundaryVisible) || (!v2.boundaryVisible && v3.boundaryVisible))
 			{
+				// Case 3-3
+				// If only either v2 or v3 can see the boundary, but not both, use vertex
 				verticies.push_back(v2.vertex);
 				verticies.push_back(v3.vertex);
 			}
-			else
+			else if ((v2.otherWallVisible && !v3.otherWallVisible) || (!v2.otherWallVisible && v3.otherWallVisible))
 			{
-				if (v3.boundaryVisible)
+				// Case 3-4
+				// If only either v2 or v3 can be extended to other wall, but not both, use extendedVertex if so.
+				if (v2.otherWallVisible)
 				{
-					verticies.push_back(intersects.at(i).vertex);
-					verticies.push_back(intersects.at(index).boundaryVertex);
-				}
-				else
-				{
-					// can't reach?
-					verticies.push_back(v2.vertex);
-					verticies.push_back(v3.vertex);
-				}
-			}
-		}
-		else
-		{
-			if(v3.isBounday)
-			{
-				verticies.push_back(v2.boundaryVertex);
-				verticies.push_back(v3.vertex);
-			}
-			else
-			{
-				if (v3.boundaryVisible)
-				{
-					if (v2.boundaryVisible)
+					if (v2.wallID != v3.wallID)
 					{
-						if (prevEndedWithBoundayVisible)
-						{
-							verticies.push_back(v2.boundaryVertex);
-							verticies.push_back(v3.boundaryVertex);
-						}
-						else
-						{
-							verticies.push_back(v2.vertex);
-							verticies.push_back(v3.vertex);
-						}
+						verticies.push_back(v2.vertex);
 					}
 					else
 					{
-						verticies.push_back(v2.vertex);
-						verticies.push_back(v3.vertex);
+						verticies.push_back(v2.extendedVertex);
 					}
 				}
 				else
 				{
 					verticies.push_back(v2.vertex);
+				}
+
+				if (v3.otherWallVisible)
+				{
+					if (v2.wallID != v3.wallID)
+					{
+						verticies.push_back(v3.vertex);
+					}
+					else
+					{
+						verticies.push_back(v3.extendedVertex);
+					}
+				}
+				else
+				{
 					verticies.push_back(v3.vertex);
 				}
 			}
+			else
+			{
+				// v2 and v3 is not boundary unique point, but either both can be extended or not.
+				if (v2.wallID == v3.wallID)
+				{
+					// If both v2 and v3 is on same segemnt (same wall), use vertex
+					verticies.push_back(v2.vertex);
+					verticies.push_back(v3.vertex);
+				}
+				else
+				{
+					// If both v2 and v3 is not on same segment, use extendedVertex
+					verticies.push_back(v2.extendedVertex);
+					verticies.push_back(v3.extendedVertex);
+				}
+			}
 		}
-
-		if (v3.boundaryVisible)
-		{
-			//prevEndedWithBoundayVisible = true;
-		}
-		else
-		{
-			//prevEndedWithBoundayVisible = false;
-		}
-		*/
 	}
 
 	size = verticies.size();

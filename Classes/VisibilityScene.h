@@ -11,15 +11,18 @@ struct Segment
 {
 	cocos2d::Vec2 p1;
 	cocos2d::Vec2 p2;
+	int wallID;						// ID for wall. Uses ECS's entity id.
 };
 
 struct Vertex
 {
-	cocos2d::Vec2 vertex;
-	bool boundaryVisible;
-	bool isBounday;
-	cocos2d::Vec2 boundaryVertex;	// Only if wall is visible
-	float angle;
+	cocos2d::Vec2 vertex;			// Default vertex. Usually unique point.
+	bool boundaryVisible;			// True if this vertex can be extended to boundary
+	bool otherWallVisible;			// True if this vertex can be extended to other wall
+	bool isBounday;					// True if this vertex is endpoint of boundary segments
+	cocos2d::Vec2 extendedVertex;	// Only if wall is visible
+	float angle;					// Angle between light position. Used for sorting.
+	int wallID;
 };
 
 struct VertexComparator
@@ -116,9 +119,9 @@ private:
 	// load map
 	void loadMap();
 	// load rect
-	void loadRect(const cocos2d::Rect& rect, std::vector<Segment*>& segments);
+	void loadRect(const cocos2d::Rect& rect, std::vector<Segment*>& segments, const int wallID);
 	// load segments
-	void addSegment(const cocos2d::Vec2& p1, const cocos2d::Vec2& p2, std::vector<Segment*>& segments);
+	void addSegment(const cocos2d::Vec2& p1, const cocos2d::Vec2& p2, std::vector<Segment*>& segments, const int wallID);
 	// Get intersecting point where raycast hits
 	float getIntersectingPoint(const cocos2d::Vec2& rayStart, const cocos2d::Vec2& rayEnd, const Segment* segment, cocos2d::Vec2& intersection);
 	// cast rays
