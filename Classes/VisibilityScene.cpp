@@ -334,7 +334,7 @@ void VisibilityScene::findIntersectsWithRaycasts()
 
 			// Zero will mean no hit
 			cocos2d::Vec2 closestIntersection = cocos2d::Vec2::ZERO;
-			cocos2d::Vec2 farthestIntersection = cocos2d::Vec2::ZERO;
+			cocos2d::Vec2 secondClosestIntersection = cocos2d::Vec2::ZERO;
 
 			// This flag is for corner case where raycast is parallel to segment
 			bool parallel = false;
@@ -371,23 +371,38 @@ void VisibilityScene::findIntersectsWithRaycasts()
 					{
 						// Haven't find any intersection yet. Set as closest
 						closestIntersection = intersectingPoint;
-						farthestIntersection = intersectingPoint;
+						secondClosestIntersection = intersectingPoint;
 					}
 					else
 					{
 						// Check if new intersecting point we found is closer to light position(where ray starts)
-						if (intersectingPoint.distance(rayStart) < closestIntersection.distance(rayStart))
+						auto intersectDist = intersectingPoint.distance(rayStart);
+						if (intersectDist < closestIntersection.distance(rayStart))
 						{
 							// If so, set as closest
 							closestIntersection = intersectingPoint;
 						}
-
-						// Check if new intersecting point we found is farther than farthest intersecting point.
-						if (intersectingPoint.distance(rayStart) > farthestIntersection.distance(rayStart))
+						else
 						{
-							// If so, set as farthest
-							farthestIntersection = intersectingPoint;
+							if (closestIntersection == secondClosestIntersection)
+							{
+								secondClosestIntersection = intersectingPoint;
+							}
+							else
+							{
+								if (intersectDist < secondClosestIntersection.distance(rayStart))
+								{
+									secondClosestIntersection = intersectingPoint;
+								}
+							}
 						}
+
+						//// Check if new intersecting point we found is farther than farthest intersecting point.
+						//if (intersectingPoint.distance(rayStart) > secondClosestIntersection.distance(rayStart))
+						//{
+						//	// If so, set as farthest
+						//	secondClosestIntersection = intersectingPoint;
+						//}
 					}
 				}
 				// else if dist == 0, didn't intersect. Do nothing.
@@ -406,11 +421,13 @@ void VisibilityScene::findIntersectsWithRaycasts()
 				// extended to the boundary. 
 				Vertex v;
 				v.boundaryVisible = true;								// light can see boundary
+				v.otherWallVisible = false;
 				v.isBounday = false;									// It's wall not boundary
 				v.vertex = this->wallUniquePoints.at(wallIndex);		// Ray hit the unique point. 
 				v.extendedVertex = closestIntersection;					// But can be extended to boundary, which is closests point
 				v.angle = angle;										// Store angle for sorting
 				v.wallID = uniquePointWallID;							// Keep track which wall are we dealing with
+				v.extendedWallID = -1;
 				intersects.push_back(v);
 			}
 			else
@@ -439,14 +456,16 @@ void VisibilityScene::findIntersectsWithRaycasts()
 								v.boundaryVisible = true;
 								v.otherWallVisible = false;
 								v.wallID = uniquePointWallID;
+								v.extendedWallID = -1;
 							}
 							else
 							{
 								v.boundaryVisible = false;
 								v.otherWallVisible = true;
 								v.wallID = wallID;
+								v.extendedWallID = wallID;
 							}
-							v.extendedVertex = farthestIntersection;
+							v.extendedVertex = secondClosestIntersection;
 						}
 						else
 						{
@@ -465,6 +484,7 @@ void VisibilityScene::findIntersectsWithRaycasts()
 								v.otherWallVisible = false;
 								v.extendedVertex = cocos2d::Vec2::ZERO;
 								v.wallID = uniquePointWallID;
+								v.extendedWallID = uniquePointWallID;
 							}
 							else
 							{
@@ -489,6 +509,7 @@ void VisibilityScene::findIntersectsWithRaycasts()
 										v.otherWallVisible = false;
 										v.extendedVertex = cocos2d::Vec2::ZERO;
 										v.wallID = uniquePointWallID;
+										v.extendedWallID = uniquePointWallID;
 									}
 									else
 									{
@@ -496,8 +517,9 @@ void VisibilityScene::findIntersectsWithRaycasts()
 										v.otherWallVisible = true;
 										v.extendedVertex = closestIntersection;
 										v.wallID = uniquePointWallID;
+										v.extendedWallID = wallID;
 									}
-									cocos2d::log("corner case, hit count = %d", hitCount);
+									//cocos2d::log("corner case, hit count = %d", hitCount);
 								}
 								else
 								{
@@ -507,6 +529,7 @@ void VisibilityScene::findIntersectsWithRaycasts()
 									v.otherWallVisible = true;
 									v.extendedVertex = closestIntersection;
 									v.wallID = uniquePointWallID;
+									v.extendedWallID = wallID;
 								}
 							}
 						}
@@ -784,20 +807,29 @@ void VisibilityScene::drawTriangles()
 				else
 				{
 					// If both v2 and v3 is not on same segment, check distance, 
-					// Farther intersecting point uses vertex
-					auto v2Dist = v2.extendedVertex.distance(centerPos);
-					auto v3Dist = v3.extendedVertex.distance(centerPos);
-
-					if (v2Dist < v3Dist)
+					// First check if they ended up on same wall
+					if (v2.extendedWallID == v3.extendedWallID)
 					{
-						// v2 is closer.
 						verticies.push_back(v2.extendedVertex);
-						verticies.push_back(v3.vertex);
+						verticies.push_back(v3.extendedVertex);
 					}
 					else
 					{
-						verticies.push_back(v2.vertex);
-						verticies.push_back(v3.extendedVertex);
+						// Farther intersecting point uses vertex
+						auto v2Dist = v2.extendedVertex.distance(centerPos);
+						auto v3Dist = v3.extendedVertex.distance(centerPos);
+
+						if (v2Dist < v3Dist)
+						{
+							// v2 is closer.
+							verticies.push_back(v2.extendedVertex);
+							verticies.push_back(v3.vertex);
+						}
+						else
+						{
+							verticies.push_back(v2.vertex);
+							verticies.push_back(v3.extendedVertex);
+						}
 					}
 				}
 			}

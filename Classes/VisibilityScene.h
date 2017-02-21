@@ -23,6 +23,7 @@ struct Vertex
 	cocos2d::Vec2 extendedVertex;	// Only if wall is visible
 	float angle;					// Angle between light position. Used for sorting.
 	int wallID;
+	int extendedWallID;
 };
 
 struct VertexComparator
