@@ -6,6 +6,7 @@
 #include "ECS.h"
 #include "Component.h"
 #include "System.h"
+#include "EarClippingScene.h"
 
 struct Segment
 {
@@ -32,6 +33,17 @@ struct VertexComparator
 	{
 		return a.angle < b.angle;
 	}
+};
+
+struct Wall
+{
+	std::vector<ECS::Entity*> entities;
+	std::vector<cocos2d::Vec2> points;
+	cocos2d::Rect bb;
+	cocos2d::Vec2 center;
+	int wallID;
+	float angle;
+	bool rectangle;
 };
 
 class VisibilityScene : public cocos2d::Scene
@@ -66,9 +78,11 @@ private:
 	enum Z_ORDER
 	{
 		WALL,
-		RAYCAST,
 		TRIANGLE,
+		RAYCAST,
 		BOX,
+		DRAG,
+		FREEFORM,
 	};
 
 	enum class CUSTOM_LABEL_INDEX
@@ -80,18 +94,30 @@ private:
 	enum class MODE
 	{
 		IDLE,
-		BOX,
-		BOX_EDIT,
-		LIGHT
+		DRAW_WALL_READY,
+		DRAW_WALL_DRAG,
+		DRAW_WALL_POINT,
 	};
 	
 	MODE currentMode;
 
 	bool draggingBox;
+	const int maxWallPoints = 128;
+	const int maxLightCount = 16;
+	const float maxWallSegmentSize = 100.0f;
+	static int wallIDCounter;
+
+	EarClippingScene* earClipping;
+
+	cocos2d::DrawNode* visiableAreaDrawNode;
+
 	cocos2d::Vec2 newBoxOrigin;
 	cocos2d::Vec2 newBoxDest;
-	cocos2d::DrawNode* newBoxDrawNode;
-	cocos2d::DrawNode* visiableAreaDrawNode;
+	cocos2d::DrawNode* dragBoxDrawNode;
+	cocos2d::DrawNode* wallDrawNode;
+
+	cocos2d::DrawNode* freeformWallDrawNode;
+	std::vector<cocos2d::Vec2> freeformWallPoints;
 
 	LabelsNode* labelsNode;
 	DisplayBoundaryBoxNode* displayBoundaryBoxNode;
@@ -110,27 +136,58 @@ private:
 
 	std::vector<Segment*> wallSegments;
 	std::vector<Segment*> boundarySegments;
+	
+	std::vector<Wall> walls;
+
+	cocos2d::RenderTexture* lightTexture;
+
+	int hoveringWallIndex;
+
+	bool viewRaycast;
+	bool viewVisibleArea;
+	bool cursorLight;
 
 	// init ECS
 	void initECS();
 	// Create new box entity
-	void createNewBox();
+	void createNewRectWall();
+	// create new freeform wall
+	void createNewFreeformWall();
+	// create point
+	ECS::Entity* createPoint(const cocos2d::Vec2& position);
 	// Create new light entity
 	void createNewLight(const cocos2d::Vec2& position);
 	// load map
 	void loadMap();
 	// load rect
 	void loadRect(const cocos2d::Rect& rect, std::vector<Segment*>& segments, const int wallID);
+	// load freeform
+	void loadFreeform(const std::vector<cocos2d::Vec2>& points, std::vector<Segment*>& segments, const int wallID);
 	// load segments
 	void addSegment(const cocos2d::Vec2& p1, const cocos2d::Vec2& p2, std::vector<Segment*>& segments, const int wallID);
 	// Get intersecting point where raycast hits
 	float getIntersectingPoint(const cocos2d::Vec2& rayStart, const cocos2d::Vec2& rayEnd, const Segment* segment, cocos2d::Vec2& intersection);
+	cocos2d::Vec2 getIntersectingPoint(const cocos2d::Vec2& rayStart, const cocos2d::Vec2& rayEnd, const cocos2d::Vec2& segStart, const cocos2d::Vec2& segEnd);
 	// cast rays
 	void findIntersectsWithRaycasts();
 	// draw triangles
 	void drawTriangles();
-	// Check if intersecting point is on bounday
-	bool isPointOnBoundary(const cocos2d::Vec2& point);
+	// Check if mouse point is inside of wall
+	bool isPointInWall(const cocos2d::Vec2& point);
+	// generateLightTexture
+	void generateLightTexture();
+	// Draw new wall preview
+	void drawDragBox();
+	// clear drag
+	void clearDrag();
+	// Draw Freeform wall
+	void drawFreeformWall();
+	// clear freeform
+	void clearFreeform();
+	// draw walls
+	void drawWalls();
+	// draw raycast
+	void drawRaycast();
 public:
 	//simple creator func
 	static VisibilityScene* createScene();

@@ -3,6 +3,8 @@
 
 USING_NS_CC;
 
+int VisibilityScene::wallIDCounter = 0;
+
 VisibilityScene* VisibilityScene::createScene()
 {
 	VisibilityScene* newVisibilityScene = VisibilityScene::create();
@@ -17,6 +19,10 @@ bool VisibilityScene::init()
 	}
 
 	this->scheduleUpdate();
+
+	// Use for freeform walls(polygon)
+	earClipping = EarClippingScene::createScene();
+	earClipping->retain();
 
 	ECS::Manager::getInstance();
 
@@ -59,19 +65,28 @@ bool VisibilityScene::init()
 	this->draggingBox = false;
 	this->newBoxOrigin = cocos2d::Vec2::ZERO;
 	this->newBoxDest = cocos2d::Vec2::ZERO;
-	this->newBoxDrawNode = cocos2d::DrawNode::create();
-	this->addChild(this->newBoxDrawNode);
+	this->dragBoxDrawNode = cocos2d::DrawNode::create();
+	this->addChild(this->dragBoxDrawNode, Z_ORDER::DRAG);
 
 	this->visiableAreaDrawNode = cocos2d::DrawNode::create();
 	this->addChild(this->visiableAreaDrawNode);
 
-	//temp
 	this->raycastDrawNode = cocos2d::DrawNode::create();
 	this->addChild(this->raycastDrawNode, Z_ORDER::RAYCAST);
 	this->triangleDrawNode = cocos2d::DrawNode::create();
 	this->addChild(this->triangleDrawNode, Z_ORDER::TRIANGLE);
+	this->freeformWallDrawNode = cocos2d::DrawNode::create();
+	this->addChild(this->freeformWallDrawNode, Z_ORDER::FREEFORM);
+	this->wallDrawNode = cocos2d::DrawNode::create();
+	this->addChild(this->wallDrawNode, Z_ORDER::WALL);
 
 	this->mousePos = cocos2d::Vec2::ZERO;
+
+	this->hoveringWallIndex = -1;
+
+	this->viewRaycast = true;
+	this->viewVisibleArea = true;
+	this->cursorLight = false;
 
 	return true;
 }
@@ -83,40 +98,114 @@ void VisibilityScene::onEnter()
 	initECS();
 
 	initInputListeners();
-
-	this->newBoxOrigin = cocos2d::Vec2(100, 100);
-	this->newBoxDest = cocos2d::Vec2(200, 200);
-	createNewBox();
-	this->newBoxOrigin = cocos2d::Vec2(150, 300);
-	this->newBoxDest = cocos2d::Vec2(250, 400);
-	createNewBox();
 }
 
 void VisibilityScene::initECS()
 {
 	auto m = ECS::Manager::getInstance();
-	m->createEntityPool("WALL", 32);
-	m->createEntityPool("LIGHT", 16);
+	m->createEntityPool("WALL_POINT", maxWallPoints);
+	m->createEntityPool("LIGHT", maxLightCount);
 }
 
-void VisibilityScene::createNewBox()
+void VisibilityScene::createNewRectWall()
+{
+	cocos2d::Vec2 newWallSize = this->newBoxDest - this->newBoxOrigin;
+
+	auto maxX = this->newBoxOrigin.x > this->newBoxDest.x ? this->newBoxOrigin.x : this->newBoxDest.x;
+	auto minX = this->newBoxOrigin.x < this->newBoxDest.x ? this->newBoxOrigin.x : this->newBoxDest.x;
+	auto maxY = this->newBoxOrigin.y > this->newBoxDest.y ? this->newBoxOrigin.y : this->newBoxDest.y;
+	auto minY = this->newBoxOrigin.y < this->newBoxDest.y ? this->newBoxOrigin.y : this->newBoxDest.y;
+
+	cocos2d::Rect rect = cocos2d::Rect(cocos2d::Vec2(minX, minY), cocos2d::Size(maxX - minX, maxY - minY));
+
+	auto topLeft = this->createPoint(cocos2d::Vec2(rect.getMinX(), rect.getMaxY()));  //top left
+	auto topRight = this->createPoint(cocos2d::Vec2(rect.getMaxX(), rect.getMaxY()));  //top right
+	auto bottomLeft = this->createPoint(cocos2d::Vec2(rect.getMinX(), rect.getMinY()));  //bottom left
+	auto bottomRight = this->createPoint(cocos2d::Vec2(rect.getMaxX(), rect.getMinY()));  //bottom right
+
+	Wall wall;
+	wall.angle = 0;
+	wall.center = cocos2d::Vec2(rect.getMidX(), rect.getMidY());
+	wall.entities.push_back(topLeft);
+	wall.entities.push_back(topRight);
+	wall.entities.push_back(bottomRight);
+	wall.entities.push_back(bottomLeft);
+	wall.points.push_back(cocos2d::Vec2(rect.getMinX(), rect.getMaxY()));  //top left
+	wall.points.push_back(cocos2d::Vec2(rect.getMaxX(), rect.getMaxY()));  //top right
+	wall.points.push_back(cocos2d::Vec2(rect.getMaxX(), rect.getMinY()));  //bottom right
+	wall.points.push_back(cocos2d::Vec2(rect.getMinX(), rect.getMinY()));  //bottom left
+	wall.wallID = VisibilityScene::wallIDCounter++;
+	wall.bb = rect;
+	wall.rectangle = true;
+
+	this->walls.push_back(wall);
+
+	this->drawWalls();
+}
+
+void VisibilityScene::createNewFreeformWall()
+{
+	Wall wall;
+	wall.angle = 0;
+
+	float maxX = 0;
+	float minX = 0;
+	float maxY = 0;
+	float minY = 0;
+
+	for (auto point : this->freeformWallPoints)
+	{
+		auto newPointEntity = this->createPoint(point);
+		wall.entities.push_back(newPointEntity);
+		wall.points.push_back(point);
+
+		if (point.x > maxX)
+		{
+			maxX = point.x;
+		}
+		else if (point.x < minX)
+		{
+			minX = point.x;
+		}
+
+		if (point.y > maxY)
+		{
+			maxY = point.y;
+		}
+		else if (point.y < minY)
+		{
+			minY = point.y;
+		}
+	}
+
+	cocos2d::Rect rect = cocos2d::Rect(cocos2d::Vec2(minX, minY), cocos2d::Size(maxX - minX, maxY - minY));
+
+	wall.bb = rect;
+	wall.center = cocos2d::Vec2(rect.getMidX(), rect.getMidY());
+	wall.rectangle = false;
+
+	wall.wallID = VisibilityScene::wallIDCounter++;
+
+	this->walls.push_back(wall);
+
+	this->drawWalls();
+}
+
+ECS::Entity* VisibilityScene::createPoint(const cocos2d::Vec2& position)
 {
 	auto m = ECS::Manager::getInstance();
-	auto newBox = m->createEntity("WALL");
+	auto newWallPoint = m->createEntity("WALL_POINT");
 
 	auto spriteComp = m->createComponent<ECS::Sprite>();
-	spriteComp->sprite = cocos2d::Sprite::createWithSpriteFrameName("square_100.png");
-	cocos2d::Vec2 boxSize = this->newBoxDest - this->newBoxOrigin;
-	cocos2d::Vec2 boxPos = this->newBoxOrigin + (boxSize * 0.5f);
-	spriteComp->sprite->setPosition(boxPos);
-	float scaleX = boxSize.x * 0.01f;
-	float scaleY = boxSize.y * 0.01f;
-	spriteComp->sprite->setScaleX(scaleX);
-	spriteComp->sprite->setScaleY(scaleY);
-	spriteComp->sprite->setOpacity(50);
+	spriteComp->sprite = cocos2d::Sprite::createWithSpriteFrameName("circle.png");
+	spriteComp->sprite->setColor(cocos2d::Color3B::BLUE);
+	spriteComp->sprite->setPosition(position);
+	spriteComp->sprite->runAction(cocos2d::ScaleTo::create(0.25f, 0));
 	this->addChild(spriteComp->sprite, Z_ORDER::WALL);
 
-	newBox->addComponent<ECS::Sprite>(spriteComp);
+	newWallPoint->addComponent<ECS::Sprite>(spriteComp);
+
+	return newWallPoint;
 }
 
 void VisibilityScene::createNewLight(const cocos2d::Vec2& position)
@@ -163,22 +252,30 @@ void VisibilityScene::loadMap()
 	this->loadRect(this->displayBoundary, this->boundarySegments, -1/*boundary isn't wall. so use -1*/);
 
 	// Add walls
-	std::vector<ECS::Entity*> walls;
-	ECS::Manager::getInstance()->getAllEntitiesInPool(walls, "WALL");
-
-	for (auto box : walls)
+	for (auto wall : walls)
 	{
-		auto comp = box->getComponent<ECS::Sprite>();
-		auto bb = comp->sprite->getBoundingBox();
+		if (wall.rectangle)
+		{
+			auto& bb = wall.bb;
 
-		this->wallUniquePoints.push_back(cocos2d::Vec2(bb.getMinX(), bb.getMaxY()));  //top left
-		this->wallUniquePoints.push_back(cocos2d::Vec2(bb.getMaxX(), bb.getMaxY()));  //top right
-		this->wallUniquePoints.push_back(cocos2d::Vec2(bb.getMinX(), bb.getMinY()));  //bottom left
-		this->wallUniquePoints.push_back(cocos2d::Vec2(bb.getMaxX(), bb.getMinY()));  //bottom right
+			this->wallUniquePoints.push_back(cocos2d::Vec2(bb.getMinX(), bb.getMaxY()));  //top left
+			this->wallUniquePoints.push_back(cocos2d::Vec2(bb.getMaxX(), bb.getMaxY()));  //top right
+			this->wallUniquePoints.push_back(cocos2d::Vec2(bb.getMinX(), bb.getMinY()));  //bottom left
+			this->wallUniquePoints.push_back(cocos2d::Vec2(bb.getMaxX(), bb.getMinY()));  //bottom right
 
-		this->loadRect(bb, this->wallSegments, box->getId());
+			this->loadRect(bb, this->wallSegments, wall.wallID);
+		}
+		else
+		{
+			auto size = wall.points.size();
+			for (unsigned int i = 0; i < size; i++)
+			{
+				this->wallUniquePoints.push_back(wall.points.at(i));
+			}
+
+			this->loadFreeform(wall.points, this->wallSegments, wall.wallID);
+		}
 	}
-
 }
 
 void VisibilityScene::loadRect(const cocos2d::Rect& rect, std::vector<Segment*>& segments, const int wallID)
@@ -201,6 +298,23 @@ void VisibilityScene::loadRect(const cocos2d::Rect& rect, std::vector<Segment*>&
 
 	// Left segment
 	this->addSegment(bottomLeft, topLeft, segments, wallID);
+}
+
+void VisibilityScene::loadFreeform(const std::vector<cocos2d::Vec2>& points, std::vector<Segment*>& segments, const int wallID)
+{
+	auto size = points.size();
+	for (unsigned int i = 0; i < size; i++)
+	{
+		if (i < size - 1)
+		{
+			this->addSegment(points.at(i), points.at(i + 1), segments, wallID);
+		}
+	}
+
+	if (size > 1)
+	{
+		this->addSegment(points.at(0), points.at(size - 1), segments, wallID);
+	}
 }
 
 void VisibilityScene::addSegment(const cocos2d::Vec2& p1, const cocos2d::Vec2& p2, std::vector<Segment*>& segments, const int wallID)
@@ -228,16 +342,18 @@ float VisibilityScene::getIntersectingPoint(const cocos2d::Vec2 & rayStart, cons
 	auto rd = re - rs;
 	auto sd = sp2 - sp1;
 
+	auto rdDotsd = rd.dot(sd);
+
 	auto rsd = sp1 - rs;
 
-	auto rdxsd = rd.cross(sd);
+	auto rdxsd = rd.cross(sd);		//denom
 	auto rsdxrd = rsd.cross(rd);
 
 	float t = rsd.cross(sd) / rdxsd;
 	float u = rsd.cross(rd) / rdxsd;
 
-	//cocos2d::log("u = %f", u);
-	//cocos2d::log("t = %f", t);
+	cocos2d::log("u = %f", u);
+	cocos2d::log("t = %f", t);
 
 	if (rdxsd == 0)
 	{
@@ -257,17 +373,30 @@ float VisibilityScene::getIntersectingPoint(const cocos2d::Vec2 & rayStart, cons
 	}
 	else
 	{
+		if (u > 1.0f && u - 1.0f < 0.00001f)
+		{
+			u = 1.0f;
+		}
 		if (0 <= t &&  0 <= u && u <= 1.0f)
 		{
 			//cocos2d::log("Intersecting");
 			intersection.x = rayStart.x + (t * rd.x);
 			intersection.y = rayStart.y + (t * rd.y);
+			intersection.x = sp1.x + (u * sd.x);
+			intersection.y = sp1.y + (u * sd.y);
 			return t;
 		}
 	}
 
 	//cocos2d::log("Not colinear nor parallel, but doesn't intersect");
 	return 0;
+}
+
+cocos2d::Vec2 VisibilityScene::getIntersectingPoint(const cocos2d::Vec2 & p1, const cocos2d::Vec2 & p2, const cocos2d::Vec2 & p3, const cocos2d::Vec2 & p4)
+{
+	float s = ((p4.x - p3.x) * (p1.y - p3.y) - (p4.y - p3.y) * (p1.x - p3.x))
+		/ ((p4.y - p3.y) * (p2.x - p1.x) - (p4.x - p3.x) * (p2.y - p1.y));
+	return cocos2d::Vec2(p1.x + s * (p2.x - p1.x), p1.y + s * (p2.y - p1.y));
 }
 
 void VisibilityScene::findIntersectsWithRaycasts()
@@ -325,7 +454,6 @@ void VisibilityScene::findIntersectsWithRaycasts()
 		// Iterate through walls first
 		for (auto angle : wallUniqueAngles)
 		{
-			cocos2d::log("\n");
 			int hitCount = 0;	// increment everytime ray hits segment
 
 			// Get direction of ray
@@ -615,27 +743,16 @@ void VisibilityScene::findIntersectsWithRaycasts()
 			boundaryIndex++;
 		}
 
-		this->raycastDrawNode->clear();
-
-		for (auto intersect : intersects)
-		{
-			auto color = cocos2d::Color4F::RED;
-			color.a = 0.5f;
-			if (intersect.boundaryVisible || intersect.otherWallVisible)
-			{
-				this->raycastDrawNode->drawLine(lightPos, intersect.extendedVertex, color);
-			}
-			else
-			{
-				this->raycastDrawNode->drawLine(lightPos, intersect.vertex, color);
-			}
-		}
+		this->drawRaycast();
 	}
 }
 
 void VisibilityScene::drawTriangles()
 {
 	this->triangleDrawNode->clear();
+
+	if (this->viewVisibleArea == false) return;
+
 	std::vector<cocos2d::Vec2> verticies;
 
 	auto centerPos = this->mousePos;
@@ -840,25 +957,155 @@ void VisibilityScene::drawTriangles()
 		}
 	}
 
+
 	size = verticies.size();
-	auto color = cocos2d::Color4F::GREEN;
-	color.a = 0.2f;
+	auto color = cocos2d::Color4F::WHITE;
+	color.a = 0.8f;
 	for (unsigned int i = 0; i < size; i+=3)
 	{
 		this->triangleDrawNode->drawTriangle(verticies.at(i), verticies.at(i + 1), verticies.at(i + 2), color);
 	}
 }
 
-bool VisibilityScene::isPointOnBoundary(const cocos2d::Vec2 & point)
+bool VisibilityScene::isPointInWall(const cocos2d::Vec2 & point)
 {
-	if (point.x == this->displayBoundary.getMinX() || point.x == this->displayBoundary.getMaxX() || 
-		point.y == this->displayBoundary.getMinY() || point.y == this->displayBoundary.getMinY())
+	for (auto wall : this->walls)
 	{
-		return true;
+		if (wall.rectangle)
+		{
+			if (wall.bb.containsPoint(point))
+			{
+				return true;
+			}
+		}
+		else
+		{
+			auto size = wall.points.size();
+			if (size >= 3)
+			{
+				std::list<cocos2d::Vec2> pointList(wall.points.begin(), wall.points.end());
+
+				bool inPolygon = earClipping->isPointInPolygon(pointList, point);
+
+				if (inPolygon)
+				{
+					return true;
+				}
+			}
+			else
+			{
+				// it's a line
+				continue;
+			}
+		}
 	}
-	else
+
+	return false;
+}
+
+void VisibilityScene::drawDragBox()
+{
+	this->dragBoxDrawNode->clear();
+	this->dragBoxDrawNode->drawSolidRect(this->newBoxOrigin, this->newBoxDest, cocos2d::Color4F::ORANGE);
+	this->dragBoxDrawNode->drawRect(this->newBoxOrigin, this->newBoxDest, cocos2d::Color4F::YELLOW);
+}
+
+void VisibilityScene::clearDrag()
+{
+	this->currentMode = MODE::IDLE;
+	this->newBoxDest = cocos2d::Vec2::ZERO;
+	this->newBoxOrigin = cocos2d::Vec2::ZERO;
+	this->dragBoxDrawNode->clear();
+}
+
+void VisibilityScene::drawFreeformWall()
+{
+	this->freeformWallDrawNode->clear();
+
+	auto size = this->freeformWallPoints.size();
+	if (size < 1) return;
+
+	for (unsigned int i = 0; i < size; i++)
 	{
-		return false;
+		this->freeformWallDrawNode->drawSolidCircle(this->freeformWallPoints.at(i), 7.5f, 360.0f, 20, cocos2d::Color4F::BLUE);
+
+		if (i < size - 1)
+		{
+			this->freeformWallDrawNode->drawLine(this->freeformWallPoints.at(i), this->freeformWallPoints.at(i + 1), cocos2d::Color4F::YELLOW);
+		}
+	}
+
+	if (size > 1)
+	{
+		this->freeformWallDrawNode->drawLine(this->freeformWallPoints.at(0), this->freeformWallPoints.at(size - 1), cocos2d::Color4F::YELLOW);
+	}
+}
+
+void VisibilityScene::clearFreeform()
+{
+	this->freeformWallPoints.clear();
+	this->freeformWallDrawNode->clear();
+	this->currentMode = MODE::IDLE;
+}
+
+void VisibilityScene::drawWalls()
+{
+	this->wallDrawNode->clear();
+
+	int index = 0;
+	for (auto wall : this->walls)
+	{
+		if(wall.rectangle)
+		{
+			if (index == this->hoveringWallIndex)
+			{
+				this->wallDrawNode->drawSolidRect(wall.entities.at(3)->getComponent<ECS::Sprite>()->sprite->getPosition(), wall.entities.at(1)->getComponent<ECS::Sprite>()->sprite->getPosition(), cocos2d::Color4F::RED);
+			}
+			else
+			{
+				this->wallDrawNode->drawRect(wall.entities.at(3)->getComponent<ECS::Sprite>()->sprite->getPosition(), wall.entities.at(1)->getComponent<ECS::Sprite>()->sprite->getPosition(), cocos2d::Color4F::YELLOW);
+			}
+		}
+		else
+		{
+			auto size = wall.points.size();
+			for (unsigned int i = 0; i < size; i++)
+			{
+				if (i < size - 1)
+				{
+					this->wallDrawNode->drawLine(wall.points.at(i), wall.points.at(i + 1), cocos2d::Color4F::YELLOW);
+				}
+			}
+
+			if (size > 1)
+			{
+				this->wallDrawNode->drawLine(wall.points.at(0), wall.points.at(size - 1), cocos2d::Color4F::YELLOW);
+			}
+		}
+
+		index++;
+	}
+}
+
+void VisibilityScene::drawRaycast()
+{
+	this->raycastDrawNode->clear();
+
+	if (this->viewRaycast)
+	{
+		for (auto intersect : intersects)
+		{
+			auto color = cocos2d::Color4F::RED;
+			//color.a = 0.5f;
+			if (intersect.boundaryVisible || intersect.otherWallVisible)
+			{
+				this->raycastDrawNode->drawLine(this->mousePos, intersect.extendedVertex, color);
+			}
+			else
+			{
+				this->raycastDrawNode->drawLine(this->mousePos, intersect.vertex, color);
+			}
+		}
 	}
 }
 
@@ -866,6 +1113,26 @@ void VisibilityScene::update(float delta)
 {
 	this->labelsNode->updateFPSLabel(delta);
 
+	if (this->currentMode == MODE::IDLE)
+	{
+		// Cursor is light
+		if (this->cursorLight)
+		{
+			if (this->displayBoundary.containsPoint(this->mousePos))
+			{
+				if (!this->isPointInWall(this->mousePos))
+				{
+					// Point is not in the wall
+					this->findIntersectsWithRaycasts();
+					this->drawTriangles();
+				}
+			}
+		}
+	}
+	else
+	{
+		this->triangleDrawNode->clear();
+	}
 }
 
 void VisibilityScene::initInputListeners()
@@ -893,48 +1160,123 @@ void VisibilityScene::onMouseMove(cocos2d::Event* event)
 
 	cocos2d::Vec2 point = cocos2d::Vec2(x, y);
 
-	this->mousePos = point;
-
 	if (this->displayBoundary.containsPoint(point))
 	{
-		if (this->currentMode == MODE::BOX)
+		if (this->currentMode == MODE::IDLE)
 		{
-			if (this->draggingBox)
+			int index = 0;
+			bool hovered = false;
+			for (auto wall : this->walls)
 			{
-				cocos2d::Vec2 size = point - this->newBoxOrigin;
-				if (size.x > 100.0f)
+				if (wall.rectangle)
 				{
-					point.x = this->newBoxOrigin.x + 100.0f;
+					if (wall.bb.containsPoint(point))
+					{
+						this->hoveringWallIndex = index;
+						this->drawWalls();
+						hovered = true;
+						break;
+					}
 				}
-				else if (size.x < -100.0f)
+				else
 				{
-					point.x = this->newBoxOrigin.x - 100.0f;
+					auto size = wall.points.size();
+					if (size >= 3)
+					{
+						// use earclip scene for polygon
+						//for (auto point : wall.points)
+						//{
+							//earClipping->finalVerticies.clear();
+							//earClipping->finalVerticies.push_back(point);
+							//earClipping->makeVerticies();
+							//earClipping->currentSceneState = EarClippingScene::SCENE_STATE::ALGORITHM_STATE;
+							//while (earClipping->currentSceneState != EarClippingScene::SCENE_STATE::FINISHED)
+							//{
+							//	earClipping->runEarClipping();
+							//}
+						//}
+
+						std::list<cocos2d::Vec2> pointList(wall.points.begin(), wall.points.end());
+
+						bool inPolygon = earClipping->isPointInPolygon(pointList, point);
+
+						if (inPolygon)
+						{
+							this->hoveringWallIndex = index;
+							this->drawWalls();
+							hovered = true;
+						}
+					}
+					else
+					{
+						// it's a line
+						continue;
+					}
 				}
 
-				if (size.y > 100.0f)
-				{
-					point.y = this->newBoxOrigin.y + 100.0f;
-				}
-				else if (size.y < -100.0f)
-				{
-					point.y = this->newBoxOrigin.y - 100.0f;
-				}
+				index++;
+			}
 
-				//float fx = floorf(point.x);
-				//float fy = floorf(point.y);
-				//this->newBoxDest = cocos2d::Vec2(fx, fy);
-				this->newBoxDest = point;
-
-				this->newBoxDrawNode->clear();
-				this->newBoxDrawNode->drawSolidRect(this->newBoxOrigin, this->newBoxDest, cocos2d::Color4F::ORANGE);
-				this->newBoxDrawNode->drawRect(this->newBoxOrigin, this->newBoxDest, cocos2d::Color4F::YELLOW);
+			if (!hovered)
+			{
+				if (this->hoveringWallIndex != -1)
+				{
+					this->hoveringWallIndex = -1;
+					this->drawWalls();
+				}
 			}
 		}
+		else if (this->currentMode == MODE::DRAW_WALL_READY)
+		{
+			// Trying to make wall with dragging
+			auto m = ECS::Manager::getInstance();
+			auto boxCount = m->getAliveEntityCountInEntityPool("WALL_POINT");
+			if (boxCount < maxWallPoints)
+			{
+				// still can make another box
+				this->currentMode = MODE::DRAW_WALL_DRAG;		
+				this->newBoxDest = point;
+				this->drawDragBox();
 
-		this->findIntersectsWithRaycasts();
-		this->drawTriangles();
+			}
+			else
+			{
+				// Can't make more boxes. return
+				this->currentMode = MODE::IDLE;
+				return;
+			}
+		}
+		else if (this->currentMode == MODE::DRAW_WALL_DRAG)
+		{
+			if (!this->isPointInWall(point))
+			{
+				cocos2d::Vec2 size = point - this->newBoxOrigin;
+				if (size.x > maxWallSegmentSize)
+				{
+					point.x = this->newBoxOrigin.x + maxWallSegmentSize;
+				}
+				else if (size.x < -maxWallSegmentSize)
+				{
+					point.x = this->newBoxOrigin.x - maxWallSegmentSize;
+				}
+
+				if (size.y > maxWallSegmentSize)
+				{
+					point.y = this->newBoxOrigin.y + maxWallSegmentSize;
+				}
+				else if (size.y < -maxWallSegmentSize)
+				{
+					point.y = this->newBoxOrigin.y - maxWallSegmentSize;
+				}
+
+				this->newBoxDest = point;
+
+				this->drawDragBox();
+			}
+		}
 	}
 
+	this->mousePos = point;
 }
 
 void VisibilityScene::onMouseDown(cocos2d::Event* event) 
@@ -949,29 +1291,30 @@ void VisibilityScene::onMouseDown(cocos2d::Event* event)
 
 	if (this->displayBoundary.containsPoint(point))
 	{	
-		if (this->currentMode == MODE::BOX)
+		if (this->currentMode == MODE::IDLE)
 		{
-			// Box mode. draw new box
-			auto m = ECS::Manager::getInstance();
-			auto boxCount = m->getAliveEntityCountInEntityPool("WALL");
-			if (boxCount < 32)
+			if (mouseButton == 0)
 			{
-				// still can make another box
-				this->draggingBox = true;
-				//float fx = floorf(point.x);
-				//float fy = floorf(point.y);
-				//this->newBoxOrigin = cocos2d::Vec2(fx, fy);
+				// Yet, we don't know if user is going to either drag or make point. 
+				// So just put it in a ready state
+				this->currentMode = MODE::DRAW_WALL_READY;
 				this->newBoxOrigin = point;
+
 			}
-			else
+			else if(mouseButton == 1)
 			{
-				// Can't make more boxes. return
-				return;
+				// Add light
+				this->lightPositions.push_back(point);
 			}
 		}
-		else if (this->currentMode == MODE::LIGHT)
+		else if (this->currentMode == MODE::DRAW_WALL_POINT)
 		{
-			this->createNewLight(point);
+			// And add point as first point.
+			if (!this->isPointInWall(point))
+			{
+				this->freeformWallPoints.push_back(point);
+				this->drawFreeformWall();
+			}
 		}
 	}
 
@@ -990,31 +1333,41 @@ void VisibilityScene::onMouseUp(cocos2d::Event* event)
 
 	if (this->displayBoundary.containsPoint(point))
 	{
-		if (this->currentMode == MODE::BOX)
+		if (this->currentMode == MODE::IDLE)
 		{
-			if (this->draggingBox)
+			// Do nothing?
+		}
+		else if (this->currentMode == MODE::DRAW_WALL_READY)
+		{
+			// Draw Freeform wall 
+			this->currentMode = MODE::DRAW_WALL_POINT;
+			// And add point as first point.
+			this->freeformWallPoints.clear();
+			this->freeformWallPoints.push_back(point);
+			this->drawFreeformWall();
+		}
+		else if (this->currentMode == MODE::DRAW_WALL_DRAG)
+		{
+			// End drawing				
+			if (this->newBoxOrigin != this->newBoxDest)
 			{
-				this->draggingBox = false;
-
 				// Make new box
-				this->createNewBox();
+				this->createNewRectWall();
 				cocos2d::log("Creating new box origin (%f, %f), size (%f, %f)", this->newBoxOrigin.x, this->newBoxOrigin.y, this->newBoxDest.x, this->newBoxDest.y);
 
-				this->newBoxDrawNode->clear();
+				this->clearDrag();
 			}
 		}
 	}
 	else
 	{
-		if (this->currentMode == MODE::BOX)
+		if (this->currentMode == MODE::DRAW_WALL_DRAG)
 		{
-			if (this->draggingBox)
-			{
-				this->draggingBox = false;
-				this->newBoxDest = cocos2d::Vec2::ZERO;
-				this->newBoxOrigin = cocos2d::Vec2::ZERO;
-				this->newBoxDrawNode->clear();
-			}
+			// Cancle draw
+			this->currentMode = MODE::IDLE;
+			this->newBoxDest = cocos2d::Vec2::ZERO;
+			this->newBoxOrigin = cocos2d::Vec2::ZERO;
+			this->dragBoxDrawNode->clear();
 		}
 	}
 }
@@ -1030,33 +1383,308 @@ void VisibilityScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coco
 {
 	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_ESCAPE)
 	{
-		// Terminate
-		cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, MainScene::create(), cocos2d::Color3B::BLACK));
-	}
-
-	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_B)
-	{
-		// Box mode
-		this->currentMode = MODE::BOX;
-	}
-	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_L)
-	{
-		// light mode
-		this->currentMode = MODE::LIGHT;
+		if (this->currentMode == MODE::DRAW_WALL_POINT)
+		{
+			this->clearFreeform();
+		}
+		else if (this->currentMode == MODE::DRAW_WALL_DRAG || this->currentMode == MODE::DRAW_WALL_READY)
+		{
+			this->clearDrag();
+		}
+		else if (this->currentMode == MODE::IDLE)
+		{
+			// Terminate
+			cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, MainScene::create(), cocos2d::Color3B::BLACK));
+		}
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_ENTER)
 	{
-		this->currentMode = MODE::IDLE;
-		this->loadMap();
+		if (this->currentMode == MODE::DRAW_WALL_POINT)
+		{
+			if (this->freeformWallPoints.size() < 1)
+			{
+				this->clearFreeform();
+			}
+			else
+			{
+				this->createNewFreeformWall();
+				this->clearFreeform();
+			}
+		}
 	}
-	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_SPACE)
+	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_L)
 	{
-		this->findIntersectsWithRaycasts();
+		//this->viewRaycast = !this->viewRaycast;
+		this->cursorLight = !this->cursorLight;
 	}
-	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_1)
+
+
+	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_1)
 	{
-		this->visiableAreaDrawNode->clear();
-		this->drawTriangles();
+		// debug.
+		// Does getIntersection works for both edge?
+		Segment* seg = new Segment;
+
+		seg->p1 = cocos2d::Vec2(68, 72);
+		seg->p2 = cocos2d::Vec2(218, 185);
+
+		auto lightPos = cocos2d::Vec2(436, 54);
+
+		float angle1 = atan2(seg->p1.y - lightPos.y, seg->p1.x - lightPos.x);
+		float angle2 = atan2(seg->p2.y - lightPos.y, seg->p2.x - lightPos.x);
+
+		// Get direction of ray
+		float dx1 = cosf(angle1);
+		float dy1 = sinf(angle1);
+
+		// Generate raycast vec2 points
+		auto rayStart1 = lightPos;
+		auto rayEnd1 = cocos2d::Vec2(rayStart1.x + dx1, rayStart1.y + dy1);
+
+		// Get direction of ray
+		float dx2 = cosf(angle2);
+		float dy2 = sinf(angle2);
+
+		// Generate raycast vec2 points
+		auto rayStart2 = lightPos;
+		auto rayEnd2 = cocos2d::Vec2(rayStart2.x + dx2, rayStart2.y + dy2);
+
+		float dx3 = cosf(angle2 + 0.00001f);
+		float dy3 = sinf(angle2 + 0.00001f);
+		float dx4 = cosf(angle2 - 0.00001f);
+		float dy4 = sinf(angle2 - 0.00001f);
+
+		auto rayStart3 = lightPos;
+		auto rayEnd3 = cocos2d::Vec2(rayStart3.x + dx3, rayStart3.y + dy3);
+		auto rayStart4 = lightPos;
+		auto rayEnd4 = cocos2d::Vec2(rayStart4.x + dx4, rayStart4.y + dy4);
+
+		cocos2d::Vec2 intersection1;
+		float dist1 = this->getIntersectingPoint(rayStart1, rayEnd1, seg, intersection1);
+		cocos2d::Vec2 intersection2;
+		float dist2 = this->getIntersectingPoint(rayStart2, rayEnd2, seg, intersection2);
+		cocos2d::Vec2 intersection3;
+		float dist3 = this->getIntersectingPoint(rayStart3, rayEnd3, seg, intersection3);
+		cocos2d::Vec2 intersection4;
+		float dist4 = this->getIntersectingPoint(rayStart4, rayEnd4, seg, intersection4);
+
+		if (dist1 > 0)
+		{
+			cocos2d::log("P1 intersects segment");
+			cocos2d::log("Intersection 1 = (%f, %f)", intersection1.x, intersection1.y);
+			cocos2d::log("Ray to p1 = %f", rayStart1.distance(seg->p1));
+			cocos2d::log("dist = %f", dist1);
+		}
+		if (dist2 > 0)
+		{
+			cocos2d::log("P2 intersects segment");
+			cocos2d::log("Intersection 2 = (%f, %f)", intersection2.x, intersection2.y);
+			cocos2d::log("Ray to p2 = %f", rayStart2.distance(seg->p2));
+			cocos2d::log("dist = %f", dist2);
+		}
+		if (dist3 > 0)
+		{
+			cocos2d::log("P3 intersects segment");
+			cocos2d::log("Intersection 3 = (%f, %f)", intersection3.x, intersection3.y);
+			cocos2d::log("Ray to p3 = %f", rayStart3.distance(seg->p2));
+			cocos2d::log("dist = %f", dist3);
+		}
+		if (dist4 > 0)
+		{
+			cocos2d::log("P4 intersects segment");
+			cocos2d::log("Intersection 4 = (%f, %f)", intersection4.x, intersection4.y);
+			cocos2d::log("Ray to p4 = %f", rayStart4.distance(seg->p2));
+			cocos2d::log("dist = %f", dist4);
+		}
+
+		delete seg;
+	}
+	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_2)
+	{
+		// Invert case of above case
+		Segment* seg = new Segment;
+
+		seg->p1 = cocos2d::Vec2(218, 185);
+		seg->p2 = cocos2d::Vec2(68, 72);
+
+		auto lightPos = cocos2d::Vec2(436, 54);
+
+		float angle1 = atan2(seg->p1.y - lightPos.y, seg->p1.x - lightPos.x);
+		float angle2 = atan2(seg->p2.y - lightPos.y, seg->p2.x - lightPos.x);
+
+		// Get direction of ray
+		float dx1 = cosf(angle1);
+		float dy1 = sinf(angle1);
+
+		// Generate raycast vec2 points
+		auto rayStart1 = lightPos;
+		auto rayEnd1 = cocos2d::Vec2(rayStart1.x + dx1, rayStart1.y + dy1);
+
+		// Get direction of ray
+		float dx2 = cosf(angle2);
+		float dy2 = sinf(angle2);
+
+		// Generate raycast vec2 points
+		auto rayStart2 = lightPos;
+		auto rayEnd2 = cocos2d::Vec2(rayStart2.x + dx2, rayStart2.y + dy2);
+
+		cocos2d::Vec2 intersection1;
+		float dist1 = this->getIntersectingPoint(rayStart1, rayEnd1, seg, intersection1);
+		cocos2d::Vec2 intersection2;
+		float dist2 = this->getIntersectingPoint(rayStart2, rayEnd2, seg, intersection2);
+
+		if (dist1 > 0)
+		{
+			cocos2d::log("P1 intersects segment");
+			cocos2d::log("Ray to p1 = %f", rayStart1.distance(seg->p1));
+			cocos2d::log("dist = %f", dist1);
+		}
+		if (dist2 > 0)
+		{
+			cocos2d::log("P2 intersects segment");
+			cocos2d::log("Ray to p2 = %f", rayStart2.distance(seg->p2));
+			cocos2d::log("dist = %f", dist2);
+		}
+
+		delete seg;
+	}
+	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_3)
+	{
+		// debug.
+		// Does getIntersection works for both edge?
+		Segment* seg = new Segment;
+
+		seg->p1 = cocos2d::Vec2(68, 72);
+		seg->p2 = cocos2d::Vec2(218, 185);
+
+		auto lightPos = cocos2d::Vec2(136, 254);
+
+		float angle1 = atan2(seg->p1.y - lightPos.y, seg->p1.x - lightPos.x);
+		float angle2 = atan2(seg->p2.y - lightPos.y, seg->p2.x - lightPos.x);
+
+		// Get direction of ray
+		float dx1 = cosf(angle1);
+		float dy1 = sinf(angle1);
+
+		// Generate raycast vec2 points
+		auto rayStart1 = lightPos;
+		auto rayEnd1 = cocos2d::Vec2(rayStart1.x + dx1, rayStart1.y + dy1);
+
+		// Get direction of ray
+		float dx2 = cosf(angle2);
+		float dy2 = sinf(angle2);
+
+		// Generate raycast vec2 points
+		auto rayStart2 = lightPos;
+		auto rayEnd2 = cocos2d::Vec2(rayStart2.x + dx2, rayStart2.y + dy2);
+
+		cocos2d::Vec2 intersection1;
+		float dist1 = this->getIntersectingPoint(rayStart1, rayEnd1, seg, intersection1);
+		cocos2d::Vec2 intersection2;
+		float dist2 = this->getIntersectingPoint(rayStart2, rayEnd2, seg, intersection2);
+
+		if (dist1 > 0)
+		{
+			cocos2d::log("P1 intersects segment");
+			cocos2d::log("Ray to p1 = %f", rayStart1.distance(seg->p1));
+			cocos2d::log("dist = %f", dist1);
+		}
+		if (dist2 > 0)
+		{
+			cocos2d::log("P2 intersects segment");
+			cocos2d::log("Ray to p2 = %f", rayStart2.distance(seg->p2));
+			cocos2d::log("dist = %f", dist2);
+		}
+
+		delete seg;
+	}
+	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_4)
+	{
+		// debug.
+		// Does getIntersection works for both edge?
+		auto p3 = cocos2d::Vec2(68, 72);
+		auto p4 = cocos2d::Vec2(218, 185);
+
+		auto lightPos = cocos2d::Vec2(136, 254);
+
+		float angle1 = atan2(p3.y - lightPos.y, p3.x - lightPos.x);
+		float angle2 = atan2(p4.y - lightPos.y, p4.x - lightPos.x);
+
+		// Get direction of ray
+		float dx1 = cosf(angle1);
+		float dy1 = sinf(angle1);
+
+		// Generate raycast vec2 points
+		auto rayStart1 = lightPos;
+		auto rayEnd1 = cocos2d::Vec2(rayStart1.x + dx1, rayStart1.y + dy1);
+
+		// Get direction of ray
+		float dx2 = cosf(angle2);
+		float dy2 = sinf(angle2);
+
+		// Generate raycast vec2 points
+		auto rayStart2 = lightPos;
+		auto rayEnd2 = cocos2d::Vec2(rayStart2.x + dx2, rayStart2.y + dy2);
+
+		cocos2d::Vec2 intersection1 = this->getIntersectingPoint(rayStart1, rayEnd1, p3, p4);
+		cocos2d::Vec2 intersection2 = this->getIntersectingPoint(rayStart2, rayEnd2, p3, p4);
+
+		cocos2d::log("Intersection 1 = (%f, %f)", intersection1.x, intersection1.y);
+		cocos2d::log("Intersection 2 = (%f, %f)", intersection2.x, intersection2.y);
+
+		if (intersection1 == p3)
+		{
+			cocos2d::log("Intersection 1 correct");
+		}
+		
+		if (intersection2 == p4)
+		{
+			cocos2d::log("Intersection 2 correct");
+		}
+	}
+	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_5)
+	{
+		// debug.
+		// Does getIntersection works for both edge?
+		auto p3 = cocos2d::Vec2(68, 72);
+		auto p4 = cocos2d::Vec2(218, 185);
+
+		auto lightPos = cocos2d::Vec2(136, 254);
+
+		float angle1 = atan2(p3.y - lightPos.y, p3.x - lightPos.x);
+		float angle2 = atan2(p4.y - lightPos.y, p4.x - lightPos.x);
+
+		// Get direction of ray
+		float dx1 = cosf(-angle1);
+		float dy1 = sinf(-angle1);
+
+		// Generate raycast vec2 points
+		auto rayStart1 = lightPos;
+		auto rayEnd1 = cocos2d::Vec2(rayStart1.x + dx1, rayStart1.y + dy1);
+
+		// Get direction of ray
+		float dx2 = cosf(-angle2);
+		float dy2 = sinf(-angle2);
+
+		// Generate raycast vec2 points
+		auto rayStart2 = lightPos;
+		auto rayEnd2 = cocos2d::Vec2(rayStart2.x + dx2, rayStart2.y + dy2);
+
+		cocos2d::Vec2 intersection1 = this->getIntersectingPoint(rayStart1, rayEnd1, p3, p4);
+		cocos2d::Vec2 intersection2 = this->getIntersectingPoint(rayStart2, rayEnd2, p3, p4);
+
+		cocos2d::log("Intersection 1 = (%f, %f)", intersection1.x, intersection1.y);
+		cocos2d::log("Intersection 2 = (%f, %f)", intersection2.x, intersection2.y);
+
+		if (intersection1 == p3)
+		{
+			cocos2d::log("Intersection 1 correct");
+		}
+
+		if (intersection2 == p4)
+		{
+			cocos2d::log("Intersection 2 correct");
+		}
 	}
 }
 
@@ -1085,4 +1713,6 @@ void VisibilityScene::onExit()
 	{
 		delete segment;
 	}
+
+	this->earClipping->release();
 }

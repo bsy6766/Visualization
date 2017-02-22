@@ -11,6 +11,8 @@
 
 class EarClippingScene : public cocos2d::Scene
 {
+	// Visibility scene need to use earclip.
+	friend class VisibilityScene;
 private:
 	//default constructor
 	EarClippingScene() {};
