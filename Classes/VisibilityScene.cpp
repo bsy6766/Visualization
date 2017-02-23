@@ -88,6 +88,8 @@ bool VisibilityScene::init()
 	this->viewVisibleArea = true;
 	this->cursorLight = false;
 
+	VisibilityScene::wallIDCounter = 0;
+
 	return true;
 }
 
@@ -98,6 +100,27 @@ void VisibilityScene::onEnter()
 	initECS();
 
 	initInputListeners();
+
+	//this->newBoxOrigin = cocos2d::Vec2(100, 100);
+	//this->newBoxDest = cocos2d::Vec2(200, 200);
+	//this->createNewRectWall();
+
+	//this->freeformWallPoints.push_back(cocos2d::Vec2(100, 200));
+	//this->freeformWallPoints.push_back(cocos2d::Vec2(150, 270));
+	//this->freeformWallPoints.push_back(cocos2d::Vec2(200, 200));
+	//this->freeformWallPoints.push_back(cocos2d::Vec2(150, 130));
+	//this->createNewFreeformWall();
+	//this->clearFreeform();
+
+	//this->freeformWallPoints.push_back(cocos2d::Vec2(400, 270));
+	//this->freeformWallPoints.push_back(cocos2d::Vec2(400, 500));
+	//this->createNewFreeformWall();
+	//this->clearFreeform();
+
+	//this->freeformWallPoints.push_back(cocos2d::Vec2(600, 270));
+	//this->freeformWallPoints.push_back(cocos2d::Vec2(600, 80));
+	//this->createNewFreeformWall();
+	//this->clearFreeform();
 }
 
 void VisibilityScene::initECS()
@@ -110,6 +133,11 @@ void VisibilityScene::initECS()
 void VisibilityScene::createNewRectWall()
 {
 	cocos2d::Vec2 newWallSize = this->newBoxDest - this->newBoxOrigin;
+	if (fabsf(newWallSize.x) < minRectSize || fabsf(newWallSize.y) < minRectSize)
+	{
+		this->clearDrag();
+		return;
+	}
 
 	auto maxX = this->newBoxOrigin.x > this->newBoxDest.x ? this->newBoxOrigin.x : this->newBoxDest.x;
 	auto minX = this->newBoxOrigin.x < this->newBoxDest.x ? this->newBoxOrigin.x : this->newBoxDest.x;
@@ -148,10 +176,11 @@ void VisibilityScene::createNewFreeformWall()
 	Wall wall;
 	wall.angle = 0;
 
+	// 5000 is big enough to detect min values
 	float maxX = 0;
-	float minX = 0;
+	float minX = 5000.0f;
 	float maxY = 0;
-	float minY = 0;
+	float minY = 5000.0f;
 
 	for (auto point : this->freeformWallPoints)
 	{
@@ -243,13 +272,17 @@ void VisibilityScene::loadMap()
 
 	this->boundarySegments.clear();
 
-	// Add boundary
-	this->boundaryUniquePoints.push_back(cocos2d::Vec2(this->displayBoundary.getMinX(), this->displayBoundary.getMaxY()));  //top left
-	this->boundaryUniquePoints.push_back(cocos2d::Vec2(this->displayBoundary.getMaxX(), this->displayBoundary.getMaxY()));  //top right
-	this->boundaryUniquePoints.push_back(cocos2d::Vec2(this->displayBoundary.getMinX(), this->displayBoundary.getMinY()));  //bottom left
-	this->boundaryUniquePoints.push_back(cocos2d::Vec2(this->displayBoundary.getMaxX(), this->displayBoundary.getMinY()));  //bottom right
+	//// Add boundary
+	//this->boundaryUniquePoints.push_back(cocos2d::Vec2(this->displayBoundary.getMinX(), this->displayBoundary.getMaxY()));  //top left
+	//this->boundaryUniquePoints.push_back(cocos2d::Vec2(this->displayBoundary.getMaxX(), this->displayBoundary.getMaxY()));  //top right
+	//this->boundaryUniquePoints.push_back(cocos2d::Vec2(this->displayBoundary.getMinX(), this->displayBoundary.getMinY()));  //bottom left
+	//this->boundaryUniquePoints.push_back(cocos2d::Vec2(this->displayBoundary.getMaxX(), this->displayBoundary.getMinY()));  //bottom right
+	this->wallUniquePoints.push_back({ BOUNDARY_WALL_ID, cocos2d::Vec2(this->displayBoundary.getMinX(), this->displayBoundary.getMaxY()) });  //top left
+	this->wallUniquePoints.push_back({ BOUNDARY_WALL_ID, cocos2d::Vec2(this->displayBoundary.getMaxX(), this->displayBoundary.getMaxY()) });  //top right
+	this->wallUniquePoints.push_back({ BOUNDARY_WALL_ID, cocos2d::Vec2(this->displayBoundary.getMinX(), this->displayBoundary.getMinY()) });  //bottom left
+	this->wallUniquePoints.push_back({ BOUNDARY_WALL_ID, cocos2d::Vec2(this->displayBoundary.getMaxX(), this->displayBoundary.getMinY()) });  //bottom right
 
-	this->loadRect(this->displayBoundary, this->boundarySegments, -1/*boundary isn't wall. so use -1*/);
+	this->loadRect(this->displayBoundary, this->boundarySegments, BOUNDARY_WALL_ID);
 
 	// Add walls
 	for (auto wall : walls)
@@ -258,10 +291,10 @@ void VisibilityScene::loadMap()
 		{
 			auto& bb = wall.bb;
 
-			this->wallUniquePoints.push_back(cocos2d::Vec2(bb.getMinX(), bb.getMaxY()));  //top left
-			this->wallUniquePoints.push_back(cocos2d::Vec2(bb.getMaxX(), bb.getMaxY()));  //top right
-			this->wallUniquePoints.push_back(cocos2d::Vec2(bb.getMinX(), bb.getMinY()));  //bottom left
-			this->wallUniquePoints.push_back(cocos2d::Vec2(bb.getMaxX(), bb.getMinY()));  //bottom right
+			this->wallUniquePoints.push_back({ wall.wallID, cocos2d::Vec2(bb.getMinX(), bb.getMaxY()) });  //top left
+			this->wallUniquePoints.push_back({ wall.wallID, cocos2d::Vec2(bb.getMaxX(), bb.getMaxY()) });  //top right
+			this->wallUniquePoints.push_back({ wall.wallID, cocos2d::Vec2(bb.getMinX(), bb.getMinY()) });  //bottom left
+			this->wallUniquePoints.push_back({ wall.wallID, cocos2d::Vec2(bb.getMaxX(), bb.getMinY()) });  //bottom right
 
 			this->loadRect(bb, this->wallSegments, wall.wallID);
 		}
@@ -270,7 +303,7 @@ void VisibilityScene::loadMap()
 			auto size = wall.points.size();
 			for (unsigned int i = 0; i < size; i++)
 			{
-				this->wallUniquePoints.push_back(wall.points.at(i));
+				this->wallUniquePoints.push_back({ wall.wallID, wall.points.at(i) });
 			}
 
 			this->loadFreeform(wall.points, this->wallSegments, wall.wallID);
@@ -399,10 +432,75 @@ cocos2d::Vec2 VisibilityScene::getIntersectingPoint(const cocos2d::Vec2 & p1, co
 	return cocos2d::Vec2(p1.x + s * (p2.x - p1.x), p1.y + s * (p2.y - p1.y));
 }
 
+bool VisibilityScene::getIntersectingPoint(const cocos2d::Vec2 & rayStart, const cocos2d::Vec2 & rayEnd, const Segment * segment, Hit & hit)
+{
+	auto& rs = rayStart;
+	auto& re = rayEnd;
+
+	auto& sp1 = segment->p1;
+	auto& sp2 = segment->p2;
+
+	auto rd = re - rs;
+	auto sd = sp2 - sp1;
+
+	auto rdDotsd = rd.dot(sd);
+
+	auto rsd = sp1 - rs;
+
+	auto rdxsd = rd.cross(sd);		//denom
+	auto rsdxrd = rsd.cross(rd);
+
+	float t = rsd.cross(sd) / rdxsd;
+	float u = rsd.cross(rd) / rdxsd;
+
+	hit.t = 0;
+	hit.u = 0;
+	hit.hitPoint = cocos2d::Vec2::ZERO;
+	hit.parallel = false;
+
+	//cocos2d::log("u = %f", u);
+	//cocos2d::log("t = %f", t);
+
+	if (rdxsd == 0)
+	{
+		/*
+		if (rsdxrd == 0)
+		{
+		cocos2d::log("colinear");
+		}
+		else
+		{
+		cocos2d::log("Parallel and not intersecting");
+		}
+		*/
+		hit.parallel = true;
+		return false;
+	}
+	else
+	{
+		if (u > 1.0f && u - 1.0f < 0.00001f)
+		{
+			u = 1.0f;
+		}
+		if (0 <= t && 0 <= u && u <= 1.0f)
+		{
+			//cocos2d::log("Intersecting");
+			hit.t = t;
+			hit.u = u;
+			hit.hitPoint.x = sp1.x + (u * sd.x);
+			hit.hitPoint.y = sp1.y + (u * sd.y);
+			return t;
+		}
+	}
+
+	//cocos2d::log("Not colinear nor parallel, but doesn't intersect");
+	return false;
+}
+
 void VisibilityScene::findIntersectsWithRaycasts()
 {
 	// Don't need to find if there is no light
-	if (this->lightPositions.empty()) return;
+	//if (this->lightPositions.empty()) return;
 
 	//auto lightPos = this->lightPositions.at(0);
 	auto lightPos = mousePos;	//debug
@@ -414,14 +512,6 @@ void VisibilityScene::findIntersectsWithRaycasts()
 
 		// clear intersecting points.
 		intersects.clear();
-
-		// Iterate through wall unique point and calculate angles
-		std::vector<float> wallUniqueAngles;
-		for (auto uniquePoint : this->wallUniquePoints)
-		{
-			float angle = atan2(uniquePoint.y - lightPos.y, uniquePoint.x - lightPos.x);
-			wallUniqueAngles.push_back(angle);
-		}
 
 		// Iterate through boundary unique point and calculate angles
 		std::vector<float> boundaryUniqueAngles;
@@ -449,49 +539,112 @@ void VisibilityScene::findIntersectsWithRaycasts()
 		// list of unique points to determine if we really need the intersecting point.
 		// More details on below comments
 
-		int wallIndex = 0;	// for unique point
+		//int wallIndex = 0;	// for unique point
 
 		// Iterate through walls first
-		for (auto angle : wallUniqueAngles)
+		for (auto uniquePoint : this->wallUniquePoints)
 		{
-			int hitCount = 0;	// increment everytime ray hits segment
+			//int hitCount = 0;	// increment everytime ray hits segment
+
+			// Get angle from light position and unique point so we can create ray to that direction
+			float angle = atan2(uniquePoint.point.y - lightPos.y, uniquePoint.point.x - lightPos.x);
 
 			// Get direction of ray
 			float dx = cosf(angle);
 			float dy = sinf(angle);
+
+			angle = angle * 180.0f / M_PI;
 
 			// Generate raycast vec2 points
 			auto rayStart = lightPos;
 			auto rayEnd = cocos2d::Vec2(rayStart.x + dx, rayStart.y + dy);
 
 			// Zero will mean no hit
-			cocos2d::Vec2 closestIntersection = cocos2d::Vec2::ZERO;
+			cocos2d::Vec2 closestPoint = cocos2d::Vec2::ZERO;
 			cocos2d::Vec2 secondClosestIntersection = cocos2d::Vec2::ZERO;
 
 			// This flag is for corner case where raycast is parallel to segment
 			bool parallel = false;
+
 			// Keep tracks the wallID of segment that raycast intersected.
 			int wallID = -1;
-			int uniquePointWallID = -1;
+			int uniquePointWallID = uniquePoint.wallID;
+			float shortestDist = 5000.0f;	// 5000 is enough distance to be max
+			bool skip = false;
+			//cocos2d::log("Uniquepoint = (%f, %f)", this->wallUniquePoints.at(wallIndex).x, this->wallUniquePoints.at(wallIndex).y);
+
+			std::unordered_set<int> wallIDSet;
 
 			// Iterate through all segments
 			for (auto segment : allSegments)
 			{
-				// Convert to cocos2d::Vec2
 				auto p1 = cocos2d::Vec2(segment->p1.x, segment->p1.y);
 				auto p2 = cocos2d::Vec2(segment->p2.x, segment->p2.y);
+				
+				//cocos2d::log("Seg = (%f, %f), (%f, %f)", p1.x, p1.y, p2.x, p2.y);
 
-				if (p1 == this->wallUniquePoints.at(wallIndex) || p2 == this->wallUniquePoints.at(wallIndex))
+				if (p1 == uniquePoint.point || p2 == uniquePoint.point)
 				{
-					// Don't check segment that includes the unique point we are raycasting.
-					uniquePointWallID = segment->wallID;
+					// If either one of the end points of segments is unique point, we don't have to check raycast
+					// because it's 100% hit.
 					continue;
 				}
 
 				// Get intersecting point
-				cocos2d::Vec2 intersectingPoint;
-				auto dist = this->getIntersectingPoint(rayStart, rayEnd, segment, intersectingPoint);
+				Hit hit;
+				bool result = this->getIntersectingPoint(rayStart, rayEnd, segment, hit);
 
+				if (result)
+				{
+					// if we are raycasting to boundary wall's unique point, any hit means unique point isn't visible
+					if (uniquePointWallID == BOUNDARY_WALL_ID)
+					{
+						skip = true;
+						break;
+					}
+					// Else, unique point is not boundary. keep go on.
+
+					wallIDSet.insert(segment->wallID);
+
+					// Ray hit something
+					// Check if it hit the edge
+					bool edge = hit.u == 0 || hit.u == 1.0f;
+					// We don't consider edge point as a closest point. 
+					if (edge)
+					{
+						//cocos2d::log("edge");
+						if (segment->wallID == BOUNDARY_WALL_ID)
+						{
+							continue;
+						}
+						//continue;
+						auto& center = this->walls.at(segment->wallID).center;
+						bool segDir = isOnLeft(rayStart, rayEnd, center);	// left = true, right = false
+						bool uniquepointSegDir = isOnLeft(rayStart, rayEnd, this->walls.at(uniquePoint.wallID).center);
+						if (segDir == uniquepointSegDir)
+						{
+
+							continue;
+						}
+						// Else, record if it's closest.
+					}
+
+					// Not the edge.
+					float dist = hit.hitPoint.distance(rayStart);
+					if (dist < shortestDist)
+					{
+						//cocos2d::log("Found new closest point (%f, %f)", hit.hitPoint.x, hit.hitPoint.y);
+						shortestDist = dist;
+						closestPoint = hit.hitPoint;
+						wallID = segment->wallID;
+					}
+				}
+				else
+				{
+					// Ray didn't hit the segment.
+					continue;
+				}
+				/*
 				// check the distance. if dist is 0, ray didn't hit any segments. If dist is -1, it's parallel to segment.
 				if (dist > 0)
 				{
@@ -499,20 +652,20 @@ void VisibilityScene::findIntersectsWithRaycasts()
 
 					wallID = segment->wallID;	// Keep track wallID
 
-					if (closestIntersection == cocos2d::Vec2::ZERO)
+					if (closestPoint == cocos2d::Vec2::ZERO)
 					{
 						// Haven't find any intersection yet. Set as closest
-						closestIntersection = intersectingPoint;
+						closestPoint = intersectingPoint;
 					}
 					else
 					{
 						// Check if new intersecting point we found is closer to light position(where ray starts)
 						auto intersectDist = intersectingPoint.distance(rayStart);
-						if (intersectDist < closestIntersection.distance(rayStart))
+						if (intersectDist < closestPoint.distance(rayStart))
 						{
 							// If so, set as closest
-							secondClosestIntersection = closestIntersection;
-							closestIntersection = intersectingPoint;
+							secondClosestIntersection = closestPoint;
+							closestPoint = intersectingPoint;
 						}
 						else
 						{
@@ -539,9 +692,10 @@ void VisibilityScene::findIntersectsWithRaycasts()
 					// it's parallel
 					parallel = true;
 				}
+				*/
 			}
 			// end of segment interation
-
+			/*
 			if (hitCount == 1)
 			{
 				// Only hit once, which must be boundary segment.
@@ -552,7 +706,7 @@ void VisibilityScene::findIntersectsWithRaycasts()
 				v.otherWallVisible = false;
 				v.isBounday = false;									// It's wall not boundary
 				v.vertex = this->wallUniquePoints.at(wallIndex);		// Ray hit the unique point. 
-				v.extendedVertex = closestIntersection;					// But can be extended to boundary, which is closests point
+				v.extendedVertex = closestPoint;					// But can be extended to boundary, which is closests point
 				v.angle = angle;										// Store angle for sorting
 				v.wallID = uniquePointWallID;							// Keep track which wall are we dealing with
 				v.extendedWallID = -1;
@@ -564,7 +718,7 @@ void VisibilityScene::findIntersectsWithRaycasts()
 				if (hitCount > 1)
 				{
 					// Check if closest intersecting point is closer than unique point
-					auto dist = closestIntersection.distance(rayStart);
+					auto dist = closestPoint.distance(rayStart);
 					auto maxDist = wallUniquePoints.at(wallIndex).distance(rayStart);
 					if (dist > maxDist)
 					{
@@ -647,7 +801,7 @@ void VisibilityScene::findIntersectsWithRaycasts()
 									{
 										v.boundaryVisible = false;
 										v.otherWallVisible = true;
-										v.extendedVertex = closestIntersection;
+										v.extendedVertex = closestPoint;
 										v.wallID = uniquePointWallID;
 										v.extendedWallID = wallID;
 									}
@@ -659,7 +813,7 @@ void VisibilityScene::findIntersectsWithRaycasts()
 									// As it said, boundary is not visible but wall
 									v.boundaryVisible = false;
 									v.otherWallVisible = true;
-									v.extendedVertex = closestIntersection;
+									v.extendedVertex = closestPoint;
 									v.wallID = uniquePointWallID;
 									v.extendedWallID = wallID;
 								}
@@ -676,10 +830,156 @@ void VisibilityScene::findIntersectsWithRaycasts()
 				}
 				// If it's 0, it's bug.
 			}
+			*/
 
-			wallIndex++;
+			// Check for case where unique point is boundary wall
+			if (uniquePoint.wallID == BOUNDARY_WALL_ID)
+			{
+				// We are raycasting to boundary wall. 
+				if (skip)
+				{
+					// Ray hit other segment before it reached boundary wall. Ignore this ray.
+					continue;
+				}
+				else
+				{
+					// Ray reached boundary wall without hitting any other segments
+					Vertex v;
+					v.point = uniquePoint.point;
+					v.uniquePoint = uniquePoint.point;
+					v.type = Vertex::TYPE::ON_UNIQUE_POINT;	// It's unique point not boundary
+					v.angle = angle;
+					v.pointWallID = BOUNDARY_WALL_ID;
+					v.uniquePointWallID = BOUNDARY_WALL_ID;
+					this->intersects.push_back(v);
+					continue;
+				}
+			}
+			// Else, unique point is not boundary wall
+			
+			// Check if ray only hit boundary wall. 
+			// Only comparing wall ID to -1 is enough because if wall ID is -1,
+			// it might have hit other segments than boundary, but boundary wall segments are 
+			// raycasted first than wall segments, which means if wall ID remains -1 
+			// then it only hit boundary wall
+			if (wallID == BOUNDARY_WALL_ID)
+			{
+				// Ray only hit boundary wall.
+				Vertex v;
+				v.point = closestPoint;
+				v.uniquePoint = uniquePoint.point;
+				v.type = Vertex::TYPE::ON_BOUNDARY;
+				v.angle = angle;
+				v.pointWallID = BOUNDARY_WALL_ID;
+				v.uniquePointWallID = uniquePoint.wallID;
+				this->intersects.push_back(v);
+			}
+			else
+			{
+				// Ray always hits boundary wall, but hit other segment. 
+				// Check if ray hit the segment that has end point from same wall.
+				auto find_it = wallIDSet.find(uniquePointWallID);
+				if (find_it == wallIDSet.end())
+				{
+					// Ray didn't hit segment from same wall.
+					// This case can be single line wall, or passed the edge (corner case)
+					auto dist = closestPoint.distance(rayStart);
+					auto maxDist = uniquePoint.point.distance(rayStart);
+
+					if (dist < maxDist)
+					{
+						// If ray hit the segment before it reached unique point. Ignore
+						continue;
+					}
+					else
+					{
+						// Ray hit the segment after it reached the unique point. 
+						// There are 2 cases.
+						// Ray only hit boundary wall. 
+						Vertex v;
+						v.point = closestPoint;
+						v.uniquePoint = uniquePoint.point;
+						bool hitOtherWall = this->didRayHitOtherWall(wallIDSet, uniquePointWallID);
+						if (hitOtherWall)
+						{
+							v.type = Vertex::TYPE::ON_WALL;
+							v.pointWallID = wallID;
+						}
+						else
+						{
+							v.type = Vertex::TYPE::ON_BOUNDARY;
+							v.pointWallID = BOUNDARY_WALL_ID;
+						}
+						v.angle = angle;
+						v.uniquePointWallID = uniquePoint.wallID;
+						this->intersects.push_back(v);
+					}
+				}
+				else
+				{
+					// ray hit the segment that has end point from same wall.
+					// There is 2 cases here.
+					// case 1) ray hit unique point and then hit the segment from same wall.
+					//		   In this case, unique point is the closest point
+					// case 2) Ray hit segment from same wall and then the unique point.
+					//		   In this case, we ignore.
+					// We can determine the case by comparing the distance.
+					auto dist = closestPoint.distance(rayStart);
+					auto maxDist = uniquePoint.point.distance(rayStart);
+
+					if (dist < maxDist)
+					{
+						// case 2. Ignore
+						continue;
+					}
+					else
+					{
+						// case 1. 
+						// However, there might be an additional the case where ray hit other wall before it reached unique point.
+						bool hitOtherWall = this->didRayHitOtherWall(wallIDSet, uniquePointWallID);
+
+						if (hitOtherWall)
+						{
+							// Even though ray hit other wall, we need to check if wall segment was behind(farther) from unique point or not(Closer)
+							if (dist > maxDist)
+							{
+								// Ray hit other wall's segment after reaching the unique point. 
+								// Unique point is the closest point
+								Vertex v;
+								v.point = uniquePoint.point;
+								v.uniquePoint = uniquePoint.point;
+								v.type = Vertex::TYPE::ON_UNIQUE_POINT;
+								v.angle = angle;
+								v.pointWallID = uniquePoint.wallID;
+								v.uniquePointWallID = uniquePoint.wallID;
+								this->intersects.push_back(v);
+							}
+							else
+							{
+								// Ray hit other wall's segment before it reached the unique point. We can ignore this.
+								continue;
+							}
+						}
+						else
+						{
+							// Ray didn't hit any other wall before it reached unique point.
+							// After case 1 (ray hit segment from same wall) and didn't hit any other wall segment except boundary wall.
+							// So unique point is closest(case 2 is already handled at first)
+							Vertex v;
+							v.point = uniquePoint.point;
+							v.uniquePoint = uniquePoint.point;
+							v.type = Vertex::TYPE::ON_UNIQUE_POINT;
+							v.angle = angle;
+							v.pointWallID = uniquePoint.wallID;
+							v.uniquePointWallID = uniquePoint.wallID;
+							this->intersects.push_back(v);
+						}
+					}
+				}
+			}
 		}
 
+		/*
 		int boundaryIndex = 0;
 		for (auto angle : boundaryUniqueAngles)
 		{
@@ -742,6 +1042,7 @@ void VisibilityScene::findIntersectsWithRaycasts()
 
 			boundaryIndex++;
 		}
+		*/
 
 		this->drawRaycast();
 	}
@@ -755,14 +1056,218 @@ void VisibilityScene::drawTriangles()
 
 	std::vector<cocos2d::Vec2> verticies;
 
-	auto centerPos = this->mousePos;
-
-	// Sort intersecting points by angle.
-	std::sort(this->intersects.begin(), this->intersects.end(), VertexComparator());
+	auto v1 = this->mousePos;
 
 	// Generate vertex for triangle. 
 	auto size = this->intersects.size();
-	bool prevEndedWithBoundayVisible = false;
+	//bool prevEndedWithBoundayVisible = false;
+
+	for (unsigned int i = 0; i < size; i++)
+	{
+		// First, add center position, which is position of light
+		verticies.push_back(v1);
+
+		int index = i + 1;
+		if (index == size)
+		{
+			index = 0;
+		}
+
+		auto& v2 = intersects.at(i);
+		auto& v3 = intersects.at(index);
+
+		// Intersects are sorted by angle. The order is counter clockwise and starts from third quadrant.
+		/*
+		*	q1						q0
+		*		   4	|    3
+		*				|  
+		*		--------+---------  CCW
+		*				|
+		*		   1	|    2
+		*	q3						q4
+		*/
+
+		// The triangle depends on how ray hit the segments and all.
+
+		// Case: v2 is unique point type
+		if (v2.type == Vertex::TYPE::ON_UNIQUE_POINT)
+		{
+			// Case: v2 is boundary wall unique point
+			if (v2.uniquePointWallID == BOUNDARY_WALL_ID)
+			{
+				// Case 1) If v2 is boundary wall unique point, v3 must be closest point
+				verticies.push_back(v2.uniquePoint);
+				verticies.push_back(v3.point);
+			}
+			else
+			{
+				// Case: v3 is boundary type
+				if (v3.type == Vertex::TYPE::ON_BOUNDARY)
+				{
+					// Case 6) 
+					verticies.push_back(v2.uniquePoint);
+					verticies.push_back(v3.uniquePoint);
+				}
+				// Case: v3 is unique point type or wall type
+				else if (v3.type == Vertex::TYPE::ON_UNIQUE_POINT)
+				{
+					// Case 7) both are unique point
+					verticies.push_back(v2.uniquePoint);
+					verticies.push_back(v3.uniquePoint);
+				}
+				else if (v3.type == Vertex::TYPE::ON_WALL)
+				{
+					// Case: id is same
+					if (v2.uniquePointWallID == v3.uniquePointWallID)
+					{
+						// Case 8)
+						verticies.push_back(v2.uniquePoint);
+						verticies.push_back(v3.uniquePoint);
+					}
+					else
+					{
+						// Case 14)
+						verticies.push_back(v2.uniquePoint);
+						verticies.push_back(v3.point);
+					}
+				}
+			}
+		}
+		// Case: v2 is boundary type
+		else if (v2.type == Vertex::TYPE::ON_BOUNDARY)
+		{
+			// Case: v3 is uniquepoint type
+			if (v3.type == Vertex::TYPE::ON_UNIQUE_POINT)
+			{
+				// Case: v3 is boundary wall unique point
+				if (v3.uniquePointWallID == BOUNDARY_WALL_ID)
+				{
+					// Case 2) if v2 is boundary type and v3 is boundary unique wall, v2 is closest point
+					verticies.push_back(v2.point);
+					verticies.push_back(v3.uniquePoint);
+				}
+				// Case: v3 is not boundary wall unique point
+				else
+				{
+					// Case 3) both are unique point
+					verticies.push_back(v2.uniquePoint);
+					verticies.push_back(v3.uniquePoint);
+				}
+			}
+			// Case: v3 is boundary type
+			else if (v3.type == Vertex::TYPE::ON_BOUNDARY)
+			{
+				// Case: both are boundary type and on same wall
+				if (v2.uniquePointWallID == v3.uniquePointWallID)
+				{
+					// Case 4) both unique point
+					verticies.push_back(v2.uniquePoint);
+					verticies.push_back(v3.uniquePoint);
+				}
+				// Case: v2 and v3 from different wall
+				else
+				{
+					// Case 5) between wall.
+					verticies.push_back(v2.point);
+					verticies.push_back(v3.point);
+				}
+			}
+			// Case: v3 is wall type
+			else if (v3.type == Vertex::TYPE::ON_WALL)
+			{
+				// Case: same wall
+				if (v2.uniquePointWallID == v3.uniquePointWallID)
+				{
+					// Case 15)
+					verticies.push_back(v2.uniquePoint);
+					verticies.push_back(v3.uniquePoint);
+				}
+				else
+				{
+					// Case 10) 
+					verticies.push_back(v2.uniquePoint);
+					verticies.push_back(v3.point);
+				}
+			}
+		}
+		// Case: v2 is wall type
+		else if (v2.type == Vertex::TYPE::ON_WALL)
+		{
+			// Case: v3 is boundary type
+			if (v3.type == Vertex::TYPE::ON_BOUNDARY)
+			{
+				// Case: v2 and v3 is on same wall
+				if (v2.uniquePointWallID == v3.uniquePointWallID)
+				{
+					// Case 9)
+					verticies.push_back(v2.uniquePoint);
+					verticies.push_back(v3.uniquePoint);
+				}
+				// Case: v2 and v3 is on different wall
+				else
+				{
+					// Case 13)
+					verticies.push_back(v2.point);
+					verticies.push_back(v3.uniquePoint);
+				}
+			}
+			// Case: v3 is unique point type
+			else if (v3.type == Vertex::TYPE::ON_UNIQUE_POINT)
+			{
+				if (v2.uniquePointWallID == v3.uniquePointWallID)
+				{
+					// Case 12)
+					verticies.push_back(v2.uniquePoint);
+					verticies.push_back(v3.uniquePoint);
+				}
+				else
+				{
+					// Case 16)
+					verticies.push_back(v2.point);
+					verticies.push_back(v3.uniquePoint);
+				}
+			}
+			// Case: v3 is wall type
+			else if (v3.type == Vertex::TYPE::ON_WALL)
+			{
+				if (v2.uniquePointWallID == v3.uniquePointWallID)
+				{
+					// Case 11) v2 and v3 must be on same wall
+					verticies.push_back(v2.uniquePoint);
+					verticies.push_back(v3.uniquePoint);
+				}
+				else
+				{
+					if (v2.pointWallID == v3.pointWallID)
+					{
+						// Case 17) v2 and v3 is not on same wall but ended up on same wall
+						verticies.push_back(v2.point);
+						verticies.push_back(v3.point);
+					}
+					else
+					{
+						// Corner case: comapre distance
+						auto v2Dist = v2.point.distance(v1);
+						auto v3Dist = v3.point.distance(v1);
+						if (v2Dist < v3Dist)
+						{
+							// Case 18) 
+							verticies.push_back(v2.point);
+							verticies.push_back(v3.uniquePoint);
+						}
+						else
+						{
+							// Case 19)
+							verticies.push_back(v2.uniquePoint);
+							verticies.push_back(v3.point);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	/*
 	for (unsigned int i = 0; i < size; i++)
 	{
 		// First, add center position, which is position of light
@@ -787,8 +1292,8 @@ void VisibilityScene::drawTriangles()
 		{
 			// v2 is boundary, v3 is boundary.
 			// In this case, triangle is formed only with boundary unique points.
-			verticies.push_back(v2.vertex);
-			verticies.push_back(v3.vertex);
+			verticies.push_back(v2.point);
+			verticies.push_back(v3.point);
 		}
 		// Case #2
 		else if (v2.isBounday && !v3.isBounday)
@@ -796,7 +1301,7 @@ void VisibilityScene::drawTriangles()
 			// v2 is boundary but v3 isn't.
 			// In this case, v2 is boundary unique point and v3 is wall unique point.
 			// Because light travel till boundary, use extendedBertex for v3.
-			verticies.push_back(v2.vertex);
+			verticies.push_back(v2.point);
 			verticies.push_back(v3.extendedVertex);
 		}
 		// Case #4
@@ -805,7 +1310,7 @@ void VisibilityScene::drawTriangles()
 			// v2 is not boundary but v3 is.
 			// This is the opposite case of case #2. 
 			verticies.push_back(v2.extendedVertex);
-			verticies.push_back(v3.vertex);
+			verticies.push_back(v3.point);
 		}
 		// Case #3 (Corner cases)
 		else
@@ -816,13 +1321,13 @@ void VisibilityScene::drawTriangles()
 			{
 				// v2 can be extended to boundary but v3 isn't
 				// Check if v3 can be extended to other wall
-				verticies.push_back(v2.vertex);
+				verticies.push_back(v2.point);
 
 				if (v3.otherWallVisible)
 				{
 					if (v2.wallID == v3.wallID)
 					{
-						verticies.push_back(v3.vertex);
+						verticies.push_back(v3.point);
 					}
 					else
 					{
@@ -831,7 +1336,7 @@ void VisibilityScene::drawTriangles()
 				}
 				else
 				{
-					verticies.push_back(v3.vertex);
+					verticies.push_back(v3.point);
 				}
 
 				continue;
@@ -845,7 +1350,7 @@ void VisibilityScene::drawTriangles()
 				{
 					if (v2.wallID == v3.wallID)
 					{
-						verticies.push_back(v2.vertex);
+						verticies.push_back(v2.point);
 					}
 					else
 					{
@@ -854,10 +1359,10 @@ void VisibilityScene::drawTriangles()
 				}
 				else
 				{
-					verticies.push_back(v2.vertex);
+					verticies.push_back(v2.point);
 				}
 
-				verticies.push_back(v3.vertex);
+				verticies.push_back(v3.point);
 
 				continue;
 			}
@@ -868,8 +1373,8 @@ void VisibilityScene::drawTriangles()
 				// if two point is in same wall, use vertex. Else, extended vertex
 				if (v2.wallID == v3.wallID)
 				{
-					verticies.push_back(v2.vertex);
-					verticies.push_back(v3.vertex);
+					verticies.push_back(v2.point);
+					verticies.push_back(v3.point);
 				}
 				else
 				{
@@ -888,7 +1393,7 @@ void VisibilityScene::drawTriangles()
 				{
 					if (v2.wallID == v3.wallID)
 					{
-						verticies.push_back(v2.vertex);
+						verticies.push_back(v2.point);
 					}
 					else
 					{
@@ -897,14 +1402,14 @@ void VisibilityScene::drawTriangles()
 				}
 				else
 				{
-					verticies.push_back(v2.vertex);
+					verticies.push_back(v2.point);
 				}
 
 				if (v3.otherWallVisible)
 				{
 					if (v2.wallID == v3.wallID)
 					{
-						verticies.push_back(v3.vertex);
+						verticies.push_back(v3.point);
 					}
 					else
 					{
@@ -913,7 +1418,7 @@ void VisibilityScene::drawTriangles()
 				}
 				else
 				{
-					verticies.push_back(v3.vertex);
+					verticies.push_back(v3.point);
 				}
 			}
 			else
@@ -922,8 +1427,8 @@ void VisibilityScene::drawTriangles()
 				if (v2.wallID == v3.wallID)
 				{
 					// If both v2 and v3 is on same segemnt (same wall), use vertex
-					verticies.push_back(v2.vertex);
-					verticies.push_back(v3.vertex);
+					verticies.push_back(v2.point);
+					verticies.push_back(v3.point);
 				}
 				else
 				{
@@ -944,11 +1449,11 @@ void VisibilityScene::drawTriangles()
 						{
 							// v2 is closer.
 							verticies.push_back(v2.extendedVertex);
-							verticies.push_back(v3.vertex);
+							verticies.push_back(v3.point);
 						}
 						else
 						{
-							verticies.push_back(v2.vertex);
+							verticies.push_back(v2.point);
 							verticies.push_back(v3.extendedVertex);
 						}
 					}
@@ -957,13 +1462,21 @@ void VisibilityScene::drawTriangles()
 		}
 	}
 
+	*/
 
 	size = verticies.size();
 	auto color = cocos2d::Color4F::WHITE;
 	color.a = 0.8f;
 	for (unsigned int i = 0; i < size; i+=3)
 	{
-		this->triangleDrawNode->drawTriangle(verticies.at(i), verticies.at(i + 1), verticies.at(i + 2), color);
+		try
+		{
+			this->triangleDrawNode->drawTriangle(verticies.at(i), verticies.at(i + 1), verticies.at(i + 2), color);
+		}
+		catch (...)
+		{
+			cocos2d::log("Error");
+		}
 	}
 }
 
@@ -1069,17 +1582,22 @@ void VisibilityScene::drawWalls()
 		else
 		{
 			auto size = wall.points.size();
+			cocos2d::Color4F color = cocos2d::Color4F::YELLOW;
+			if (wall.wallID == this->hoveringWallIndex)
+			{
+				color = cocos2d::Color4F::RED;
+			}
 			for (unsigned int i = 0; i < size; i++)
 			{
 				if (i < size - 1)
 				{
-					this->wallDrawNode->drawLine(wall.points.at(i), wall.points.at(i + 1), cocos2d::Color4F::YELLOW);
+					this->wallDrawNode->drawLine(wall.points.at(i), wall.points.at(i + 1), color);
 				}
 			}
 
 			if (size > 1)
 			{
-				this->wallDrawNode->drawLine(wall.points.at(0), wall.points.at(size - 1), cocos2d::Color4F::YELLOW);
+				this->wallDrawNode->drawLine(wall.points.at(0), wall.points.at(size - 1), color);
 			}
 		}
 
@@ -1089,14 +1607,21 @@ void VisibilityScene::drawWalls()
 
 void VisibilityScene::drawRaycast()
 {
+	if (this->intersects.empty()) return;
+
 	this->raycastDrawNode->clear();
 
+	// Sort intersecting points by angle.
+	std::sort(this->intersects.begin(), this->intersects.end(), VertexComparator());
+
+	auto color = cocos2d::Color4F::WHITE;
+	//color.a = 0.1f;
 	if (this->viewRaycast)
 	{
 		for (auto intersect : intersects)
 		{
-			auto color = cocos2d::Color4F::RED;
-			//color.a = 0.5f;
+			//color.a += 0.05f;
+			/*
 			if (intersect.boundaryVisible || intersect.otherWallVisible)
 			{
 				this->raycastDrawNode->drawLine(this->mousePos, intersect.extendedVertex, color);
@@ -1105,8 +1630,37 @@ void VisibilityScene::drawRaycast()
 			{
 				this->raycastDrawNode->drawLine(this->mousePos, intersect.vertex, color);
 			}
+			*/
+			this->raycastDrawNode->drawLine(this->mousePos, intersect.point, color);
 		}
 	}
+}
+
+bool VisibilityScene::isOnLeft(const cocos2d::Vec2 & p1, const cocos2d::Vec2 & p2, const cocos2d::Vec2 & target)
+{
+	// 0 = on the line, positive = on left side, negative = on right side
+	float value = (p2.x - p1.x) * (target.y - p1.y) - (target.x - p1.x) * (p2.y - p1.y);
+	return value > 0;
+}
+
+bool VisibilityScene::didRayHitOtherWall(const std::unordered_set<int>& wallIDSet, const int uniquePointWallID)
+{
+	// Check if ray hit other walls.
+	for (auto id : wallIDSet)
+	{
+		if (id == BOUNDARY_WALL_ID || id == uniquePointWallID)
+		{
+			// Boundary wall and unique point's wall doesn't count, keep go on
+			continue;
+		}
+		else
+		{
+			// Ray hit other wall.
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void VisibilityScene::update(float delta)
@@ -1132,6 +1686,7 @@ void VisibilityScene::update(float delta)
 	else
 	{
 		this->triangleDrawNode->clear();
+		this->raycastDrawNode->clear();
 	}
 }
 
@@ -1183,19 +1738,6 @@ void VisibilityScene::onMouseMove(cocos2d::Event* event)
 					auto size = wall.points.size();
 					if (size >= 3)
 					{
-						// use earclip scene for polygon
-						//for (auto point : wall.points)
-						//{
-							//earClipping->finalVerticies.clear();
-							//earClipping->finalVerticies.push_back(point);
-							//earClipping->makeVerticies();
-							//earClipping->currentSceneState = EarClippingScene::SCENE_STATE::ALGORITHM_STATE;
-							//while (earClipping->currentSceneState != EarClippingScene::SCENE_STATE::FINISHED)
-							//{
-							//	earClipping->runEarClipping();
-							//}
-						//}
-
 						std::list<cocos2d::Vec2> pointList(wall.points.begin(), wall.points.end());
 
 						bool inPolygon = earClipping->isPointInPolygon(pointList, point);
@@ -1685,6 +2227,10 @@ void VisibilityScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coco
 		{
 			cocos2d::log("Intersection 2 correct");
 		}
+	}
+	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_TAB)
+	{
+		this->findIntersectsWithRaycasts();
 	}
 }
 

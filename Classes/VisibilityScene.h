@@ -8,6 +8,12 @@
 #include "System.h"
 #include "EarClippingScene.h"
 
+struct UniquePoint
+{
+	int wallID;
+	cocos2d::Vec2 point;
+};
+
 struct Segment
 {
 	cocos2d::Vec2 p1;
@@ -17,14 +23,18 @@ struct Segment
 
 struct Vertex
 {
-	cocos2d::Vec2 vertex;			// Default vertex. Usually unique point.
-	bool boundaryVisible;			// True if this vertex can be extended to boundary
-	bool otherWallVisible;			// True if this vertex can be extended to other wall
-	bool isBounday;					// True if this vertex is endpoint of boundary segments
-	cocos2d::Vec2 extendedVertex;	// Only if wall is visible
-	float angle;					// Angle between light position. Used for sorting.
-	int wallID;
-	int extendedWallID;
+	enum class TYPE
+	{
+		ON_BOUNDARY,
+		ON_WALL,
+		ON_UNIQUE_POINT
+	};
+	cocos2d::Vec2 point;
+	cocos2d::Vec2 uniquePoint;
+	TYPE type;
+	float angle;
+	int uniquePointWallID;
+	int pointWallID;
 };
 
 struct VertexComparator
@@ -44,6 +54,14 @@ struct Wall
 	int wallID;
 	float angle;
 	bool rectangle;
+};
+
+struct Hit
+{
+	float t;
+	float u;
+	cocos2d::Vec2 hitPoint;
+	bool parallel;
 };
 
 class VisibilityScene : public cocos2d::Scene
@@ -105,6 +123,8 @@ private:
 	const int maxWallPoints = 128;
 	const int maxLightCount = 16;
 	const float maxWallSegmentSize = 100.0f;
+	const float minRectSize = 10.0f;
+	const int BOUNDARY_WALL_ID = -1;
 	static int wallIDCounter;
 
 	EarClippingScene* earClipping;
@@ -131,7 +151,7 @@ private:
 
 	std::vector<cocos2d::Vec2> lightPositions;
 
-	std::vector<cocos2d::Vec2> wallUniquePoints;
+	std::vector<UniquePoint> wallUniquePoints;
 	std::vector<cocos2d::Vec2> boundaryUniquePoints;
 
 	std::vector<Segment*> wallSegments;
@@ -168,6 +188,7 @@ private:
 	// Get intersecting point where raycast hits
 	float getIntersectingPoint(const cocos2d::Vec2& rayStart, const cocos2d::Vec2& rayEnd, const Segment* segment, cocos2d::Vec2& intersection);
 	cocos2d::Vec2 getIntersectingPoint(const cocos2d::Vec2& rayStart, const cocos2d::Vec2& rayEnd, const cocos2d::Vec2& segStart, const cocos2d::Vec2& segEnd);
+	bool getIntersectingPoint(const cocos2d::Vec2& rayStart, const cocos2d::Vec2& rayEnd, const Segment* segment, Hit& hit);
 	// cast rays
 	void findIntersectsWithRaycasts();
 	// draw triangles
@@ -188,6 +209,10 @@ private:
 	void drawWalls();
 	// draw raycast
 	void drawRaycast();
+	// check if point is on left or right of segment
+	bool isOnLeft(const cocos2d::Vec2& p1, const cocos2d::Vec2& p2, const cocos2d::Vec2& target);
+	// Check if ray hit other wall
+	bool didRayHitOtherWall(const std::unordered_set<int>& wallIDSet, const int uniquePointWallID);
 public:
 	//simple creator func
 	static VisibilityScene* createScene();
