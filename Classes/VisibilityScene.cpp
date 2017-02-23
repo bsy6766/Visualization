@@ -101,9 +101,9 @@ void VisibilityScene::onEnter()
 
 	initInputListeners();
 
-	//this->newBoxOrigin = cocos2d::Vec2(100, 100);
-	//this->newBoxDest = cocos2d::Vec2(200, 200);
-	//this->createNewRectWall();
+	this->newBoxOrigin = cocos2d::Vec2(100, 100);
+	this->newBoxDest = cocos2d::Vec2(200, 200);
+	this->createNewRectWall();
 
 	//this->freeformWallPoints.push_back(cocos2d::Vec2(100, 200));
 	//this->freeformWallPoints.push_back(cocos2d::Vec2(150, 270));
@@ -554,6 +554,10 @@ void VisibilityScene::findIntersectsWithRaycasts()
 			float dy = sinf(angle);
 
 			angle = angle * 180.0f / M_PI;
+			if (fabsf(angle) == 45.0f || fabsf(angle) == 135.0f)
+			{
+				cocos2d::log("45 degree");
+			}
 
 			// Generate raycast vec2 points
 			auto rayStart = lightPos;
@@ -615,18 +619,24 @@ void VisibilityScene::findIntersectsWithRaycasts()
 						//cocos2d::log("edge");
 						if (segment->wallID == BOUNDARY_WALL_ID)
 						{
-							continue;
+								continue;
 						}
-						//continue;
-						auto& center = this->walls.at(segment->wallID).center;
-						bool segDir = isOnLeft(rayStart, rayEnd, center);	// left = true, right = false
-						bool uniquepointSegDir = isOnLeft(rayStart, rayEnd, this->walls.at(uniquePoint.wallID).center);
-						if (segDir == uniquepointSegDir)
+						else
 						{
+							if (uniquePointWallID != segment->wallID)
+							{
+								auto& center = this->walls.at(segment->wallID).center;
+								bool segDir = isOnLeft(rayStart, rayEnd, center);	// left = true, right = false
+								bool uniquepointSegDir = isOnLeft(rayStart, rayEnd, this->walls.at(uniquePoint.wallID).center);
+								if (segDir == uniquepointSegDir)
+								{
 
-							continue;
+									continue;
+								}
+								// Else, record if it's closest.
+							}
+							// Else, intersecting edge on same wall means hit.
 						}
-						// Else, record if it's closest.
 					}
 
 					// Not the edge.
@@ -695,142 +705,6 @@ void VisibilityScene::findIntersectsWithRaycasts()
 				*/
 			}
 			// end of segment interation
-			/*
-			if (hitCount == 1)
-			{
-				// Only hit once, which must be boundary segment.
-				// In this case, it means that this intersecting point is visible from light and can be
-				// extended to the boundary. 
-				Vertex v;
-				v.boundaryVisible = true;								// light can see boundary
-				v.otherWallVisible = false;
-				v.isBounday = false;									// It's wall not boundary
-				v.vertex = this->wallUniquePoints.at(wallIndex);		// Ray hit the unique point. 
-				v.extendedVertex = closestPoint;					// But can be extended to boundary, which is closests point
-				v.angle = angle;										// Store angle for sorting
-				v.wallID = uniquePointWallID;							// Keep track which wall are we dealing with
-				v.extendedWallID = -1;
-				intersects.push_back(v);
-			}
-			else
-			{
-				// Ray hit more than 1 segment. This means ray hit boundary segment and additional wall segment(s)
-				if (hitCount > 1)
-				{
-					// Check if closest intersecting point is closer than unique point
-					auto dist = closestPoint.distance(rayStart);
-					auto maxDist = wallUniquePoints.at(wallIndex).distance(rayStart);
-					if (dist > maxDist)
-					{
-						// Closest intersecting point is further than unique point from light position.
-						// This means that there weren't any closests intersecting point than unique point.
-						// Therefore, unique point will be the closest intersecting point.
-						Vertex v;
-						v.boundaryVisible = false;							// Light can't see the boundary
-						v.isBounday = false;								// Therefore, it's not boundary
-						v.vertex = wallUniquePoints.at(wallIndex);			// As said above, unique point is closest.
-
-						if (parallel)
-						{
-							// The ray and segment was parallel.
-							// hit count is always even number for parallel
-							if (hitCount == 2)
-							{
-								// Didn't hit any other walls, just itself and boundary
-								v.boundaryVisible = true;
-								v.otherWallVisible = false;
-								v.wallID = uniquePointWallID;
-								v.extendedWallID = -1;
-								v.extendedVertex = secondClosestIntersection;
-							}
-							else
-							{
-								// Hit some other walls before it reach the boundary.
-								v.boundaryVisible = false;
-								v.otherWallVisible = true;
-								v.wallID = uniquePointWallID;
-								v.extendedWallID = wallID;
-								v.extendedVertex = secondClosestIntersection;
-							}
-						}
-						else
-						{
-							// The ray wasn't parallel
-							if (hitCount % 2 == 0)
-							{
-								// hit count is even. 
-								// First of all, because we don't check hit with segments that contains unique point,
-								// maximum number of hit that can be happen on the segments on same wll is 1. 
-								// Also this means that maximum number of hit for single wall is 2.
-								// So if the hit count is even number, which means
-								// hitCount = boundary hit(1) + segment from same wall(1) + (number of walls that ray hit * 2)
-								// So if hit count is even, vertex will be the same (unique point. see above comments)
-								// and light can't see the boundary.
-								v.boundaryVisible = false;
-								v.otherWallVisible = false;
-								v.extendedVertex = cocos2d::Vec2::ZERO;
-								v.wallID = uniquePointWallID;
-								v.extendedWallID = uniquePointWallID;
-							}
-							else
-							{
-								// hit count is odd.
-								// As commented above, if hit count is odd, then hit count can be defined as
-								// hitCount = boundary hit(1) + (number of walls that ray hit * 2)
-								// Unlikely, when hit count is even, ray didn't hit any segments that are on same wall that unique point is.
-								// So basically ray passed the unique point and some other walls and reached the boundary.
-								// Important point is that, it surely hit the other wall(s), because hit count is odd but not 1.
-								// Therefore, vertex remains the same (unique point. see above comments),
-								// and light can see the other wall not boundary
-								float degree = angle * 180.0f / M_PI;
-								if (degree == 45.0f || degree == 135.0f || degree == -45.0f || degree == -135.0f)
-								{
-									// However, there are some corner cases.
-									// If angle between segment and ray is 45, 135, -45, -135, there are two cases.
-									// First, closest intersecting point is in same wall.
-									// Second, closest intersecting point is boundary or segment from other wall.
-									if (wallID == uniquePointWallID)
-									{
-										v.boundaryVisible = false;
-										v.otherWallVisible = false;
-										v.extendedVertex = cocos2d::Vec2::ZERO;
-										v.wallID = uniquePointWallID;
-										v.extendedWallID = uniquePointWallID;
-									}
-									else
-									{
-										v.boundaryVisible = false;
-										v.otherWallVisible = true;
-										v.extendedVertex = closestPoint;
-										v.wallID = uniquePointWallID;
-										v.extendedWallID = wallID;
-									}
-									//cocos2d::log("corner case, hit count = %d", hitCount);
-								}
-								else
-								{
-									// If it's not a corner case,
-									// As it said, boundary is not visible but wall
-									v.boundaryVisible = false;
-									v.otherWallVisible = true;
-									v.extendedVertex = closestPoint;
-									v.wallID = uniquePointWallID;
-									v.extendedWallID = wallID;
-								}
-							}
-						}
-						
-						v.angle = angle;			// Angle for sorting
-						intersects.push_back(v);
-					}
-					// Else, closest intersecting point is closer to light position that unique point.
-					// This means that ray hit some segment before it reached the the unique point.
-					// Then, it also means unique point is not visible from light. 
-					// Therefore, we can ignore this interseting point because it's just extra.
-				}
-				// If it's 0, it's bug.
-			}
-			*/
 
 			// Check for case where unique point is boundary wall
 			if (uniquePoint.wallID == BOUNDARY_WALL_ID)
@@ -978,73 +852,6 @@ void VisibilityScene::findIntersectsWithRaycasts()
 				}
 			}
 		}
-
-		/*
-		int boundaryIndex = 0;
-		for (auto angle : boundaryUniqueAngles)
-		{
-			float dx = cosf(angle);
-			float dy = sinf(angle);
-
-			auto rayStart = lightPos;
-			auto rayEnd = cocos2d::Vec2(rayStart.x + dx, rayStart.y + dy);
-
-			// Zero will mean no hit
-			cocos2d::Vec2 closestIntersection = cocos2d::Vec2::ZERO;
-
-			for (auto segment : allSegments)
-			{
-				auto p1 = cocos2d::Vec2(segment->p1.x, segment->p1.y);
-				auto p2 = cocos2d::Vec2(segment->p2.x, segment->p2.y);
-
-				if (p1 == this->boundaryUniquePoints.at(boundaryIndex) || p2 == this->boundaryUniquePoints.at(boundaryIndex))
-				{
-					// Don't check segment that includes the unique point we are raycasting.
-					continue;
-				}
-
-				cocos2d::Vec2 intersectingPoint;
-				auto dist = this->getIntersectingPoint(rayStart, rayEnd, segment, intersectingPoint);
-
-				if (dist != 0)
-				{
-					if (closestIntersection == cocos2d::Vec2::ZERO)
-					{
-						// Haven't find any intersection yet. Set as closest
-						closestIntersection = intersectingPoint;
-					}
-					else
-					{
-						// Check if new intersecting point we found is closer to light position(where ray starts)
-						if (intersectingPoint.distance(rayStart) < closestIntersection.distance(rayStart))
-						{
-							// If so, set as closest
-							closestIntersection = intersectingPoint;
-						}
-					}
-				}
-			}
-
-			if (closestIntersection == cocos2d::Vec2::ZERO)
-			{
-				// Ray didn't hit any segment. Closest intersecting point will be the unique point
-				Vertex v;
-				v.boundaryVisible = false;
-				v.otherWallVisible = false;
-				v.isBounday = true;
-				v.vertex = boundaryUniquePoints.at(boundaryIndex);
-				v.extendedVertex = cocos2d::Vec2::ZERO;
-				v.angle = angle;
-				v.wallID = -1;
-				intersects.push_back(v);
-			}
-			// Else, ray hit segment. We ignore
-
-			boundaryIndex++;
-		}
-		*/
-
-		this->drawRaycast();
 	}
 }
 
@@ -1678,7 +1485,14 @@ void VisibilityScene::update(float delta)
 				{
 					// Point is not in the wall
 					this->findIntersectsWithRaycasts();
-					this->drawTriangles();
+					if(this->viewRaycast)
+					{
+						this->drawRaycast();
+					}
+					if (this->viewVisibleArea)
+					{
+						this->drawTriangles();
+					}
 				}
 			}
 		}
@@ -1958,6 +1772,27 @@ void VisibilityScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coco
 	{
 		//this->viewRaycast = !this->viewRaycast;
 		this->cursorLight = !this->cursorLight;
+		if (!this->cursorLight)
+		{
+			this->triangleDrawNode->clear();
+			this->raycastDrawNode->clear();
+		}
+	}
+	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_T)
+	{
+		this->viewVisibleArea = !this->viewVisibleArea;
+		if (!this->viewVisibleArea)
+		{
+			this->triangleDrawNode->clear();
+		}
+	}
+	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_Y)
+	{
+		this->viewRaycast = !this->viewRaycast;
+		if (!this->viewRaycast)
+		{
+			this->raycastDrawNode->clear();
+		}
 	}
 
 
@@ -2043,13 +1878,14 @@ void VisibilityScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coco
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_2)
 	{
-		// Invert case of above case
+		// debug.
+		// Does getIntersection works for both edge?
 		Segment* seg = new Segment;
 
-		seg->p1 = cocos2d::Vec2(218, 185);
-		seg->p2 = cocos2d::Vec2(68, 72);
+		seg->p1 = cocos2d::Vec2(100, 100);
+		seg->p2 = cocos2d::Vec2(200, 100);
 
-		auto lightPos = cocos2d::Vec2(436, 54);
+		auto lightPos = cocos2d::Vec2(0, 0);
 
 		float angle1 = atan2(seg->p1.y - lightPos.y, seg->p1.x - lightPos.x);
 		float angle2 = atan2(seg->p2.y - lightPos.y, seg->p2.x - lightPos.x);
@@ -2070,167 +1906,32 @@ void VisibilityScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coco
 		auto rayStart2 = lightPos;
 		auto rayEnd2 = cocos2d::Vec2(rayStart2.x + dx2, rayStart2.y + dy2);
 
-		cocos2d::Vec2 intersection1;
-		float dist1 = this->getIntersectingPoint(rayStart1, rayEnd1, seg, intersection1);
-		cocos2d::Vec2 intersection2;
-		float dist2 = this->getIntersectingPoint(rayStart2, rayEnd2, seg, intersection2);
+		Hit hit1;
+		bool result1 = this->getIntersectingPoint(rayStart1, rayEnd1, seg, hit1);
 
-		if (dist1 > 0)
+		if (result1)
 		{
-			cocos2d::log("P1 intersects segment");
-			cocos2d::log("Ray to p1 = %f", rayStart1.distance(seg->p1));
-			cocos2d::log("dist = %f", dist1);
-		}
-		if (dist2 > 0)
-		{
-			cocos2d::log("P2 intersects segment");
-			cocos2d::log("Ray to p2 = %f", rayStart2.distance(seg->p2));
-			cocos2d::log("dist = %f", dist2);
+			cocos2d::log("p1 intersects");
+			if (hit1.u == 0 || hit1.u == 1.0f)
+			{
+				cocos2d::log("Edge");
+			}
 		}
 
-		delete seg;
-	}
-	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_3)
-	{
-		// debug.
-		// Does getIntersection works for both edge?
-		Segment* seg = new Segment;
+		Hit hit2;
+		bool result2 = this->getIntersectingPoint(rayStart2, rayEnd2, seg, hit2);
 
-		seg->p1 = cocos2d::Vec2(68, 72);
-		seg->p2 = cocos2d::Vec2(218, 185);
-
-		auto lightPos = cocos2d::Vec2(136, 254);
-
-		float angle1 = atan2(seg->p1.y - lightPos.y, seg->p1.x - lightPos.x);
-		float angle2 = atan2(seg->p2.y - lightPos.y, seg->p2.x - lightPos.x);
-
-		// Get direction of ray
-		float dx1 = cosf(angle1);
-		float dy1 = sinf(angle1);
-
-		// Generate raycast vec2 points
-		auto rayStart1 = lightPos;
-		auto rayEnd1 = cocos2d::Vec2(rayStart1.x + dx1, rayStart1.y + dy1);
-
-		// Get direction of ray
-		float dx2 = cosf(angle2);
-		float dy2 = sinf(angle2);
-
-		// Generate raycast vec2 points
-		auto rayStart2 = lightPos;
-		auto rayEnd2 = cocos2d::Vec2(rayStart2.x + dx2, rayStart2.y + dy2);
-
-		cocos2d::Vec2 intersection1;
-		float dist1 = this->getIntersectingPoint(rayStart1, rayEnd1, seg, intersection1);
-		cocos2d::Vec2 intersection2;
-		float dist2 = this->getIntersectingPoint(rayStart2, rayEnd2, seg, intersection2);
-
-		if (dist1 > 0)
+		if (result2)
 		{
-			cocos2d::log("P1 intersects segment");
-			cocos2d::log("Ray to p1 = %f", rayStart1.distance(seg->p1));
-			cocos2d::log("dist = %f", dist1);
-		}
-		if (dist2 > 0)
-		{
-			cocos2d::log("P2 intersects segment");
-			cocos2d::log("Ray to p2 = %f", rayStart2.distance(seg->p2));
-			cocos2d::log("dist = %f", dist2);
-		}
-
-		delete seg;
-	}
-	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_4)
-	{
-		// debug.
-		// Does getIntersection works for both edge?
-		auto p3 = cocos2d::Vec2(68, 72);
-		auto p4 = cocos2d::Vec2(218, 185);
-
-		auto lightPos = cocos2d::Vec2(136, 254);
-
-		float angle1 = atan2(p3.y - lightPos.y, p3.x - lightPos.x);
-		float angle2 = atan2(p4.y - lightPos.y, p4.x - lightPos.x);
-
-		// Get direction of ray
-		float dx1 = cosf(angle1);
-		float dy1 = sinf(angle1);
-
-		// Generate raycast vec2 points
-		auto rayStart1 = lightPos;
-		auto rayEnd1 = cocos2d::Vec2(rayStart1.x + dx1, rayStart1.y + dy1);
-
-		// Get direction of ray
-		float dx2 = cosf(angle2);
-		float dy2 = sinf(angle2);
-
-		// Generate raycast vec2 points
-		auto rayStart2 = lightPos;
-		auto rayEnd2 = cocos2d::Vec2(rayStart2.x + dx2, rayStart2.y + dy2);
-
-		cocos2d::Vec2 intersection1 = this->getIntersectingPoint(rayStart1, rayEnd1, p3, p4);
-		cocos2d::Vec2 intersection2 = this->getIntersectingPoint(rayStart2, rayEnd2, p3, p4);
-
-		cocos2d::log("Intersection 1 = (%f, %f)", intersection1.x, intersection1.y);
-		cocos2d::log("Intersection 2 = (%f, %f)", intersection2.x, intersection2.y);
-
-		if (intersection1 == p3)
-		{
-			cocos2d::log("Intersection 1 correct");
+			cocos2d::log("p2 intersects");
+			if (hit2.u == 0 || hit2.u == 1.0f)
+			{
+				cocos2d::log("Edge");
+			}
 		}
 		
-		if (intersection2 == p4)
-		{
-			cocos2d::log("Intersection 2 correct");
-		}
-	}
-	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_5)
-	{
-		// debug.
-		// Does getIntersection works for both edge?
-		auto p3 = cocos2d::Vec2(68, 72);
-		auto p4 = cocos2d::Vec2(218, 185);
 
-		auto lightPos = cocos2d::Vec2(136, 254);
-
-		float angle1 = atan2(p3.y - lightPos.y, p3.x - lightPos.x);
-		float angle2 = atan2(p4.y - lightPos.y, p4.x - lightPos.x);
-
-		// Get direction of ray
-		float dx1 = cosf(-angle1);
-		float dy1 = sinf(-angle1);
-
-		// Generate raycast vec2 points
-		auto rayStart1 = lightPos;
-		auto rayEnd1 = cocos2d::Vec2(rayStart1.x + dx1, rayStart1.y + dy1);
-
-		// Get direction of ray
-		float dx2 = cosf(-angle2);
-		float dy2 = sinf(-angle2);
-
-		// Generate raycast vec2 points
-		auto rayStart2 = lightPos;
-		auto rayEnd2 = cocos2d::Vec2(rayStart2.x + dx2, rayStart2.y + dy2);
-
-		cocos2d::Vec2 intersection1 = this->getIntersectingPoint(rayStart1, rayEnd1, p3, p4);
-		cocos2d::Vec2 intersection2 = this->getIntersectingPoint(rayStart2, rayEnd2, p3, p4);
-
-		cocos2d::log("Intersection 1 = (%f, %f)", intersection1.x, intersection1.y);
-		cocos2d::log("Intersection 2 = (%f, %f)", intersection2.x, intersection2.y);
-
-		if (intersection1 == p3)
-		{
-			cocos2d::log("Intersection 1 correct");
-		}
-
-		if (intersection2 == p4)
-		{
-			cocos2d::log("Intersection 2 correct");
-		}
-	}
-	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_TAB)
-	{
-		this->findIntersectsWithRaycasts();
+		delete seg;
 	}
 }
 
