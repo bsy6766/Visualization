@@ -62,6 +62,7 @@ struct Hit
 	float u;
 	cocos2d::Vec2 hitPoint;
 	bool parallel;
+	bool perpendicular;
 };
 
 class VisibilityScene : public cocos2d::Scene

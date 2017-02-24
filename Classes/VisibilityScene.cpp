@@ -457,6 +457,7 @@ bool VisibilityScene::getIntersectingPoint(const cocos2d::Vec2 & rayStart, const
 	hit.u = 0;
 	hit.hitPoint = cocos2d::Vec2::ZERO;
 	hit.parallel = false;
+	hit.perpendicular = (rdDotsd == 0);
 
 	//cocos2d::log("u = %f", u);
 	//cocos2d::log("t = %f", t);
@@ -539,8 +540,6 @@ void VisibilityScene::findIntersectsWithRaycasts()
 		// list of unique points to determine if we really need the intersecting point.
 		// More details on below comments
 
-		//int wallIndex = 0;	// for unique point
-
 		// Iterate through walls first
 		for (auto uniquePoint : this->wallUniquePoints)
 		{
@@ -553,11 +552,11 @@ void VisibilityScene::findIntersectsWithRaycasts()
 			float dx = cosf(angle);
 			float dy = sinf(angle);
 
-			angle = angle * 180.0f / M_PI;
-			if (fabsf(angle) == 45.0f || fabsf(angle) == 135.0f)
-			{
-				cocos2d::log("45 degree");
-			}
+			//angle = angle * 180.0f / M_PI;
+			//if (fabsf(angle) == 45.0f || fabsf(angle) == 135.0f)
+			//{
+			//	cocos2d::log("45 degree");
+			//}
 
 			// Generate raycast vec2 points
 			auto rayStart = lightPos;
@@ -567,14 +566,12 @@ void VisibilityScene::findIntersectsWithRaycasts()
 			cocos2d::Vec2 closestPoint = cocos2d::Vec2::ZERO;
 			cocos2d::Vec2 secondClosestIntersection = cocos2d::Vec2::ZERO;
 
-			// This flag is for corner case where raycast is parallel to segment
-			bool parallel = false;
-
 			// Keep tracks the wallID of segment that raycast intersected.
 			int wallID = -1;
 			int uniquePointWallID = uniquePoint.wallID;
 			float shortestDist = 5000.0f;	// 5000 is enough distance to be max
 			bool skip = false;
+			bool perpendicular = false;
 			//cocos2d::log("Uniquepoint = (%f, %f)", this->wallUniquePoints.at(wallIndex).x, this->wallUniquePoints.at(wallIndex).y);
 
 			std::unordered_set<int> wallIDSet;
@@ -608,8 +605,6 @@ void VisibilityScene::findIntersectsWithRaycasts()
 					}
 					// Else, unique point is not boundary. keep go on.
 
-					wallIDSet.insert(segment->wallID);
-
 					// Ray hit something
 					// Check if it hit the edge
 					bool edge = hit.u == 0 || hit.u == 1.0f;
@@ -619,7 +614,7 @@ void VisibilityScene::findIntersectsWithRaycasts()
 						//cocos2d::log("edge");
 						if (segment->wallID == BOUNDARY_WALL_ID)
 						{
-								continue;
+							continue;
 						}
 						else
 						{
@@ -630,14 +625,30 @@ void VisibilityScene::findIntersectsWithRaycasts()
 								bool uniquepointSegDir = isOnLeft(rayStart, rayEnd, this->walls.at(uniquePoint.wallID).center);
 								if (segDir == uniquepointSegDir)
 								{
-
 									continue;
 								}
 								// Else, record if it's closest.
 							}
 							// Else, intersecting edge on same wall means hit.
+							else
+							{
+								// Check if it was perpendicular
+								if (hit.perpendicular)
+								{
+									perpendicular = true;
+									auto dist = hit.hitPoint.distance(rayStart);
+									auto maxDist = uniquePoint.point.distance(rayStart);
+									if (dist > maxDist)
+									{
+										continue;
+									}
+								}
+							}
 						}
 					}
+
+					// Store wall id of segment that wasn't neither edge nor perpendicular, 
+					wallIDSet.insert(segment->wallID);
 
 					// Not the edge.
 					float dist = hit.hitPoint.distance(rayStart);
@@ -654,55 +665,6 @@ void VisibilityScene::findIntersectsWithRaycasts()
 					// Ray didn't hit the segment.
 					continue;
 				}
-				/*
-				// check the distance. if dist is 0, ray didn't hit any segments. If dist is -1, it's parallel to segment.
-				if (dist > 0)
-				{
-					hitCount++;		// Increment counter
-
-					wallID = segment->wallID;	// Keep track wallID
-
-					if (closestPoint == cocos2d::Vec2::ZERO)
-					{
-						// Haven't find any intersection yet. Set as closest
-						closestPoint = intersectingPoint;
-					}
-					else
-					{
-						// Check if new intersecting point we found is closer to light position(where ray starts)
-						auto intersectDist = intersectingPoint.distance(rayStart);
-						if (intersectDist < closestPoint.distance(rayStart))
-						{
-							// If so, set as closest
-							secondClosestIntersection = closestPoint;
-							closestPoint = intersectingPoint;
-						}
-						else
-						{
-							if (uniquePointWallID != wallID)
-							{
-								if (secondClosestIntersection == cocos2d::Vec2::ZERO)
-								{
-									secondClosestIntersection = intersectingPoint;
-								}
-								else
-								{
-									if (intersectDist < secondClosestIntersection.distance(rayStart))
-									{
-										secondClosestIntersection = intersectingPoint;
-									}
-								}
-							}
-						}
-					}
-				}
-				// else if dist == 0, didn't intersect. Do nothing.
-				else if (dist < 0)
-				{
-					// it's parallel
-					parallel = true;
-				}
-				*/
 			}
 			// end of segment interation
 
@@ -840,7 +802,16 @@ void VisibilityScene::findIntersectsWithRaycasts()
 							// After case 1 (ray hit segment from same wall) and didn't hit any other wall segment except boundary wall.
 							// So unique point is closest(case 2 is already handled at first)
 							Vertex v;
-							v.point = uniquePoint.point;
+
+							// However, if the segment was perpendicular (parallel case actually)
+							if (perpendicular)
+							{
+								v.point = uniquePoint.point;
+							}
+							else
+							{
+								v.point = uniquePoint.point;
+							}
 							v.uniquePoint = uniquePoint.point;
 							v.type = Vertex::TYPE::ON_UNIQUE_POINT;
 							v.angle = angle;
@@ -1054,11 +1025,23 @@ void VisibilityScene::drawTriangles()
 					else
 					{
 						// Corner case: comapre distance
-						auto v2Dist = v2.point.distance(v1);
-						auto v3Dist = v3.point.distance(v1);
-						if (v2Dist < v3Dist)
+						//auto v2Dist = v2.point.distance(v1);
+						//auto v3Dist = v3.point.distance(v1);
+						//if (v2Dist < v3Dist)
+						//{
+						//	// Case 18) 
+						//	verticies.push_back(v2.point);
+						//	verticies.push_back(v3.uniquePoint);
+						//}
+						//else
+						//{
+						//	// Case 19)
+						//	verticies.push_back(v2.uniquePoint);
+						//	verticies.push_back(v3.point);
+						//}
+						if (v2.pointWallID == v3.uniquePointWallID)
 						{
-							// Case 18) 
+							// Case 18)
 							verticies.push_back(v2.point);
 							verticies.push_back(v3.uniquePoint);
 						}
