@@ -96,12 +96,16 @@ private:
 
 	enum Z_ORDER
 	{
+		DEBUG,
+		FLOOR,
 		WALL,
 		TRIANGLE,
 		RAYCAST,
 		BOX,
 		DRAG,
 		FREEFORM,
+		LIGHT_MAP,
+		LIGHT_ICON,
 	};
 
 	enum class CUSTOM_LABEL_INDEX
@@ -126,6 +130,7 @@ private:
 	const float maxWallSegmentSize = 100.0f;
 	const float minRectSize = 10.0f;
 	const int BOUNDARY_WALL_ID = -1;
+	const float defaultLightIntensity = 100.0f;
 	static int wallIDCounter;
 
 	EarClippingScene* earClipping;
@@ -149,18 +154,18 @@ private:
 	cocos2d::Vec2 mousePos;
 
 	std::vector<Vertex> intersects;
-
-	std::vector<cocos2d::Vec2> lightPositions;
+	std::vector<cocos2d::Vec2> triangles;
 
 	std::vector<UniquePoint> wallUniquePoints;
 	std::vector<cocos2d::Vec2> boundaryUniquePoints;
 
 	std::vector<Segment*> wallSegments;
 	std::vector<Segment*> boundarySegments;
-	
 	std::vector<Wall> walls;
 
-	cocos2d::RenderTexture* lightTexture;
+	cocos2d::GLProgram* floorShader;
+	cocos2d::GLProgramState* floorShaderState;
+	cocos2d::Sprite* floorSprite;
 
 	int hoveringWallIndex;
 
@@ -177,7 +182,7 @@ private:
 	// create point
 	ECS::Entity* createPoint(const cocos2d::Vec2& position);
 	// Create new light entity
-	void createNewLight(const cocos2d::Vec2& position);
+	ECS::Entity* createNewLight(const cocos2d::Vec2& position);
 	// load map
 	void loadMap();
 	// load rect
@@ -191,13 +196,15 @@ private:
 	cocos2d::Vec2 getIntersectingPoint(const cocos2d::Vec2& rayStart, const cocos2d::Vec2& rayEnd, const cocos2d::Vec2& segStart, const cocos2d::Vec2& segEnd);
 	bool getIntersectingPoint(const cocos2d::Vec2& rayStart, const cocos2d::Vec2& rayEnd, const Segment* segment, Hit& hit);
 	// cast rays
-	void findIntersectsWithRaycasts();
+	void findIntersectsWithRaycasts(const cocos2d::Vec2& lightPos);
+	// Generate triangles based on intersecting points
+	void generateTriangles(const cocos2d::Vec2& lightPos);
 	// draw triangles
 	void drawTriangles();
 	// Check if mouse point is inside of wall
 	bool isPointInWall(const cocos2d::Vec2& point);
 	// generateLightTexture
-	void generateLightTexture();
+	void generateLightTexture(ECS::LightData& lightData, const int lightID);
 	// Draw new wall preview
 	void drawDragBox();
 	// clear drag
@@ -210,10 +217,15 @@ private:
 	void drawWalls();
 	// draw raycast
 	void drawRaycast();
+	// Sort intersects. Call this before draw triangles.
+	void sortIntersects();
 	// check if point is on left or right of segment
 	bool isOnLeft(const cocos2d::Vec2& p1, const cocos2d::Vec2& p2, const cocos2d::Vec2& target);
 	// Check if ray hit other wall
 	bool didRayHitOtherWall(const std::unordered_set<int>& wallIDSet, const int uniquePointWallID);
+	// set light uniforms
+	void setLightUniforms();
+	
 public:
 	//simple creator func
 	static VisibilityScene* createScene();

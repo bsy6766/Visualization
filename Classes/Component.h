@@ -197,6 +197,20 @@ namespace ECS
 			return left->f <= right->f;
 		}
 	};
+
+	class LightData : public ECS::Component
+	{
+	public:
+		LightData();
+		~LightData();
+		LightData(LightData const&) = delete;
+		void operator=(LightData const&) = delete;
+
+		cocos2d::Sprite* lightMapSprite;
+		cocos2d::Color4F color;
+		cocos2d::Vec2 position;
+		float intensity;
+	};
 }
 
 #endif

@@ -1,5 +1,6 @@
 #include "VisibilityScene.h"
 #include "MainScene.h"
+#include "Utility.h"
 
 USING_NS_CC;
 
@@ -18,6 +19,10 @@ bool VisibilityScene::init()
 		return false;
 	}
 
+	// create shader
+	cocos2d::ShaderCache::getInstance()->purgeSharedShaderCache();
+	this->floorShader = cocos2d::GLProgram::createWithFilenames("shaders/light_vert.glsl", "shaders/light_frag.glsl");
+
 	this->scheduleUpdate();
 
 	// Use for freeform walls(polygon)
@@ -35,6 +40,23 @@ bool VisibilityScene::init()
 	this->displayBoundaryBoxNode->retain();
 	this->displayBoundaryBoxNode->drawNode->setLocalZOrder(static_cast<int>(Z_ORDER::BOX));
 	this->addChild(this->displayBoundaryBoxNode);
+
+	// Instead of creating 650 x 650 sprite (waste of spritesheet), create black square texture sized 650.
+	auto rt = cocos2d::RenderTexture::create(650, 650);
+	rt->beginWithClear(0, 0, 0, 0);
+	rt->end();
+
+	// Create sprite with above texture and attach shader.
+	this->floorSprite = cocos2d::Sprite::createWithTexture(rt->getSprite()->getTexture());
+	this->floorSprite->setPosition(cocos2d::Vec2(this->displayBoundary.getMidX(), this->displayBoundary.getMidY()));
+	this->addChild(this->floorSprite, Z_ORDER::FLOOR);
+
+	this->floorShaderState = cocos2d::GLProgramState::getOrCreateWithGLProgram(this->floorShader);
+	this->floorShaderState->setUniformInt("lightSize", 0);
+
+	//this->floorSprite->setGLProgram(this->floorShader);
+
+	this->floorSprite->setGLProgramState(this->floorShaderState);
 
 	// Init labels node
 	this->labelsNode = LabelsNode::createNode();
@@ -68,9 +90,6 @@ bool VisibilityScene::init()
 	this->dragBoxDrawNode = cocos2d::DrawNode::create();
 	this->addChild(this->dragBoxDrawNode, Z_ORDER::DRAG);
 
-	this->visiableAreaDrawNode = cocos2d::DrawNode::create();
-	this->addChild(this->visiableAreaDrawNode);
-
 	this->raycastDrawNode = cocos2d::DrawNode::create();
 	this->addChild(this->raycastDrawNode, Z_ORDER::RAYCAST);
 	this->triangleDrawNode = cocos2d::DrawNode::create();
@@ -101,9 +120,13 @@ void VisibilityScene::onEnter()
 
 	initInputListeners();
 
-	this->newBoxOrigin = cocos2d::Vec2(100, 100);
-	this->newBoxDest = cocos2d::Vec2(200, 200);
-	this->createNewRectWall();
+	//this->newBoxOrigin = cocos2d::Vec2(100, 400);
+	//this->newBoxDest = cocos2d::Vec2(200, 500);
+	//this->createNewRectWall();
+
+	this->loadMap();
+
+	//createNewLight(cocos2d::Vec2(400, 100));
 
 	//this->freeformWallPoints.push_back(cocos2d::Vec2(100, 200));
 	//this->freeformWallPoints.push_back(cocos2d::Vec2(150, 270));
@@ -121,6 +144,9 @@ void VisibilityScene::onEnter()
 	//this->freeformWallPoints.push_back(cocos2d::Vec2(600, 80));
 	//this->createNewFreeformWall();
 	//this->clearFreeform();
+
+	// reload map when there is new wall
+	//this->loadMap();
 }
 
 void VisibilityScene::initECS()
@@ -237,19 +263,35 @@ ECS::Entity* VisibilityScene::createPoint(const cocos2d::Vec2& position)
 	return newWallPoint;
 }
 
-void VisibilityScene::createNewLight(const cocos2d::Vec2& position)
+ECS::Entity*  VisibilityScene::createNewLight(const cocos2d::Vec2& position)
 {
 	auto m = ECS::Manager::getInstance();
 	auto newLight = m->createEntity("LIGHT");
 
-	auto spriteComp = m->createComponent<ECS::Sprite>();
-	spriteComp->sprite = cocos2d::Sprite::createWithSpriteFrameName("circle.png");
-	spriteComp->sprite->setPosition(position);
-	this->addChild(spriteComp->sprite);
+	if (newLight)
+	{
+		auto spriteComp = m->createComponent<ECS::Sprite>();
+		spriteComp->sprite = cocos2d::Sprite::createWithSpriteFrameName("lightIcon.png");
+		spriteComp->sprite->setScale(0.5f);
+		spriteComp->sprite->setPosition(position);
+		this->addChild(spriteComp->sprite, Z_ORDER::LIGHT_ICON);
 
-	newLight->addComponent<ECS::Sprite>(spriteComp);
+		newLight->addComponent<ECS::Sprite>(spriteComp);
 
-	this->lightPositions.push_back(position);
+		auto lightComp = m->createComponent<ECS::LightData>();
+		lightComp->position = position;
+		
+		newLight->addComponent<ECS::LightData>(lightComp);
+
+		this->generateLightTexture(*lightComp, newLight->getId());
+		this->setLightUniforms();
+	}
+	else
+	{
+		newLight = nullptr;
+	}
+
+	return newLight;
 }
 
 void VisibilityScene::loadMap()
@@ -490,7 +532,7 @@ bool VisibilityScene::getIntersectingPoint(const cocos2d::Vec2 & rayStart, const
 			hit.u = u;
 			hit.hitPoint.x = sp1.x + (u * sd.x);
 			hit.hitPoint.y = sp1.y + (u * sd.y);
-			return t;
+			return true;
 		}
 	}
 
@@ -498,19 +540,11 @@ bool VisibilityScene::getIntersectingPoint(const cocos2d::Vec2 & rayStart, const
 	return false;
 }
 
-void VisibilityScene::findIntersectsWithRaycasts()
+void VisibilityScene::findIntersectsWithRaycasts(const cocos2d::Vec2& lightPos)
 {
 	// Don't need to find if there is no light
-	//if (this->lightPositions.empty()) return;
-
-	//auto lightPos = this->lightPositions.at(0);
-	auto lightPos = mousePos;	//debug
-
 	if (this->displayBoundary.containsPoint(lightPos))
 	{
-		// load the map and generate segments.
-		this->loadMap();
-
 		// clear intersecting points.
 		intersects.clear();
 
@@ -826,24 +860,19 @@ void VisibilityScene::findIntersectsWithRaycasts()
 	}
 }
 
-void VisibilityScene::drawTriangles()
+void VisibilityScene::generateTriangles(const cocos2d::Vec2& lightPos)
 {
-	this->triangleDrawNode->clear();
-
-	if (this->viewVisibleArea == false) return;
-
-	std::vector<cocos2d::Vec2> verticies;
-
-	auto v1 = this->mousePos;
+	auto v1 = lightPos;
 
 	// Generate vertex for triangle. 
 	auto size = this->intersects.size();
-	//bool prevEndedWithBoundayVisible = false;
+
+	this->triangles.clear();
 
 	for (unsigned int i = 0; i < size; i++)
 	{
 		// First, add center position, which is position of light
-		verticies.push_back(v1);
+		triangles.push_back(v1);
 
 		int index = i + 1;
 		if (index == size)
@@ -858,7 +887,7 @@ void VisibilityScene::drawTriangles()
 		/*
 		*	q1						q0
 		*		   4	|    3
-		*				|  
+		*				|
 		*		--------+---------  CCW
 		*				|
 		*		   1	|    2
@@ -874,8 +903,8 @@ void VisibilityScene::drawTriangles()
 			if (v2.uniquePointWallID == BOUNDARY_WALL_ID)
 			{
 				// Case 1) If v2 is boundary wall unique point, v3 must be closest point
-				verticies.push_back(v2.uniquePoint);
-				verticies.push_back(v3.point);
+				triangles.push_back(v2.uniquePoint);
+				triangles.push_back(v3.point);
 			}
 			else
 			{
@@ -883,15 +912,15 @@ void VisibilityScene::drawTriangles()
 				if (v3.type == Vertex::TYPE::ON_BOUNDARY)
 				{
 					// Case 6) 
-					verticies.push_back(v2.uniquePoint);
-					verticies.push_back(v3.uniquePoint);
+					triangles.push_back(v2.uniquePoint);
+					triangles.push_back(v3.uniquePoint);
 				}
 				// Case: v3 is unique point type or wall type
 				else if (v3.type == Vertex::TYPE::ON_UNIQUE_POINT)
 				{
 					// Case 7) both are unique point
-					verticies.push_back(v2.uniquePoint);
-					verticies.push_back(v3.uniquePoint);
+					triangles.push_back(v2.uniquePoint);
+					triangles.push_back(v3.uniquePoint);
 				}
 				else if (v3.type == Vertex::TYPE::ON_WALL)
 				{
@@ -899,14 +928,14 @@ void VisibilityScene::drawTriangles()
 					if (v2.uniquePointWallID == v3.uniquePointWallID)
 					{
 						// Case 8)
-						verticies.push_back(v2.uniquePoint);
-						verticies.push_back(v3.uniquePoint);
+						triangles.push_back(v2.uniquePoint);
+						triangles.push_back(v3.uniquePoint);
 					}
 					else
 					{
 						// Case 14)
-						verticies.push_back(v2.uniquePoint);
-						verticies.push_back(v3.point);
+						triangles.push_back(v2.uniquePoint);
+						triangles.push_back(v3.point);
 					}
 				}
 			}
@@ -921,15 +950,15 @@ void VisibilityScene::drawTriangles()
 				if (v3.uniquePointWallID == BOUNDARY_WALL_ID)
 				{
 					// Case 2) if v2 is boundary type and v3 is boundary unique wall, v2 is closest point
-					verticies.push_back(v2.point);
-					verticies.push_back(v3.uniquePoint);
+					triangles.push_back(v2.point);
+					triangles.push_back(v3.uniquePoint);
 				}
 				// Case: v3 is not boundary wall unique point
 				else
 				{
 					// Case 3) both are unique point
-					verticies.push_back(v2.uniquePoint);
-					verticies.push_back(v3.uniquePoint);
+					triangles.push_back(v2.uniquePoint);
+					triangles.push_back(v3.uniquePoint);
 				}
 			}
 			// Case: v3 is boundary type
@@ -939,15 +968,15 @@ void VisibilityScene::drawTriangles()
 				if (v2.uniquePointWallID == v3.uniquePointWallID)
 				{
 					// Case 4) both unique point
-					verticies.push_back(v2.uniquePoint);
-					verticies.push_back(v3.uniquePoint);
+					triangles.push_back(v2.uniquePoint);
+					triangles.push_back(v3.uniquePoint);
 				}
 				// Case: v2 and v3 from different wall
 				else
 				{
 					// Case 5) between wall.
-					verticies.push_back(v2.point);
-					verticies.push_back(v3.point);
+					triangles.push_back(v2.point);
+					triangles.push_back(v3.point);
 				}
 			}
 			// Case: v3 is wall type
@@ -957,14 +986,14 @@ void VisibilityScene::drawTriangles()
 				if (v2.uniquePointWallID == v3.uniquePointWallID)
 				{
 					// Case 15)
-					verticies.push_back(v2.uniquePoint);
-					verticies.push_back(v3.uniquePoint);
+					triangles.push_back(v2.uniquePoint);
+					triangles.push_back(v3.uniquePoint);
 				}
 				else
 				{
 					// Case 10) 
-					verticies.push_back(v2.uniquePoint);
-					verticies.push_back(v3.point);
+					triangles.push_back(v2.uniquePoint);
+					triangles.push_back(v3.point);
 				}
 			}
 		}
@@ -978,15 +1007,15 @@ void VisibilityScene::drawTriangles()
 				if (v2.uniquePointWallID == v3.uniquePointWallID)
 				{
 					// Case 9)
-					verticies.push_back(v2.uniquePoint);
-					verticies.push_back(v3.uniquePoint);
+					triangles.push_back(v2.uniquePoint);
+					triangles.push_back(v3.uniquePoint);
 				}
 				// Case: v2 and v3 is on different wall
 				else
 				{
 					// Case 13)
-					verticies.push_back(v2.point);
-					verticies.push_back(v3.uniquePoint);
+					triangles.push_back(v2.point);
+					triangles.push_back(v3.uniquePoint);
 				}
 			}
 			// Case: v3 is unique point type
@@ -995,14 +1024,14 @@ void VisibilityScene::drawTriangles()
 				if (v2.uniquePointWallID == v3.uniquePointWallID)
 				{
 					// Case 12)
-					verticies.push_back(v2.uniquePoint);
-					verticies.push_back(v3.uniquePoint);
+					triangles.push_back(v2.uniquePoint);
+					triangles.push_back(v3.uniquePoint);
 				}
 				else
 				{
 					// Case 16)
-					verticies.push_back(v2.point);
-					verticies.push_back(v3.uniquePoint);
+					triangles.push_back(v2.point);
+					triangles.push_back(v3.uniquePoint);
 				}
 			}
 			// Case: v3 is wall type
@@ -1011,261 +1040,59 @@ void VisibilityScene::drawTriangles()
 				if (v2.uniquePointWallID == v3.uniquePointWallID)
 				{
 					// Case 11) v2 and v3 must be on same wall
-					verticies.push_back(v2.uniquePoint);
-					verticies.push_back(v3.uniquePoint);
+					triangles.push_back(v2.uniquePoint);
+					triangles.push_back(v3.uniquePoint);
 				}
 				else
 				{
 					if (v2.pointWallID == v3.pointWallID)
 					{
 						// Case 17) v2 and v3 is not on same wall but ended up on same wall
-						verticies.push_back(v2.point);
-						verticies.push_back(v3.point);
+						triangles.push_back(v2.point);
+						triangles.push_back(v3.point);
 					}
 					else
 					{
-						// Corner case: comapre distance
-						//auto v2Dist = v2.point.distance(v1);
-						//auto v3Dist = v3.point.distance(v1);
-						//if (v2Dist < v3Dist)
-						//{
-						//	// Case 18) 
-						//	verticies.push_back(v2.point);
-						//	verticies.push_back(v3.uniquePoint);
-						//}
-						//else
-						//{
-						//	// Case 19)
-						//	verticies.push_back(v2.uniquePoint);
-						//	verticies.push_back(v3.point);
-						//}
 						if (v2.pointWallID == v3.uniquePointWallID)
 						{
 							// Case 18)
-							verticies.push_back(v2.point);
-							verticies.push_back(v3.uniquePoint);
+							triangles.push_back(v2.point);
+							triangles.push_back(v3.uniquePoint);
 						}
 						else
 						{
 							// Case 19)
-							verticies.push_back(v2.uniquePoint);
-							verticies.push_back(v3.point);
+							triangles.push_back(v2.uniquePoint);
+							triangles.push_back(v3.point);
 						}
 					}
 				}
 			}
 		}
 	}
+}
 
-	/*
-	for (unsigned int i = 0; i < size; i++)
-	{
-		// First, add center position, which is position of light
-		verticies.push_back(centerPos);		
-		
-		int index = i + 1;
-		if (index == size)
-		{
-			index = 0;
-		}
+void VisibilityScene::drawTriangles()
+{
+	if (this->viewVisibleArea == false) return;
 
-		auto& v2 = intersects.at(i);
-		auto& v3 = intersects.at(index);
+	this->triangleDrawNode->clear();
 
-		// Second and thrid vertex have several cases.
-		// The triangle we want to draw depends on each unique intersecting points.
-		// Because light travels until hits the boundary, some unique points must be extended to the boundary.
-		// Also, there are few corner cases 
-
-		// Case #1
-		if (v2.isBounday && v3.isBounday)
-		{
-			// v2 is boundary, v3 is boundary.
-			// In this case, triangle is formed only with boundary unique points.
-			verticies.push_back(v2.point);
-			verticies.push_back(v3.point);
-		}
-		// Case #2
-		else if (v2.isBounday && !v3.isBounday)
-		{
-			// v2 is boundary but v3 isn't.
-			// In this case, v2 is boundary unique point and v3 is wall unique point.
-			// Because light travel till boundary, use extendedBertex for v3.
-			verticies.push_back(v2.point);
-			verticies.push_back(v3.extendedVertex);
-		}
-		// Case #4
-		else if (!v2.isBounday && v3.isBounday)
-		{
-			// v2 is not boundary but v3 is.
-			// This is the opposite case of case #2. 
-			verticies.push_back(v2.extendedVertex);
-			verticies.push_back(v3.point);
-		}
-		// Case #3 (Corner cases)
-		else
-		{
-			// v2 and v3 both are not boundary.
-			// This means both v2 and v3 is wall unique point.
-			if (v2.boundaryVisible && !v3.boundaryVisible)
-			{
-				// v2 can be extended to boundary but v3 isn't
-				// Check if v3 can be extended to other wall
-				verticies.push_back(v2.point);
-
-				if (v3.otherWallVisible)
-				{
-					if (v2.wallID == v3.wallID)
-					{
-						verticies.push_back(v3.point);
-					}
-					else
-					{
-						verticies.push_back(v3.extendedVertex);
-					}
-				}
-				else
-				{
-					verticies.push_back(v3.point);
-				}
-
-				continue;
-			}
-			
-			if (!v2.boundaryVisible && v3.boundaryVisible)
-			{
-				// v2 cannot be extended to boundary but v3 can
-				// check if v2 can extended to other wall
-				if (v2.otherWallVisible)
-				{
-					if (v2.wallID == v3.wallID)
-					{
-						verticies.push_back(v2.point);
-					}
-					else
-					{
-						verticies.push_back(v2.extendedVertex);
-					}
-				}
-				else
-				{
-					verticies.push_back(v2.point);
-				}
-
-				verticies.push_back(v3.point);
-
-				continue;
-			}
-
-			if (v2.boundaryVisible && v3.boundaryVisible)
-			{
-				// both v2 and v3 can see boundary.
-				// if two point is in same wall, use vertex. Else, extended vertex
-				if (v2.wallID == v3.wallID)
-				{
-					verticies.push_back(v2.point);
-					verticies.push_back(v3.point);
-				}
-				else
-				{
-					verticies.push_back(v2.extendedVertex);
-					verticies.push_back(v3.extendedVertex);
-				}
-
-				continue;
-			}
-			
-			if ((v2.otherWallVisible && !v3.otherWallVisible) || (!v2.otherWallVisible && v3.otherWallVisible))
-			{
-				// Case 3-4
-				// If only either v2 or v3 can be extended to other wall, but not both, use extendedVertex if so.
-				if (v2.otherWallVisible)
-				{
-					if (v2.wallID == v3.wallID)
-					{
-						verticies.push_back(v2.point);
-					}
-					else
-					{
-						verticies.push_back(v2.extendedVertex);
-					}
-				}
-				else
-				{
-					verticies.push_back(v2.point);
-				}
-
-				if (v3.otherWallVisible)
-				{
-					if (v2.wallID == v3.wallID)
-					{
-						verticies.push_back(v3.point);
-					}
-					else
-					{
-						verticies.push_back(v3.extendedVertex);
-					}
-				}
-				else
-				{
-					verticies.push_back(v3.point);
-				}
-			}
-			else
-			{
-				// v2 and v3 is not boundary unique point, but either both can be extended or not.
-				if (v2.wallID == v3.wallID)
-				{
-					// If both v2 and v3 is on same segemnt (same wall), use vertex
-					verticies.push_back(v2.point);
-					verticies.push_back(v3.point);
-				}
-				else
-				{
-					// If both v2 and v3 is not on same segment, check distance, 
-					// First check if they ended up on same wall
-					if (v2.extendedWallID == v3.extendedWallID)
-					{
-						verticies.push_back(v2.extendedVertex);
-						verticies.push_back(v3.extendedVertex);
-					}
-					else
-					{
-						// Farther intersecting point uses vertex
-						auto v2Dist = v2.extendedVertex.distance(centerPos);
-						auto v3Dist = v3.extendedVertex.distance(centerPos);
-
-						if (v2Dist < v3Dist)
-						{
-							// v2 is closer.
-							verticies.push_back(v2.extendedVertex);
-							verticies.push_back(v3.point);
-						}
-						else
-						{
-							verticies.push_back(v2.point);
-							verticies.push_back(v3.extendedVertex);
-						}
-					}
-				}
-			}
-		}
-	}
-
-	*/
-
-	size = verticies.size();
+	auto size = this->triangles.size();
 	auto color = cocos2d::Color4F::WHITE;
 	color.a = 0.8f;
 	for (unsigned int i = 0; i < size; i+=3)
 	{
 		try
 		{
-			this->triangleDrawNode->drawTriangle(verticies.at(i), verticies.at(i + 1), verticies.at(i + 2), color);
+			this->triangleDrawNode->drawTriangle(this->triangles.at(i), 
+												this->triangles.at(i + 1), 
+												this->triangles.at(i + 2), 
+												color);
 		}
 		catch (...)
 		{
-			cocos2d::log("Error");
+			cocos2d::log("Error: There wasn't enough verticies to form triangle. generateTriangles() must be bugged.");
 		}
 	}
 }
@@ -1304,6 +1131,61 @@ bool VisibilityScene::isPointInWall(const cocos2d::Vec2 & point)
 	}
 
 	return false;
+}
+
+void VisibilityScene::generateLightTexture(ECS::LightData& lightData, const int lightID)
+{
+	this->findIntersectsWithRaycasts(lightData.position);
+	this->sortIntersects();
+	this->generateTriangles(lightData.position);
+
+	int w = static_cast<int>(this->displayBoundary.size.width);
+	int h = static_cast<int>(this->displayBoundary.size.height);
+
+	auto renderTexture = cocos2d::RenderTexture::create(w, h);
+
+	auto drawNode = cocos2d::DrawNode::create();
+
+	auto size = this->triangles.size();
+	auto shift = this->displayBoundary.origin;
+	for (unsigned int i = 0; i < size; i += 3)
+	{
+		try
+		{
+			drawNode->drawTriangle(this->triangles.at(i) - shift,
+									this->triangles.at(i + 1) - shift,
+									this->triangles.at(i + 2) - shift,
+									cocos2d::Color4F::WHITE);
+		}
+		catch (...)
+		{
+			cocos2d::log("Error: There wasn't enough verticies to form triangle. generateTriangles() must be bugged.");
+			cocos2d::log("Error: Canceling light map generation.");
+			return;
+		}
+	}
+
+	renderTexture->beginWithClear(0, 0, 0, 0);
+
+	drawNode->visit();
+
+	renderTexture->end();
+	//renderTexture->saveToFile("test.png");
+
+	//auto texture = cocos2d::Director::getInstance()->getTextureCache()->addImage(renderTexture->newImage(), "LightMap" + std::to_string(lightID));
+	//auto log = cocos2d::Director::getInstance()->getTextureCache()->getCachedTextureInfo();
+	//cocos2d::log(log.c_str());
+
+
+	//lightData.lightMapSprite = cocos2d::Sprite::createWithTexture(texture);
+	lightData.lightMapSprite = cocos2d::Sprite::createWithTexture(renderTexture->getSprite()->getTexture());
+	//lightData.lightMapSprite->setScaleY(-1.0f);
+	//lightData.lightMapSprite = cocos2d::Sprite::create("C:/Users/bsy67/AppData/Local/Visualization/test.png");
+	auto pos = cocos2d::Vec2(this->displayBoundary.getMidX(), this->displayBoundary.getMidY());
+	lightData.lightMapSprite->setPosition(pos);
+	lightData.lightMapSprite->retain();
+	//lightComp->lightMapSprite->setColor(cocos2d::Color3B::BLUE);
+	//this->addChild(lightData.lightMapSprite, Z_ORDER::DEBUG);
 }
 
 void VisibilityScene::drawDragBox()
@@ -1397,12 +1279,7 @@ void VisibilityScene::drawWalls()
 
 void VisibilityScene::drawRaycast()
 {
-	if (this->intersects.empty()) return;
-
 	this->raycastDrawNode->clear();
-
-	// Sort intersecting points by angle.
-	std::sort(this->intersects.begin(), this->intersects.end(), VertexComparator());
 
 	auto color = cocos2d::Color4F::WHITE;
 	//color.a = 0.1f;
@@ -1410,20 +1287,17 @@ void VisibilityScene::drawRaycast()
 	{
 		for (auto intersect : intersects)
 		{
-			//color.a += 0.05f;
-			/*
-			if (intersect.boundaryVisible || intersect.otherWallVisible)
-			{
-				this->raycastDrawNode->drawLine(this->mousePos, intersect.extendedVertex, color);
-			}
-			else
-			{
-				this->raycastDrawNode->drawLine(this->mousePos, intersect.vertex, color);
-			}
-			*/
 			this->raycastDrawNode->drawLine(this->mousePos, intersect.point, color);
 		}
 	}
+}
+
+void VisibilityScene::sortIntersects()
+{
+	if (this->intersects.empty()) return;
+
+	// Sort intersecting points by angle.
+	std::sort(this->intersects.begin(), this->intersects.end(), VertexComparator());
 }
 
 bool VisibilityScene::isOnLeft(const cocos2d::Vec2 & p1, const cocos2d::Vec2 & p2, const cocos2d::Vec2 & target)
@@ -1453,6 +1327,90 @@ bool VisibilityScene::didRayHitOtherWall(const std::unordered_set<int>& wallIDSe
 	return false;
 }
 
+void VisibilityScene::setLightUniforms()
+{
+	std::vector<ECS::Entity*> lights;
+	ECS::Manager::getInstance()->getAllEntitiesInPool(lights, "LIGHT");
+
+	int lightCount = lights.size();
+
+	auto lightSizeLoc = this->floorShader->getUniformLocation("lightSize");
+	cocos2d::log("lightSize loc = %d, value = %d", lightSizeLoc, lightCount);
+	this->floorShaderState->setUniformInt(lightSizeLoc, lightCount);
+	//this->floorShader->setUniformLocationWith1i(lightSizeLoc, lightCount);
+
+	int index = 0;
+	for (auto light : lights)
+	{
+		auto lightComp = light->getComponent<ECS::LightData>();
+
+		cocos2d::Color4F randColor = cocos2d::Color4F(Utility::Random::randomReal<float>(0, 1.0f), Utility::Random::randomReal<float>(0, 1.0f), Utility::Random::randomReal<float>(0, 1.0f), 1.0f);
+		lightComp->color = randColor;
+		auto colorVec4 = cocos2d::Vec4(randColor.r, randColor.g, randColor.b, randColor.a);
+
+		auto indexStr = std::to_string(index);
+
+		auto lightPosName = "lightPositions[" + indexStr + "]";
+		auto lightPosLoc = this->floorShader->getUniformLocation(lightPosName);
+		cocos2d::log("%s loc = %d, value = (%f, %f)", lightPosName.c_str(), lightPosLoc, lightComp->position.x, lightComp->position.y);
+		this->floorShaderState->setUniformVec2(lightPosLoc, lightComp->position);
+		//this->floorShader->setUniformLocationWith2f(lightPosLoc, lightComp->position.x, lightComp->position.y);
+
+		auto lightColorName = "lightColors[" + indexStr + "]";
+		auto lightColorLoc = this->floorShader->getUniformLocation(lightColorName);
+		cocos2d::log("%s loc = %d, value = (%f, %f, %f, %f)", lightColorName.c_str(), lightColorLoc, lightComp->color.r, lightComp->color.g, lightComp->color.b, lightComp->color.a);
+		this->floorShaderState->setUniformVec4(lightColorLoc, colorVec4);
+		//this->floorShader->setUniformLocationWith4f(lightColorLoc, lightComp->color.r, lightComp->color.g, lightComp->color.b, lightComp->color.a);
+
+		auto lightIntensityName = "lightIntensities[" + indexStr + "]";
+		auto lightIntensityLoc = this->floorShader->getUniformLocation(lightIntensityName);
+		cocos2d::log("%s loc = %d, value = %f", lightIntensityName.c_str(), lightIntensityLoc, lightComp->intensity);
+		this->floorShaderState->setUniformFloat(lightIntensityLoc, lightComp->intensity);
+		//this->floorShader->setUniformLocationWith1f(lightIntensityLoc, lightComp->intensity);
+
+		auto lightMapName = "lightMaps[" + indexStr + "]";
+		auto lightMapLoc = this->floorShader->getUniformLocation(lightMapName);
+		cocos2d::log("%s loc = %d", lightMapName.c_str(), lightMapLoc);
+		this->floorShaderState->setUniformTexture(lightMapLoc, lightComp->lightMapSprite->getTexture());
+		//this->floorShader->setUniformLocationWith1i(lightMapLoc, index);
+
+		index++;
+	}
+
+	//glProgram->setUniformLocationWith1f(glProgram->getUniformLocation("lightSize"), lightCount);
+	//auto location = shader->getUniformLocation("lightSize");
+	//cocos2d::log("lightSize loc = %d", location);
+	//location = shader->getUniformLocation("lightMaps");
+	//cocos2d::log("lightMaps loc = %d", location);
+	//location = shader->getUniformLocation("lightMaps[0]");
+	//cocos2d::log("lightMaps[0] loc = %d", location);
+	//location = shader->getUniformLocation("lightMaps[1]");
+	//cocos2d::log("lightMaps[1] loc = %d", location);
+	//location = shader->getUniformLocation("lightMaps[2]");
+	//cocos2d::log("lightMaps[2] loc = %d", location);
+	//location = shader->getUniformLocation("lightMaps[3]");
+	//cocos2d::log("lightMaps[3] loc = %d", location);
+	//location = shader->getUniformLocation("lightPositions");
+	//cocos2d::log("lightPosition loc = %d", location);
+	//location = shader->getUniformLocation("lightPositions[0]");
+	//cocos2d::log("lightPosition[0] loc = %d", location);
+	//location = shader->getUniformLocation("lightPositions[1]");
+	//cocos2d::log("lightPosition[1] loc = %d", location);
+	//location = shader->getUniformLocation("lightIntensities");
+	//cocos2d::log("lightIntensities loc = %d", location);
+	//location = shader->getUniformLocation("lightIntensities[0]");
+	//cocos2d::log("lightIntensities[0] loc = %d", location);
+	//location = shader->getUniformLocation("lightIntensities[1]");
+	//cocos2d::log("lightIntensities[1] loc = %d", location);
+	//location = shader->getUniformLocation("lightColors");
+	//cocos2d::log("lightColors loc = %d", location);
+	//location = shader->getUniformLocation("lightColors[0]");
+	//cocos2d::log("lightColors[0] loc = %d", location);
+	//location = shader->getUniformLocation("lightColors[1]");
+	//cocos2d::log("lightColors[1] loc = %d", location);
+
+}
+
 void VisibilityScene::update(float delta)
 {
 	this->labelsNode->updateFPSLabel(delta);
@@ -1467,13 +1425,23 @@ void VisibilityScene::update(float delta)
 				if (!this->isPointInWall(this->mousePos))
 				{
 					// Point is not in the wall
-					this->findIntersectsWithRaycasts();
+					if (this->viewRaycast == false && this->viewVisibleArea == false)
+					{
+						// Nothing to render
+						return;
+					}
+
+					this->findIntersectsWithRaycasts(this->mousePos);
+					this->sortIntersects();
+
 					if(this->viewRaycast)
 					{
 						this->drawRaycast();
 					}
+
 					if (this->viewVisibleArea)
 					{
+						this->generateTriangles(this->mousePos);
 						this->drawTriangles();
 					}
 				}
@@ -1642,8 +1610,21 @@ void VisibilityScene::onMouseDown(cocos2d::Event* event)
 			}
 			else if(mouseButton == 1)
 			{
+				std::vector<ECS::Entity*> lightEntities;
+				ECS::Manager::getInstance()->getAllEntitiesInPool(lightEntities, "LIGHT");
+				for (auto light : lightEntities)
+				{
+					auto spriteComp = light->getComponent<ECS::Sprite>();
+					if (spriteComp->sprite->getBoundingBox().containsPoint(point))
+					{
+						// remove light
+						light->kill();
+						return;
+					}
+				}
+
 				// Add light
-				this->lightPositions.push_back(point);
+				this->createNewLight(point);
 			}
 		}
 		else if (this->currentMode == MODE::DRAW_WALL_POINT)
@@ -1695,6 +1676,9 @@ void VisibilityScene::onMouseUp(cocos2d::Event* event)
 				cocos2d::log("Creating new box origin (%f, %f), size (%f, %f)", this->newBoxOrigin.x, this->newBoxOrigin.y, this->newBoxDest.x, this->newBoxDest.y);
 
 				this->clearDrag();
+
+				// reload map when there is new wall
+				this->loadMap();
 			}
 		}
 	}
@@ -1748,6 +1732,9 @@ void VisibilityScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coco
 			{
 				this->createNewFreeformWall();
 				this->clearFreeform();
+
+				// reload map when there is new wall
+				this->loadMap();
 			}
 		}
 	}
