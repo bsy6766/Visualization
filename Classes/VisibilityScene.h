@@ -166,12 +166,16 @@ private:
 	cocos2d::GLProgram* floorShader;
 	cocos2d::GLProgramState* floorShaderState;
 	cocos2d::Sprite* floorSprite;
+	cocos2d::Texture2D* lightMapTexture;
 
 	int hoveringWallIndex;
 
 	bool viewRaycast;
 	bool viewVisibleArea;
+	bool debugMode;
+	bool viewLightMap;
 	bool cursorLight;
+	ECS::Entity* cursorLight;
 
 	// init ECS
 	void initECS();
@@ -204,7 +208,9 @@ private:
 	// Check if mouse point is inside of wall
 	bool isPointInWall(const cocos2d::Vec2& point);
 	// generateLightTexture
-	void generateLightTexture(ECS::LightData& lightData, const int lightID);
+	void generateLightTexture();
+	// generate light map texture
+	void generateLightMap();
 	// Draw new wall preview
 	void drawDragBox();
 	// clear drag
@@ -225,6 +231,8 @@ private:
 	bool didRayHitOtherWall(const std::unordered_set<int>& wallIDSet, const int uniquePointWallID);
 	// set light uniforms
 	void setLightUniforms();
+	// Draw lights
+	void drawLights();
 	
 public:
 	//simple creator func

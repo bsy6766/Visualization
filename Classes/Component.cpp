@@ -275,6 +275,7 @@ ECS::LightData::LightData()
 , position(cocos2d::Vec2::ZERO)
 , intensity(600.0f)
 , color(cocos2d::Color4F::WHITE)
+, active(true)
 {
 }
 
