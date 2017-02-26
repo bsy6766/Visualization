@@ -126,7 +126,7 @@ private:
 
 	bool draggingBox;
 	const int maxWallPoints = 128;
-	const int maxLightCount = 16;
+	const int maxLightCount = 16; // 16 lights
 	const float maxWallSegmentSize = 100.0f;
 	const float minRectSize = 10.0f;
 	const int BOUNDARY_WALL_ID = -1;
@@ -157,7 +157,6 @@ private:
 	std::vector<cocos2d::Vec2> triangles;
 
 	std::vector<UniquePoint> wallUniquePoints;
-	std::vector<cocos2d::Vec2> boundaryUniquePoints;
 
 	std::vector<Segment*> wallSegments;
 	std::vector<Segment*> boundarySegments;
@@ -168,6 +167,10 @@ private:
 	cocos2d::Sprite* floorSprite;
 	cocos2d::Texture2D* lightMapTexture;
 
+	std::vector<cocos2d::Vec2> lightPositions;
+	std::vector<cocos2d::Vec3> lightColors;
+	std::vector<float> lightIntensities;
+
 	int hoveringWallIndex;
 
 	bool viewRaycast;
@@ -175,20 +178,25 @@ private:
 	bool debugMode;
 	bool viewLightMap;
 	bool cursorLight;
-	ECS::Entity* cursorLight;
+	ECS::Entity* cursorLightEntity;
+	bool wallMapDirty;
 
 	// init ECS
 	void initECS();
 	// Create new box entity
-	void createNewRectWall();
+	bool createNewRectWall();
 	// create new freeform wall
-	void createNewFreeformWall();
+	bool createNewFreeformWall();
 	// create point
 	ECS::Entity* createPoint(const cocos2d::Vec2& position);
 	// Create new light entity
 	ECS::Entity* createNewLight(const cocos2d::Vec2& position);
+	// initialize map
+	void initMap();
 	// load map
-	void loadMap();
+	void reloadMap();
+	// add Wall
+	void addWall(Wall& wall);
 	// load rect
 	void loadRect(const cocos2d::Rect& rect, std::vector<Segment*>& segments, const int wallID);
 	// load freeform
@@ -208,9 +216,11 @@ private:
 	// Check if mouse point is inside of wall
 	bool isPointInWall(const cocos2d::Vec2& point);
 	// generateLightTexture
-	void generateLightTexture();
+	void generateLightTexture(ECS::Entity& light);
 	// generate light map texture
 	void generateLightMap();
+	// Update cursor light
+	void updateCursorLight();
 	// Draw new wall preview
 	void drawDragBox();
 	// clear drag
@@ -232,7 +242,7 @@ private:
 	// set light uniforms
 	void setLightUniforms();
 	// Draw lights
-	void drawLights();
+	void drawLights(bool updateLightTexture);
 	
 public:
 	//simple creator func

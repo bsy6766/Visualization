@@ -148,6 +148,25 @@ namespace Utility
 			Time::end = std::chrono::steady_clock::now();
 		}
 
+		static inline std::chrono::steady_clock::time_point now()
+		{
+			return std::chrono::steady_clock::now();
+		}
+
+		static inline const std::string toMicroSecondString(const std::chrono::steady_clock::time_point start, const std::chrono::steady_clock::time_point end)
+		{
+			std::stringstream ss;
+			ss << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+			return ss.str();
+		}
+
+		static inline const std::string toMilliSecondString(const std::chrono::steady_clock::time_point start, const std::chrono::steady_clock::time_point end)
+		{
+			std::stringstream ss;
+			ss << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+			return ss.str();
+		}
+
 		static const std::string getElaspedTime()
 		{
 			std::stringstream ss;

@@ -207,7 +207,7 @@ namespace ECS
 		void operator=(LightData const&) = delete;
 
 		cocos2d::Sprite* lightMapSprite;
-		cocos2d::Color4F color;
+		cocos2d::Vec3 color;
 		cocos2d::Vec2 position;
 		float intensity;
 		bool active;

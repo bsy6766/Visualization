@@ -273,13 +273,16 @@ ECS::LightData::LightData()
 : ECS::Component()
 , lightMapSprite(nullptr)
 , position(cocos2d::Vec2::ZERO)
-, intensity(600.0f)
-, color(cocos2d::Color4F::WHITE)
+, intensity(400.0f)
+, color(cocos2d::Vec3::ZERO)
 , active(true)
 {
 }
 
 ECS::LightData::~LightData()
 {
-	this->lightMapSprite->release();
+	if (this->lightMapSprite)
+	{
+		this->lightMapSprite->release();
+	}
 }
