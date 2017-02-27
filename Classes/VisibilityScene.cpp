@@ -52,6 +52,7 @@ bool VisibilityScene::init()
 	this->addChild(this->floorSprite, Z_ORDER::FLOOR);
 
 	this->floorShaderState = cocos2d::GLProgramState::getOrCreateWithGLProgram(this->floorShader);
+	cocos2d::log("uniform count = %d", this->floorShaderState->getUniformCount());
 	this->floorShaderState->setUniformInt("lightSize", 0);
 
 	//this->floorSprite->setGLProgram(this->floorShader);
@@ -108,8 +109,9 @@ bool VisibilityScene::init()
 	this->cursorLight = false;
 	this->debugMode = false;
 	this->viewLightMap = false;
+	this->needToUpdateUniform = false;
 
-	this->wallMapDirty = false;
+	this->mousePosDirty = false;
 
 	VisibilityScene::wallIDCounter = 0;
 
@@ -121,6 +123,9 @@ bool VisibilityScene::init()
 		lightColors.push_back(cocos2d::Vec3::ONE);
 		lightIntensities.push_back(0);
 	}
+
+	this->uniformData = std::vector<float>(16 * 6, 0);
+	this->activeLightSize = 0;
 
 	return true;
 }
@@ -145,7 +150,8 @@ void VisibilityScene::initECS()
 	this->cursorLightEntity = createNewLight(this->mousePos);
 	auto comp = this->cursorLightEntity->getComponent<ECS::LightData>();
 	comp->active = false;
-	comp->intensity = 800.0f;
+	comp->intensity = 200.0f;
+	comp->color = cocos2d::Vec3(1, 1, 1);
 }
 
 bool VisibilityScene::createNewRectWall()
@@ -187,8 +193,6 @@ bool VisibilityScene::createNewRectWall()
 	this->walls.push_back(wall);
 
 	this->drawWalls();
-
-	this->wallMapDirty = true;
 
 	return true;
 }
@@ -245,8 +249,6 @@ bool VisibilityScene::createNewFreeformWall()
 	this->walls.push_back(wall);
 
 	this->drawWalls();
-
-	this->wallMapDirty = true;
 
 	return true;
 }
@@ -319,8 +321,6 @@ void VisibilityScene::initMap()
 
 void VisibilityScene::reloadMap()
 {
-	if (!this->wallMapDirty) return;
-
 	// clear all
 	this->wallUniquePoints.resize(4);
 
@@ -1165,7 +1165,6 @@ void VisibilityScene::generateLightTexture(ECS::Entity& light)
 	int h = static_cast<int>(this->displayBoundary.size.height);
 
 	auto start3 = Utility::Time::now();
-	auto renderTexture = cocos2d::RenderTexture::create(w, h);
 
 	// Create temporary draw node
 	auto drawNode = cocos2d::DrawNode::create();
@@ -1176,25 +1175,17 @@ void VisibilityScene::generateLightTexture(ECS::Entity& light)
 	// Draw triangles to draw node
 	for (unsigned int i = 0; i < size; i += 3)
 	{
-		try
-		{
-			drawNode->drawTriangle(this->triangles.at(i) - shift,
-				this->triangles.at(i + 1) - shift,
-				this->triangles.at(i + 2) - shift,
-				color);
-		}
-		catch (...)
-		{
-			cocos2d::log("Error: There wasn't enough verticies to form triangle. generateTriangles() must be bugged.");
-			cocos2d::log("Error: Canceling light map generation.");
-			return;
-		}
+		drawNode->drawTriangle(this->triangles.at(i) - shift,
+			this->triangles.at(i + 1) - shift,
+			this->triangles.at(i + 2) - shift,
+			color);
 	}
 	auto end3 = Utility::Time::now();
 	cocos2d::log("generate draw node %s", Utility::Time::toMicroSecondString(start3, end3).c_str());
 
 	// render to render texture
 	auto start4 = Utility::Time::now();
+	auto renderTexture = cocos2d::RenderTexture::create(w, h);
 	renderTexture->beginWithClear(0, 0, 0, 0);
 	drawNode->visit();
 	renderTexture->end();
@@ -1263,8 +1254,6 @@ void VisibilityScene::updateCursorLight()
 		auto end = Utility::Time::now();
 		cocos2d::log("cursor light light texture gen %s", Utility::Time::toMicroSecondString(start, end).c_str());
 	}
-
-	this->drawLights(false);
 }
 
 void VisibilityScene::drawDragBox()
@@ -1406,7 +1395,7 @@ bool VisibilityScene::didRayHitOtherWall(const std::unordered_set<int>& wallIDSe
 	return false;
 }
 
-void VisibilityScene::setLightUniforms()
+void VisibilityScene::updateUniformData()
 {
 	auto start = Utility::Time::now();
 	std::vector<ECS::Entity*> lights;
@@ -1420,39 +1409,57 @@ void VisibilityScene::setLightUniforms()
 
 		if (lightComp->active)
 		{
+			this->uniformData.at(index * 6) = lightComp->position.x;
+			this->uniformData.at(index * 6 + 1) = lightComp->position.y;
+			this->uniformData.at(index * 6 + 2) = lightComp->color.x;
+			this->uniformData.at(index * 6 + 3) = lightComp->color.y;
+			this->uniformData.at(index * 6 + 4) = lightComp->color.z;
+			this->uniformData.at(index * 6 + 5) = lightComp->intensity;
+
 			activeLightsCount++;
-			lightPositions.at(index) = lightComp->position;
-			lightColors.at(index) = cocos2d::Vec3(lightComp->color.x, lightComp->color.y, lightComp->color.z);
-			lightIntensities.at(index) = lightComp->intensity;
+			//lightPositions.at(index) = lightComp->position;
+			//lightColors.at(index) = cocos2d::Vec3(lightComp->color.x, lightComp->color.y, lightComp->color.z);
+			//lightIntensities.at(index) = lightComp->intensity;
 			index++;
 		}
 	}
 	auto end = Utility::Time::now();
 	cocos2d::log("update data array %s", Utility::Time::toMicroSecondString(start, end).c_str());
 
+	this->activeLightSize = activeLightsCount;
+}
+
+void VisibilityScene::setLightUniforms()
+{
 	auto start1 = Utility::Time::now();
-	//auto lightSizeLoc = this->floorShader->getUniformLocation("lightSize");
-	this->floorShaderState->setUniformInt("lightSize", activeLightsCount);
+	auto startLightSize = Utility::Time::now();
+	this->floorShaderState->setUniformInt("lightSize", this->activeLightSize);
+	auto endLightSize = Utility::Time::now();
+	cocos2d::log("lightSize set uniform %s", Utility::Time::toMicroSecondString(startLightSize, endLightSize).c_str());
 
-	auto lightPosName = "lightPositions";
-	//auto lightPosLoc = this->floorShader->getUniformLocation(lightPosName);
-	//cocos2d::log("%s loc = %d", lightPosName, lightPosLoc);
-	this->floorShaderState->setUniformVec2v(lightPosName, maxLightCount, &lightPositions.at(0));
+	auto uniformStart = Utility::Time::now();
+	this->floorShaderState->setUniformFloatv("lightSources", maxLightCount * 6, &this->uniformData.at(0));
+	auto uniformEnd = Utility::Time::now();
+	cocos2d::log("set uniform float %s", Utility::Time::toMicroSecondString(uniformStart, uniformEnd).c_str());
+	//auto start2 = Utility::Time::now();
+	//this->floorShaderState->setUniformVec2v("lightPositions", maxLightCount, &lightPositions.at(0));
+	//auto end2 = Utility::Time::now();
+	//cocos2d::log("lightPosition set uniform %s", Utility::Time::toMicroSecondString(start2, end2).c_str());
 
-	auto lightColorName = "lightColors";
-	//auto lightColorLoc = this->floorShader->getUniformLocation(lightColorName);
-	//cocos2d::log("%s loc = %d", lightColorName, lightColorLoc);
-	this->floorShaderState->setUniformVec3v(lightColorName, maxLightCount, &lightColors.at(0));
+	//auto start3 = Utility::Time::now();
+	//this->floorShaderState->setUniformVec3v("lightColors", maxLightCount, &lightColors.at(0));
+	//auto end3 = Utility::Time::now();
+	//cocos2d::log("lightColors set uniform %s", Utility::Time::toMicroSecondString(start3, end3).c_str());
 
-	auto lightIntensityName = "lightIntensities";
-	auto lightIntensityLoc = this->floorShader->getUniformLocation(lightIntensityName);
-	//cocos2d::log("%s loc = %d", lightIntensityName, lightIntensityLoc);
-	this->floorShaderState->setUniformFloatv(lightIntensityName, maxLightCount, &lightIntensities.at(0));
+	//auto start4 = Utility::Time::now();
+	//this->floorShaderState->setUniformFloatv("lightIntensities", maxLightCount, &lightIntensities.at(0));
+	//auto end4 = Utility::Time::now();
+	//cocos2d::log("lightIntensities set uniform %s", Utility::Time::toMicroSecondString(start4, end4).c_str());
 
-	auto lightMapName = "lightMap";
-	//auto lightMapLoc = this->floorShader->getUniformLocation(lightMapName);
-	//cocos2d::log("%s loc = %d", lightMapName, lightMapLoc);
-	this->floorShaderState->setUniformTexture(lightMapName, this->lightMapTexture);
+	auto start5 = Utility::Time::now();
+	this->floorShaderState->setUniformTexture("lightMap", this->lightMapTexture);
+	auto end5 = Utility::Time::now();
+	cocos2d::log("lightMap set uniform %s", Utility::Time::toMicroSecondString(start5, end5).c_str());
 	auto end1 = Utility::Time::now();
 	cocos2d::log("calling setUniform %s", Utility::Time::toMicroSecondString(start1, end1).c_str());
 }
@@ -1461,6 +1468,7 @@ void VisibilityScene::drawLights(bool updateLightTexture)
 {
 	if (updateLightTexture)
 	{
+		auto start1 = Utility::Time::now();
 		std::vector<ECS::Entity*> lights;
 		ECS::Manager::getInstance()->getAllEntitiesInPool(lights, "LIGHT");
 
@@ -1469,6 +1477,8 @@ void VisibilityScene::drawLights(bool updateLightTexture)
 			// Generate light texture for each light
 			this->generateLightTexture(*light);
 		}
+		auto end1 = Utility::Time::now();
+		cocos2d::log("generateLightMap() update light Texture %s", Utility::Time::toMicroSecondString(start1, end1).c_str());
 	}
 
 	// Generate light map by overlaying all light textures.
@@ -1478,10 +1488,19 @@ void VisibilityScene::drawLights(bool updateLightTexture)
 	cocos2d::log("generateLightMap() %s", Utility::Time::toMicroSecondString(start, end).c_str());
 
 	// Update uniforms
-	auto start1 = Utility::Time::now();
-	this->setLightUniforms();
-	auto end1 = Utility::Time::now();
-	cocos2d::log("setUniforms() %s", Utility::Time::toMicroSecondString(start1, end1).c_str());
+	if (this->needToUpdateUniform)
+	{
+		auto start1 = Utility::Time::now();
+		this->updateUniformData();
+		auto end1 = Utility::Time::now();
+		cocos2d::log("updateUnifroms() %s", Utility::Time::toMicroSecondString(start1, end1).c_str());
+		auto start2 = Utility::Time::now();
+		this->setLightUniforms();
+		auto end2 = Utility::Time::now();
+		cocos2d::log("setUniforms() %s", Utility::Time::toMicroSecondString(start2, end2).c_str());
+
+		this->needToUpdateUniform = false;
+	}
 }
 
 void VisibilityScene::update(float delta)
@@ -1497,48 +1516,54 @@ void VisibilityScene::update(float delta)
 			{
 				if (!this->isPointInWall(this->mousePos))
 				{
-					// Point is not in the wall
-					if (this->debugMode)
+					if (this->mousePosDirty)
 					{
-						// Show tirnagles and raycast in debug mode
-						if (this->viewRaycast == false && this->viewVisibleArea == false)
+						this->mousePosDirty = false;
+						// Point is not in the wall
+						if (this->debugMode)
 						{
-							// Nothing to render
-							return;
+							// Show tirnagles and raycast in debug mode
+							if (this->viewRaycast == false && this->viewVisibleArea == false)
+							{
+								// Nothing to render
+								return;
+							}
+
+							this->findIntersectsWithRaycasts(this->mousePos);
+							this->sortIntersects();
+
+							if (this->viewRaycast)
+							{
+								this->drawRaycast();
+							}
+
+							if (this->viewVisibleArea)
+							{
+								this->generateTriangles(this->mousePos);
+								this->drawTriangles();
+							}
 						}
-
-						this->findIntersectsWithRaycasts(this->mousePos);
-						this->sortIntersects();
-
-						if (this->viewRaycast)
+						else
 						{
-							this->drawRaycast();
+							Utility::Time::start();
+
+							// If it's not debug mode, cursor is light
+							auto lightComp = this->cursorLightEntity->getComponent<ECS::LightData>();
+							lightComp->position = this->mousePos;
+							auto spriteComp = this->cursorLightEntity->getComponent<ECS::Sprite>();
+							spriteComp->sprite->setPosition(this->mousePos);
+
+							this->updateCursorLight();
+
+							this->drawLights(false);
+
+							Utility::Time::stop();
+
+							std::string timeTakenStr = Utility::Time::getElaspedTime();	// Microseconds
+							float timeTakenF = std::stof(timeTakenStr);	// to float
+							timeTakenF *= 0.001f; // To milliseconds
+							this->labelsNode->updateTimeTakenLabel(std::to_string(timeTakenF).substr(0, 5));
 						}
-
-						if (this->viewVisibleArea)
-						{
-							this->generateTriangles(this->mousePos);
-							this->drawTriangles();
-						}
-					}
-					else
-					{
-						Utility::Time::start();
-
-						// If it's not debug mode, cursor is light
-						auto lightComp = this->cursorLightEntity->getComponent<ECS::LightData>();
-						lightComp->position = this->mousePos;
-						auto spriteComp = this->cursorLightEntity->getComponent<ECS::Sprite>();
-						spriteComp->sprite->setPosition(this->mousePos);
-
-						this->updateCursorLight();
-
-						Utility::Time::stop();
-
-						std::string timeTakenStr = Utility::Time::getElaspedTime();	// Microseconds
-						float timeTakenF = std::stof(timeTakenStr);	// to float
-						timeTakenF *= 0.001f; // To milliseconds
-						this->labelsNode->updateTimeTakenLabel(std::to_string(timeTakenF).substr(0, 5));
 					}
 				}
 			}
@@ -1678,6 +1703,17 @@ void VisibilityScene::onMouseMove(cocos2d::Event* event)
 		}
 	}
 
+	if (this->cursorLight)
+	{
+		if (this->mousePos != point)
+		{
+			if (this->currentMode == MODE::IDLE)
+			{
+				this->mousePosDirty = true;
+			}
+			this->needToUpdateUniform = true;
+		}
+	}
 	this->mousePos = point;
 }
 
@@ -1724,6 +1760,7 @@ void VisibilityScene::onMouseDown(cocos2d::Event* event)
 				if (newLight != nullptr)
 				{
 					this->generateLightTexture(*newLight);
+					this->needToUpdateUniform = true;
 					// Draw light
 					this->drawLights(false);
 				}
@@ -1784,7 +1821,11 @@ void VisibilityScene::onMouseUp(cocos2d::Event* event)
 
 				this->clearDrag();
 
-				this->drawLights(true);
+				if (this->activeLightSize > 0)
+				{
+					this->needToUpdateUniform = true;
+					this->drawLights(true);
+				}
 			}
 		}
 	}
@@ -1843,13 +1884,19 @@ void VisibilityScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coco
 				}
 				this->clearFreeform();
 
-				this->drawLights(true);
+				if (this->activeLightSize > 0)
+				{
+					this->needToUpdateUniform = true;
+					this->drawLights(true);
+				}
 			}
 		}
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_L)
 	{
 		this->cursorLight = !this->cursorLight;
+
+		this->needToUpdateUniform = true;
 
 		auto lightComp = this->cursorLightEntity->getComponent<ECS::LightData>();
 		lightComp->position = this->mousePos;
@@ -1859,7 +1906,12 @@ void VisibilityScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coco
 		spriteComp->sprite->setPosition(this->mousePos);
 		spriteComp->sprite->setVisible(this->cursorLight);
 
-		this->drawLights(true);
+		this->needToUpdateUniform = true;
+		if (this->cursorLight)
+		{
+			this->updateCursorLight();
+		}
+		this->drawLights(false);
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_T)
 	{
@@ -1903,145 +1955,6 @@ void VisibilityScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coco
 		{
 			this->floorSprite->setVisible(true);
 		}
-	}
-
-
-	if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_1)
-	{
-		// debug.
-		// Does getIntersection works for both edge?
-		Segment* seg = new Segment;
-
-		seg->p1 = cocos2d::Vec2(68, 72);
-		seg->p2 = cocos2d::Vec2(218, 185);
-
-		auto lightPos = cocos2d::Vec2(436, 54);
-
-		float angle1 = atan2(seg->p1.y - lightPos.y, seg->p1.x - lightPos.x);
-		float angle2 = atan2(seg->p2.y - lightPos.y, seg->p2.x - lightPos.x);
-
-		// Get direction of ray
-		float dx1 = cosf(angle1);
-		float dy1 = sinf(angle1);
-
-		// Generate raycast vec2 points
-		auto rayStart1 = lightPos;
-		auto rayEnd1 = cocos2d::Vec2(rayStart1.x + dx1, rayStart1.y + dy1);
-
-		// Get direction of ray
-		float dx2 = cosf(angle2);
-		float dy2 = sinf(angle2);
-
-		// Generate raycast vec2 points
-		auto rayStart2 = lightPos;
-		auto rayEnd2 = cocos2d::Vec2(rayStart2.x + dx2, rayStart2.y + dy2);
-
-		float dx3 = cosf(angle2 + 0.00001f);
-		float dy3 = sinf(angle2 + 0.00001f);
-		float dx4 = cosf(angle2 - 0.00001f);
-		float dy4 = sinf(angle2 - 0.00001f);
-
-		auto rayStart3 = lightPos;
-		auto rayEnd3 = cocos2d::Vec2(rayStart3.x + dx3, rayStart3.y + dy3);
-		auto rayStart4 = lightPos;
-		auto rayEnd4 = cocos2d::Vec2(rayStart4.x + dx4, rayStart4.y + dy4);
-
-		cocos2d::Vec2 intersection1;
-		float dist1 = this->getIntersectingPoint(rayStart1, rayEnd1, seg, intersection1);
-		cocos2d::Vec2 intersection2;
-		float dist2 = this->getIntersectingPoint(rayStart2, rayEnd2, seg, intersection2);
-		cocos2d::Vec2 intersection3;
-		float dist3 = this->getIntersectingPoint(rayStart3, rayEnd3, seg, intersection3);
-		cocos2d::Vec2 intersection4;
-		float dist4 = this->getIntersectingPoint(rayStart4, rayEnd4, seg, intersection4);
-
-		if (dist1 > 0)
-		{
-			cocos2d::log("P1 intersects segment");
-			cocos2d::log("Intersection 1 = (%f, %f)", intersection1.x, intersection1.y);
-			cocos2d::log("Ray to p1 = %f", rayStart1.distance(seg->p1));
-			cocos2d::log("dist = %f", dist1);
-		}
-		if (dist2 > 0)
-		{
-			cocos2d::log("P2 intersects segment");
-			cocos2d::log("Intersection 2 = (%f, %f)", intersection2.x, intersection2.y);
-			cocos2d::log("Ray to p2 = %f", rayStart2.distance(seg->p2));
-			cocos2d::log("dist = %f", dist2);
-		}
-		if (dist3 > 0)
-		{
-			cocos2d::log("P3 intersects segment");
-			cocos2d::log("Intersection 3 = (%f, %f)", intersection3.x, intersection3.y);
-			cocos2d::log("Ray to p3 = %f", rayStart3.distance(seg->p2));
-			cocos2d::log("dist = %f", dist3);
-		}
-		if (dist4 > 0)
-		{
-			cocos2d::log("P4 intersects segment");
-			cocos2d::log("Intersection 4 = (%f, %f)", intersection4.x, intersection4.y);
-			cocos2d::log("Ray to p4 = %f", rayStart4.distance(seg->p2));
-			cocos2d::log("dist = %f", dist4);
-		}
-
-		delete seg;
-	}
-	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_2)
-	{
-		// debug.
-		// Does getIntersection works for both edge?
-		Segment* seg = new Segment;
-
-		seg->p1 = cocos2d::Vec2(100, 100);
-		seg->p2 = cocos2d::Vec2(200, 100);
-
-		auto lightPos = cocos2d::Vec2(0, 0);
-
-		float angle1 = atan2(seg->p1.y - lightPos.y, seg->p1.x - lightPos.x);
-		float angle2 = atan2(seg->p2.y - lightPos.y, seg->p2.x - lightPos.x);
-
-		// Get direction of ray
-		float dx1 = cosf(angle1);
-		float dy1 = sinf(angle1);
-
-		// Generate raycast vec2 points
-		auto rayStart1 = lightPos;
-		auto rayEnd1 = cocos2d::Vec2(rayStart1.x + dx1, rayStart1.y + dy1);
-
-		// Get direction of ray
-		float dx2 = cosf(angle2);
-		float dy2 = sinf(angle2);
-
-		// Generate raycast vec2 points
-		auto rayStart2 = lightPos;
-		auto rayEnd2 = cocos2d::Vec2(rayStart2.x + dx2, rayStart2.y + dy2);
-
-		Hit hit1;
-		bool result1 = this->getIntersectingPoint(rayStart1, rayEnd1, seg, hit1);
-
-		if (result1)
-		{
-			cocos2d::log("p1 intersects");
-			if (hit1.u == 0 || hit1.u == 1.0f)
-			{
-				cocos2d::log("Edge");
-			}
-		}
-
-		Hit hit2;
-		bool result2 = this->getIntersectingPoint(rayStart2, rayEnd2, seg, hit2);
-
-		if (result2)
-		{
-			cocos2d::log("p2 intersects");
-			if (hit2.u == 0 || hit2.u == 1.0f)
-			{
-				cocos2d::log("Edge");
-			}
-		}
-		
-
-		delete seg;
 	}
 }
 

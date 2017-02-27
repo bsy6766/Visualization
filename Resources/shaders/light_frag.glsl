@@ -1,45 +1,61 @@
 in vec2 v_texCoord;   
 in vec4 v_color;
 
-const int MAX_LIGHT_COUNT = 17;				// 16 lights + cursor light
+const int MAX_LIGHT_COUNT = 16;				// 16 lights + cursor light
 const float GAP1 = 5.0;
 const float GAP2 = 15.0;
 
 uniform int lightSize;					// The actualy light used
-uniform vec2 lightPositions[MAX_LIGHT_COUNT];
-uniform vec3 lightColors[MAX_LIGHT_COUNT];
-uniform float lightIntensities[MAX_LIGHT_COUNT];
+// uniform vec2 lightPositions[MAX_LIGHT_COUNT];
+// uniform vec3 lightColors[MAX_LIGHT_COUNT];
+// uniform float lightIntensities[MAX_LIGHT_COUNT];
+uniform float lightSources[MAX_LIGHT_COUNT * 6];
 uniform sampler2D lightMap;
 
-vec4 blur(vec2 p)
-{
-	float sampleNum = 4.0;
-	float blurRadius = 10.0;
-	float resolution = 650.0;
-    if (blurRadius > 0.0 && sampleNum > 1.0)
-    {
-        vec4 col = vec4(0);
-        vec2 unit = vec2(1.0 / resolution, 1.0 / resolution);
+// vec4 blur(vec2 p)
+// {
+// 	float sampleNum = 2.0;
+// 	float blurRadius = 5.0;
+// 	float resolution = 650.0;
+//     if (blurRadius > 0.0 && sampleNum > 1.0)
+//     {
+//         vec4 col = vec4(0);
+//         vec2 unit = vec2(1.0 / resolution, 1.0 / resolution);
         
-        float r = blurRadius;
-        float sampleStep = r / sampleNum;
+//         float r = blurRadius;
+//         float sampleStep = r / sampleNum;
         
-        float count = 0.0;
+//         float count = 0.0;
         
-        for(float x = -r; x < r; x += sampleStep)
-        {
-            for(float y = -r; y < r; y += sampleStep)
-            {
-                float weight = (r - abs(x)) * (r - abs(y));
-                col += texture2D(lightMap, p + vec2(x * unit.x, y * unit.y)) * weight;
-                count += weight;
-            }
-        }
+//         for(float x = -r; x < r; x += sampleStep)
+//         {
+//             for(float y = -r; y < r; y += sampleStep)
+//             {
+//                 float weight = (r - abs(x)) * (r - abs(y));
+//                 col += texture2D(lightMap, p + vec2(x * unit.x, y * unit.y)) * weight;
+//                 count += weight;
+//             }
+//         }
         
-        return col / count;
-    }
+//         return col / count;
+//     }
     
-    return texture2D(lightMap, p);
+//     return texture2D(lightMap, p);
+// }
+
+vec2 getLightPosition(const int index)
+{
+	return vec2(lightSources[index * 6], lightSources[index * 6 + 1]);
+}
+
+vec3 getLightColor(const int index)
+{
+	return vec3(lightSources[index * 6 + 2], lightSources[index * 6 + 3], lightSources[index * 6 + 4]);
+}
+
+float getLightIntensity(const int index)
+{
+	return lightSources[index * 6 + 5];
 }
 
 void main()         
@@ -50,8 +66,8 @@ void main()
 		size = MAX_LIGHT_COUNT;
 	}
 	
-	//vec4 lightMapColor = texture2D(lightMap, v_texCoord);
-	vec4 lightMapColor = blur(v_texCoord);
+	vec4 lightMapColor = texture2D(lightMap, v_texCoord);
+	//vec4 lightMapColor = blur(v_texCoord);
 
 	if(size > 0)
 	{
@@ -69,15 +85,18 @@ void main()
 
 		for (int i = 0; i < size; i++)
 		{
-			vec2 lightPos = lightPositions[i];
+			//vec2 lightPos = lightPositions[i];
+			vec2 lightPos = getLightPosition(i);
 
 			if(lightPos.x == 0.0 && lightPos.y == 0.0)
 			{
 				continue;
 			}
-			vec3 lightColor = lightColors[i];
+			// vec3 lightColor = lightColors[i];
+			vec3 lightColor = getLightColor(i);
 
-			float lightIntensity = lightIntensities[i];
+			// float lightIntensity = lightIntensities[i];
+			float lightIntensity = getLightIntensity(i);
 
 		    float dist = abs(distance(gl_FragCoord.xy, lightPos));
 

@@ -152,6 +152,7 @@ private:
 	cocos2d::DrawNode* raycastDrawNode;
 	cocos2d::DrawNode* triangleDrawNode;
 	cocos2d::Vec2 mousePos;
+	bool mousePosDirty;
 
 	std::vector<Vertex> intersects;
 	std::vector<cocos2d::Vec2> triangles;
@@ -170,16 +171,19 @@ private:
 	std::vector<cocos2d::Vec2> lightPositions;
 	std::vector<cocos2d::Vec3> lightColors;
 	std::vector<float> lightIntensities;
+	// pos(vec2), color(vec3), intensity(float), repeat...
+	std::vector<float> uniformData;
+	int activeLightSize;
 
 	int hoveringWallIndex;
 
+	bool needToUpdateUniform;
 	bool viewRaycast;
 	bool viewVisibleArea;
 	bool debugMode;
 	bool viewLightMap;
 	bool cursorLight;
 	ECS::Entity* cursorLightEntity;
-	bool wallMapDirty;
 
 	// init ECS
 	void initECS();
@@ -239,6 +243,8 @@ private:
 	bool isOnLeft(const cocos2d::Vec2& p1, const cocos2d::Vec2& p2, const cocos2d::Vec2& target);
 	// Check if ray hit other wall
 	bool didRayHitOtherWall(const std::unordered_set<int>& wallIDSet, const int uniquePointWallID);
+	// update uniform data
+	void updateUniformData();
 	// set light uniforms
 	void setLightUniforms();
 	// Draw lights
