@@ -2,8 +2,8 @@ in vec2 v_texCoord;
 in vec4 v_color;
 
 const int MAX_LIGHT_COUNT = 16;				// 16 lights + cursor light
-const float GAP1 = 5.0;
-const float GAP2 = 15.0;
+const float GAP1 = 4.0;
+const float GAP2 = 8.0;
 
 uniform int lightSize;					// The actualy light used
 // uniform vec2 lightPositions[MAX_LIGHT_COUNT];
@@ -74,28 +74,21 @@ void main()
 		vec3 colorSum = vec3(0.0, 0.0, 0.0);
 		vec4 finalColor = vec4(0, 0, 0, 0);
 
-		float sizeF = float(size);
-		float mixRatio = 1.0 / sizeF;
-
 		bool whiteRange = false;
 		bool mixRange = false;
 		float mixRangeRatio = 0.0;
 
-		float finalAlpha = lightMapColor.r * 1.3;
+		float finalAlpha = lightMapColor.r;
+
+		float sizeF = float(size);
+		float mixRatio = 1.0 / sizeF;
 
 		for (int i = 0; i < size; i++)
 		{
-			//vec2 lightPos = lightPositions[i];
 			vec2 lightPos = getLightPosition(i);
 
-			if(lightPos.x == 0.0 && lightPos.y == 0.0)
-			{
-				continue;
-			}
-			// vec3 lightColor = lightColors[i];
 			vec3 lightColor = getLightColor(i);
 
-			// float lightIntensity = lightIntensities[i];
 			float lightIntensity = getLightIntensity(i);
 
 		    float dist = abs(distance(gl_FragCoord.xy, lightPos));
@@ -110,7 +103,8 @@ void main()
 		    else if(GAP1 < dist && dist <= GAP2)
 		    {
 		    	float ratio = 1.0 - ((dist - GAP1) / (GAP2 - GAP1));
-		    	colorSum += (lightColor * mixRatio);
+		    	//colorSum += (lightColor * mixRatio);
+		    	colorSum += lightColor;
 		    	mixRange = true;
 		    	mixRangeRatio = ratio;
 		    }
@@ -118,7 +112,8 @@ void main()
 		    {
 		    	float ratio = ((dist - GAP2) / (lightIntensity - GAP2));
 		    	lightColor = mix(lightColor, vec3(0, 0, 0), ratio);
-		    	colorSum += (lightColor * mixRatio);
+		    	//colorSum += (lightColor * mixRatio);
+		    	colorSum += lightColor;
 		    }
 		    else
 		    {
@@ -131,11 +126,12 @@ void main()
 			if(mixRange)
 			{
 			    colorSum = mix(colorSum, vec3(1, 1, 1), mixRangeRatio);
-			 	finalColor = vec4(colorSum * 1.5, mix(finalAlpha, 1.0, mixRangeRatio));
+			 	finalColor = vec4(colorSum, mix(finalAlpha, 1.0, mixRangeRatio));
 			}
 			else
 			{
-				finalColor = vec4(colorSum * 1.5, finalAlpha);
+				//colorSum /= sizeF;
+				finalColor = vec4(colorSum, finalAlpha);
 			}
 		}
 

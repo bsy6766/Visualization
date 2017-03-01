@@ -47,7 +47,6 @@ struct VertexComparator
 
 struct Wall
 {
-	std::vector<ECS::Entity*> entities;
 	std::vector<cocos2d::Vec2> points;
 	cocos2d::Rect bb;
 	cocos2d::Vec2 center;
@@ -111,7 +110,25 @@ private:
 	enum class CUSTOM_LABEL_INDEX
 	{
 		STATUS,
-		MODE
+		WALL_COUNT,
+		LIGHT_COUNT
+	};
+
+	enum class USAGE_KEY
+	{
+		NONE,
+		CURSOR_LIGHT,
+		DEBUG_MODE,
+		TOGGLE_RAYCAST,
+		TOGGLE_TRIANGLE,
+	};
+
+	enum class USAGE_MOUSE
+	{
+		NONE,
+		DRAW_RECT_WALL,
+		DRAW_FREEFORM_WALL,
+		ADD_LIGHT
 	};
 
 	enum class MODE
@@ -125,7 +142,8 @@ private:
 	MODE currentMode;
 
 	bool draggingBox;
-	const int maxWallPoints = 128;
+	const int maxWallCount = 20;
+	const int maxWallPointsPerWall = 8;
 	const int maxLightCount = 16; // 16 lights
 	const float maxWallSegmentSize = 100.0f;
 	const float minRectSize = 10.0f;
@@ -153,6 +171,8 @@ private:
 	cocos2d::DrawNode* triangleDrawNode;
 	cocos2d::Vec2 mousePos;
 	bool mousePosDirty;
+
+	cocos2d::RenderTexture* lightMapRenderTexture;
 
 	std::vector<Vertex> intersects;
 	std::vector<cocos2d::Vec2> triangles;
@@ -191,8 +211,6 @@ private:
 	bool createNewRectWall();
 	// create new freeform wall
 	bool createNewFreeformWall();
-	// create point
-	ECS::Entity* createPoint(const cocos2d::Vec2& position);
 	// Create new light entity
 	ECS::Entity* createNewLight(const cocos2d::Vec2& position);
 	// initialize map

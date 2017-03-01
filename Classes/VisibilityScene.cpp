@@ -52,7 +52,6 @@ bool VisibilityScene::init()
 	this->addChild(this->floorSprite, Z_ORDER::FLOOR);
 
 	this->floorShaderState = cocos2d::GLProgramState::getOrCreateWithGLProgram(this->floorShader);
-	cocos2d::log("uniform count = %d", this->floorShaderState->getUniformCount());
 	this->floorShaderState->setUniformInt("lightSize", 0);
 
 	//this->floorSprite->setGLProgram(this->floorShader);
@@ -82,7 +81,34 @@ bool VisibilityScene::init()
 	const int customLabelSize = 25;
 
 	this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Status: Idle", customLabelSize);
-	this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Mode: Idle", customLabelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Walls: 0 / 20", customLabelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::CUSTOM, "Lights: 0 / 15", customLabelSize);
+
+	// Calculate next label block y
+	const float customLastY = this->labelsNode->customLabels.back()->getBoundingBox().getMinY();
+	const float blockGap = 22.0f;
+
+	this->labelsNode->keyboardUsageLabelStartPos = cocos2d::Vec2(labelX, customLastY - blockGap);
+
+	const int headerSize = 25;
+	const int labelSize = 20;
+
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Keys (Green = enabled)", headerSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "L: Cursor light", labelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "D (While cursor light enabled): Debug draw", labelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Y (for debug): Toggle raycast draw", labelSize);
+	this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::TOGGLE_RAYCAST), cocos2d::Color3B::GREEN);
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "T (for debug): Toggle raycast draw", labelSize);
+	this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::TOGGLE_TRIANGLE), cocos2d::Color3B::GREEN);
+
+
+	const float keysLastY = this->labelsNode->keyboardUsageLabels.back()->getBoundingBox().getMinY();
+	this->labelsNode->mouseUsageLabelStartPos = cocos2d::Vec2(labelX, keysLastY - blockGap);
+
+	this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Mouse", headerSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click Drag (In box): Draw rectangle wall", labelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Left Click (In box): Draw freeform wall", labelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::MOUSE, "Right Click (In box)): Add light", labelSize);
 
 	this->currentMode = MODE::IDLE;
 	this->draggingBox = false;
@@ -127,6 +153,11 @@ bool VisibilityScene::init()
 	this->uniformData = std::vector<float>(16 * 6, 0);
 	this->activeLightSize = 0;
 
+	int w = static_cast<int>(this->displayBoundary.size.width);
+	int h = static_cast<int>(this->displayBoundary.size.height);
+	this->lightMapRenderTexture = cocos2d::RenderTexture::create(w, h);
+	this->lightMapRenderTexture->retain();
+
 	return true;
 }
 
@@ -144,7 +175,6 @@ void VisibilityScene::onEnter()
 void VisibilityScene::initECS()
 {
 	auto m = ECS::Manager::getInstance();
-	m->createEntityPool("WALL_POINT", maxWallPoints);
 	m->createEntityPool("LIGHT", maxLightCount);
 
 	this->cursorLightEntity = createNewLight(this->mousePos);
@@ -170,18 +200,9 @@ bool VisibilityScene::createNewRectWall()
 
 	cocos2d::Rect rect = cocos2d::Rect(cocos2d::Vec2(minX, minY), cocos2d::Size(maxX - minX, maxY - minY));
 
-	auto topLeft = this->createPoint(cocos2d::Vec2(rect.getMinX(), rect.getMaxY()));  //top left
-	auto topRight = this->createPoint(cocos2d::Vec2(rect.getMaxX(), rect.getMaxY()));  //top right
-	auto bottomLeft = this->createPoint(cocos2d::Vec2(rect.getMinX(), rect.getMinY()));  //bottom left
-	auto bottomRight = this->createPoint(cocos2d::Vec2(rect.getMaxX(), rect.getMinY()));  //bottom right
-
 	Wall wall;
 	wall.angle = 0;
 	wall.center = cocos2d::Vec2(rect.getMidX(), rect.getMidY());
-	wall.entities.push_back(topLeft);
-	wall.entities.push_back(topRight);
-	wall.entities.push_back(bottomRight);
-	wall.entities.push_back(bottomLeft);
 	wall.points.push_back(cocos2d::Vec2(rect.getMinX(), rect.getMaxY()));  //top left
 	wall.points.push_back(cocos2d::Vec2(rect.getMaxX(), rect.getMaxY()));  //top right
 	wall.points.push_back(cocos2d::Vec2(rect.getMaxX(), rect.getMinY()));  //bottom right
@@ -215,8 +236,6 @@ bool VisibilityScene::createNewFreeformWall()
 
 	for (auto point : this->freeformWallPoints)
 	{
-		auto newPointEntity = this->createPoint(point);
-		wall.entities.push_back(newPointEntity);
 		wall.points.push_back(point);
 
 		if (point.x > maxX)
@@ -253,23 +272,6 @@ bool VisibilityScene::createNewFreeformWall()
 	return true;
 }
 
-ECS::Entity* VisibilityScene::createPoint(const cocos2d::Vec2& position)
-{
-	auto m = ECS::Manager::getInstance();
-	auto newWallPoint = m->createEntity("WALL_POINT");
-
-	auto spriteComp = m->createComponent<ECS::Sprite>();
-	spriteComp->sprite = cocos2d::Sprite::createWithSpriteFrameName("circle.png");
-	spriteComp->sprite->setColor(cocos2d::Color3B::BLUE);
-	spriteComp->sprite->setPosition(position);
-	spriteComp->sprite->runAction(cocos2d::ScaleTo::create(0.25f, 0));
-	this->addChild(spriteComp->sprite, Z_ORDER::WALL);
-
-	newWallPoint->addComponent<ECS::Sprite>(spriteComp);
-
-	return newWallPoint;
-}
-
 ECS::Entity* VisibilityScene::createNewLight(const cocos2d::Vec2& position)
 {
 	auto m = ECS::Manager::getInstance();
@@ -277,23 +279,20 @@ ECS::Entity* VisibilityScene::createNewLight(const cocos2d::Vec2& position)
 
 	if (newLight)
 	{
-		auto spriteComp = m->createComponent<ECS::Sprite>();
-		spriteComp->sprite = cocos2d::Sprite::createWithSpriteFrameName("lightIcon.png");
-		spriteComp->sprite->setScale(0.5f);
-		spriteComp->sprite->setPosition(position);
-		spriteComp->sprite->setVisible(false);
-		this->addChild(spriteComp->sprite, Z_ORDER::LIGHT_ICON);
-
-		newLight->addComponent<ECS::Sprite>(spriteComp);
-
 		auto lightComp = m->createComponent<ECS::LightData>();
 		lightComp->position = position;
 
 		cocos2d::Vec3 randColor = cocos2d::Vec3(
-			Utility::Random::randomReal<float>(0.0f, 1.0f),
-			Utility::Random::randomReal<float>(0.0f, 1.0f),
-			Utility::Random::randomReal<float>(0.0f, 1.0f));
+			Utility::Random::randomReal<float>(0.5f, 1.0f),
+			Utility::Random::randomReal<float>(0.5f, 1.0f),
+			Utility::Random::randomReal<float>(0.5f, 1.0f));
 		lightComp->color = randColor;
+
+		int w = static_cast<int>(this->displayBoundary.size.width);
+		int h = static_cast<int>(this->displayBoundary.size.height);
+
+		lightComp->renderTexture = cocos2d::RenderTexture::create(w, h);
+		lightComp->renderTexture->retain();
 		
 		newLight->addComponent<ECS::LightData>(lightComp);
 	}
@@ -417,8 +416,6 @@ void VisibilityScene::addSegment(const cocos2d::Vec2& p1, const cocos2d::Vec2& p
 	segment->wallID = wallID;
 
 	segments.push_back(segment);
-
-	//cocos2d::log("Added segment p1: (%f, %f), p2: (%f, %f)", p1.x, p1.y, p2.x, p2.y);
 }
 
 float VisibilityScene::getIntersectingPoint(const cocos2d::Vec2 & rayStart, const cocos2d::Vec2 & rayEnd, const Segment * segment, cocos2d::Vec2 & intersection)
@@ -441,9 +438,6 @@ float VisibilityScene::getIntersectingPoint(const cocos2d::Vec2 & rayStart, cons
 
 	float t = rsd.cross(sd) / rdxsd;
 	float u = rsd.cross(rd) / rdxsd;
-
-	cocos2d::log("u = %f", u);
-	cocos2d::log("t = %f", t);
 
 	if (rdxsd == 0)
 	{
@@ -469,7 +463,6 @@ float VisibilityScene::getIntersectingPoint(const cocos2d::Vec2 & rayStart, cons
 		}
 		if (0 <= t &&  0 <= u && u <= 1.0f)
 		{
-			//cocos2d::log("Intersecting");
 			intersection.x = rayStart.x + (t * rd.x);
 			intersection.y = rayStart.y + (t * rd.y);
 			intersection.x = sp1.x + (u * sd.x);
@@ -477,8 +470,6 @@ float VisibilityScene::getIntersectingPoint(const cocos2d::Vec2 & rayStart, cons
 			return t;
 		}
 	}
-
-	//cocos2d::log("Not colinear nor parallel, but doesn't intersect");
 	return 0;
 }
 
@@ -516,9 +507,6 @@ bool VisibilityScene::getIntersectingPoint(const cocos2d::Vec2 & rayStart, const
 	hit.parallel = false;
 	hit.perpendicular = (rdDotsd == 0);
 
-	//cocos2d::log("u = %f", u);
-	//cocos2d::log("t = %f", t);
-
 	if (rdxsd == 0)
 	{
 		/*
@@ -542,7 +530,6 @@ bool VisibilityScene::getIntersectingPoint(const cocos2d::Vec2 & rayStart, const
 		}
 		if (0 <= t && 0 <= u && u <= 1.0f)
 		{
-			//cocos2d::log("Intersecting");
 			hit.t = t;
 			hit.u = u;
 			hit.hitPoint.x = sp1.x + (u * sd.x);
@@ -551,7 +538,6 @@ bool VisibilityScene::getIntersectingPoint(const cocos2d::Vec2 & rayStart, const
 		}
 	}
 
-	//cocos2d::log("Not colinear nor parallel, but doesn't intersect");
 	return false;
 }
 
@@ -591,12 +577,6 @@ void VisibilityScene::findIntersectsWithRaycasts(const cocos2d::Vec2& lightPos)
 			float dx = cosf(angle);
 			float dy = sinf(angle);
 
-			//angle = angle * 180.0f / M_PI;
-			//if (fabsf(angle) == 45.0f || fabsf(angle) == 135.0f)
-			//{
-			//	cocos2d::log("45 degree");
-			//}
-
 			// Generate raycast vec2 points
 			auto rayStart = lightPos;
 			auto rayEnd = cocos2d::Vec2(rayStart.x + dx, rayStart.y + dy);
@@ -611,7 +591,6 @@ void VisibilityScene::findIntersectsWithRaycasts(const cocos2d::Vec2& lightPos)
 			float shortestDist = 5000.0f;	// 5000 is enough distance to be max
 			bool skip = false;
 			bool perpendicular = false;
-			//cocos2d::log("Uniquepoint = (%f, %f)", this->wallUniquePoints.at(wallIndex).x, this->wallUniquePoints.at(wallIndex).y);
 
 			std::unordered_set<int> wallIDSet;
 
@@ -620,8 +599,6 @@ void VisibilityScene::findIntersectsWithRaycasts(const cocos2d::Vec2& lightPos)
 			{
 				auto p1 = cocos2d::Vec2(segment->p1.x, segment->p1.y);
 				auto p2 = cocos2d::Vec2(segment->p2.x, segment->p2.y);
-				
-				//cocos2d::log("Seg = (%f, %f), (%f, %f)", p1.x, p1.y, p2.x, p2.y);
 
 				if (p1 == uniquePoint.point || p2 == uniquePoint.point)
 				{
@@ -650,7 +627,6 @@ void VisibilityScene::findIntersectsWithRaycasts(const cocos2d::Vec2& lightPos)
 					// We don't consider edge point as a closest point. 
 					if (edge)
 					{
-						//cocos2d::log("edge");
 						if (segment->wallID == BOUNDARY_WALL_ID)
 						{
 							continue;
@@ -693,7 +669,6 @@ void VisibilityScene::findIntersectsWithRaycasts(const cocos2d::Vec2& lightPos)
 					float dist = hit.hitPoint.distance(rayStart);
 					if (dist < shortestDist)
 					{
-						//cocos2d::log("Found new closest point (%f, %f)", hit.hitPoint.x, hit.hitPoint.y);
 						shortestDist = dist;
 						closestPoint = hit.hitPoint;
 						wallID = segment->wallID;
@@ -1145,26 +1120,13 @@ void VisibilityScene::generateLightTexture(ECS::Entity& light)
 	if (lightComp->active == false) return;
 
 	// Find intersection
-	auto start = Utility::Time::now();
 	this->findIntersectsWithRaycasts(lightComp->position);
-	auto end = Utility::Time::now();
-	cocos2d::log("find intersects() %s", Utility::Time::toMicroSecondString(start, end).c_str());
+
 	// sort
-	auto start1 = Utility::Time::now();
 	this->sortIntersects();
-	auto end1 = Utility::Time::now();
-	cocos2d::log("sort() %s", Utility::Time::toMicroSecondString(start1, end1).c_str());
+
 	// genereate triangle verticies
-	auto start2 = Utility::Time::now();
 	this->generateTriangles(lightComp->position);
-	auto end2 = Utility::Time::now();
-	cocos2d::log("generateTriangle() %s", Utility::Time::toMicroSecondString(start2, end2).c_str());
-
-	// create render texture size of display boundary
-	int w = static_cast<int>(this->displayBoundary.size.width);
-	int h = static_cast<int>(this->displayBoundary.size.height);
-
-	auto start3 = Utility::Time::now();
 
 	// Create temporary draw node
 	auto drawNode = cocos2d::DrawNode::create();
@@ -1180,17 +1142,20 @@ void VisibilityScene::generateLightTexture(ECS::Entity& light)
 			this->triangles.at(i + 2) - shift,
 			color);
 	}
-	auto end3 = Utility::Time::now();
-	cocos2d::log("generate draw node %s", Utility::Time::toMicroSecondString(start3, end3).c_str());
 
 	// render to render texture
-	auto start4 = Utility::Time::now();
-	auto renderTexture = cocos2d::RenderTexture::create(w, h);
-	renderTexture->beginWithClear(0, 0, 0, 0);
+	//auto start4 = Utility::Time::now();
+	// create render texture size of display boundary
+	//int w = static_cast<int>(this->displayBoundary.size.width);
+	//int h = static_cast<int>(this->displayBoundary.size.height);
+
+	////auto renderTexture = cocos2d::RenderTexture::create(w, h);
+	//auto renderTexture = cocos2d::RenderTexture::create(w, h, cocos2d::Texture2D::PixelFormat::RGB565);
+	lightComp->renderTexture->beginWithClear(0, 0, 0, 0);
 	drawNode->visit();
-	renderTexture->end();
-	auto end4 = Utility::Time::now();
-	cocos2d::log("render texture %s", Utility::Time::toMicroSecondString(start4, end4).c_str());
+	lightComp->renderTexture->end();
+	//auto end4 = Utility::Time::now();
+	//cocos2d::log("render texture %s", Utility::Time::toMicroSecondString(start4, end4).c_str());
 
 	// Create sprite to remember 
 	if (lightComp->lightMapSprite != nullptr)
@@ -1200,7 +1165,7 @@ void VisibilityScene::generateLightTexture(ECS::Entity& light)
 	}
 
 	// Create new sprite.
-	lightComp->lightMapSprite = cocos2d::Sprite::createWithTexture(renderTexture->getSprite()->getTexture());
+	lightComp->lightMapSprite = cocos2d::Sprite::createWithTexture(lightComp->renderTexture->getSprite()->getTexture());
 	auto pos = cocos2d::Vec2(this->displayBoundary.getMidX(), this->displayBoundary.getMidY());
 	lightComp->lightMapSprite->setPosition(pos - this->displayBoundary.origin);
 	lightComp->lightMapSprite->setOpacity(70);
@@ -1209,14 +1174,22 @@ void VisibilityScene::generateLightTexture(ECS::Entity& light)
 
 void VisibilityScene::generateLightMap()
 {
+	//auto start = Utility::Time::now();
 	std::vector<ECS::Entity*> lights;
 	ECS::Manager::getInstance()->getAllEntitiesInPool(lights, "LIGHT");
+	//auto end = Utility::Time::now();
+	//cocos2d::log("query lights %s", Utility::Time::toMicroSecondString(start, end).c_str());
 
-	int w = this->displayBoundary.size.width;
-	int h = this->displayBoundary.size.height;
-	auto rt = cocos2d::RenderTexture::create(w, h);
+	//auto start1 = Utility::Time::now();
+	//int w = this->displayBoundary.size.width;
+	//int h = this->displayBoundary.size.height;
+	//auto rt = cocos2d::RenderTexture::create(w, h, cocos2d::Texture2D::PixelFormat::RGB565);
+	//auto rt = cocos2d::RenderTexture::create(w, h);
+	//auto end1 = Utility::Time::now();
+	//cocos2d::log("create rt %s", Utility::Time::toMicroSecondString(start1, end1).c_str());
 
-	rt->beginWithClear(0, 0, 0, 0);
+	//auto start2 = Utility::Time::now();
+	this->lightMapRenderTexture->beginWithClear(0, 0, 0, 0);
 
 	for (auto light : lights)
 	{
@@ -1234,25 +1207,27 @@ void VisibilityScene::generateLightMap()
 		}
 	}
 
-	rt->end();
+	this->lightMapRenderTexture->end();
+	//auto end2 = Utility::Time::now();
+	//cocos2d::log("render texture %s", Utility::Time::toMicroSecondString(start2, end2).c_str());
 
+	//auto start3 = Utility::Time::now();
 	if (this->lightMapTexture != nullptr)
 	{
 		this->lightMapTexture->release();
 	}
 
-	this->lightMapTexture = rt->getSprite()->getTexture();
+	this->lightMapTexture = this->lightMapRenderTexture->getSprite()->getTexture();
 	this->lightMapTexture->retain();
+	//auto end3 = Utility::Time::now();
+	//cocos2d::log("create sprite with texture %s", Utility::Time::toMicroSecondString(start3, end3).c_str());
 }
 
 void VisibilityScene::updateCursorLight()
 {
 	if (this->cursorLight)
 	{
-		auto start = Utility::Time::now();
 		this->generateLightTexture(*this->cursorLightEntity);
-		auto end = Utility::Time::now();
-		cocos2d::log("cursor light light texture gen %s", Utility::Time::toMicroSecondString(start, end).c_str());
 	}
 }
 
@@ -1269,6 +1244,7 @@ void VisibilityScene::clearDrag()
 	this->newBoxDest = cocos2d::Vec2::ZERO;
 	this->newBoxOrigin = cocos2d::Vec2::ZERO;
 	this->dragBoxDrawNode->clear();
+	this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Idle");
 }
 
 void VisibilityScene::drawFreeformWall()
@@ -1299,6 +1275,7 @@ void VisibilityScene::clearFreeform()
 	this->freeformWallPoints.clear();
 	this->freeformWallDrawNode->clear();
 	this->currentMode = MODE::IDLE;
+	this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Idle");
 }
 
 void VisibilityScene::drawWalls()
@@ -1310,14 +1287,7 @@ void VisibilityScene::drawWalls()
 	{
 		if(wall.rectangle)
 		{
-			if (index == this->hoveringWallIndex)
-			{
-				this->wallDrawNode->drawSolidRect(wall.entities.at(3)->getComponent<ECS::Sprite>()->sprite->getPosition(), wall.entities.at(1)->getComponent<ECS::Sprite>()->sprite->getPosition(), cocos2d::Color4F::RED);
-			}
-			else
-			{
-				this->wallDrawNode->drawRect(wall.entities.at(3)->getComponent<ECS::Sprite>()->sprite->getPosition(), wall.entities.at(1)->getComponent<ECS::Sprite>()->sprite->getPosition(), cocos2d::Color4F::YELLOW);
-			}
+			this->wallDrawNode->drawRect(wall.points.at(3), wall.points.at(1), cocos2d::Color4F::YELLOW);
 		}
 		else
 		{
@@ -1397,7 +1367,6 @@ bool VisibilityScene::didRayHitOtherWall(const std::unordered_set<int>& wallIDSe
 
 void VisibilityScene::updateUniformData()
 {
-	auto start = Utility::Time::now();
 	std::vector<ECS::Entity*> lights;
 	ECS::Manager::getInstance()->getAllEntitiesInPool(lights, "LIGHT");
 
@@ -1417,58 +1386,27 @@ void VisibilityScene::updateUniformData()
 			this->uniformData.at(index * 6 + 5) = lightComp->intensity;
 
 			activeLightsCount++;
-			//lightPositions.at(index) = lightComp->position;
-			//lightColors.at(index) = cocos2d::Vec3(lightComp->color.x, lightComp->color.y, lightComp->color.z);
-			//lightIntensities.at(index) = lightComp->intensity;
 			index++;
 		}
 	}
-	auto end = Utility::Time::now();
-	cocos2d::log("update data array %s", Utility::Time::toMicroSecondString(start, end).c_str());
 
 	this->activeLightSize = activeLightsCount;
 }
 
 void VisibilityScene::setLightUniforms()
 {
-	auto start1 = Utility::Time::now();
-	auto startLightSize = Utility::Time::now();
 	this->floorShaderState->setUniformInt("lightSize", this->activeLightSize);
-	auto endLightSize = Utility::Time::now();
-	cocos2d::log("lightSize set uniform %s", Utility::Time::toMicroSecondString(startLightSize, endLightSize).c_str());
 
-	auto uniformStart = Utility::Time::now();
 	this->floorShaderState->setUniformFloatv("lightSources", maxLightCount * 6, &this->uniformData.at(0));
-	auto uniformEnd = Utility::Time::now();
-	cocos2d::log("set uniform float %s", Utility::Time::toMicroSecondString(uniformStart, uniformEnd).c_str());
-	//auto start2 = Utility::Time::now();
-	//this->floorShaderState->setUniformVec2v("lightPositions", maxLightCount, &lightPositions.at(0));
-	//auto end2 = Utility::Time::now();
-	//cocos2d::log("lightPosition set uniform %s", Utility::Time::toMicroSecondString(start2, end2).c_str());
 
-	//auto start3 = Utility::Time::now();
-	//this->floorShaderState->setUniformVec3v("lightColors", maxLightCount, &lightColors.at(0));
-	//auto end3 = Utility::Time::now();
-	//cocos2d::log("lightColors set uniform %s", Utility::Time::toMicroSecondString(start3, end3).c_str());
-
-	//auto start4 = Utility::Time::now();
-	//this->floorShaderState->setUniformFloatv("lightIntensities", maxLightCount, &lightIntensities.at(0));
-	//auto end4 = Utility::Time::now();
-	//cocos2d::log("lightIntensities set uniform %s", Utility::Time::toMicroSecondString(start4, end4).c_str());
-
-	auto start5 = Utility::Time::now();
 	this->floorShaderState->setUniformTexture("lightMap", this->lightMapTexture);
-	auto end5 = Utility::Time::now();
-	cocos2d::log("lightMap set uniform %s", Utility::Time::toMicroSecondString(start5, end5).c_str());
-	auto end1 = Utility::Time::now();
-	cocos2d::log("calling setUniform %s", Utility::Time::toMicroSecondString(start1, end1).c_str());
 }
 
 void VisibilityScene::drawLights(bool updateLightTexture)
 {
 	if (updateLightTexture)
 	{
-		auto start1 = Utility::Time::now();
+		//auto start1 = Utility::Time::now();
 		std::vector<ECS::Entity*> lights;
 		ECS::Manager::getInstance()->getAllEntitiesInPool(lights, "LIGHT");
 
@@ -1477,27 +1415,21 @@ void VisibilityScene::drawLights(bool updateLightTexture)
 			// Generate light texture for each light
 			this->generateLightTexture(*light);
 		}
-		auto end1 = Utility::Time::now();
-		cocos2d::log("generateLightMap() update light Texture %s", Utility::Time::toMicroSecondString(start1, end1).c_str());
+		//auto end1 = Utility::Time::now();
+		//cocos2d::log("generateLightTexture() update light Texture %s", Utility::Time::toMicroSecondString(start1, end1).c_str());
 	}
 
 	// Generate light map by overlaying all light textures.
-	auto start = Utility::Time::now();
+	//auto start = Utility::Time::now();
 	this->generateLightMap();
-	auto end = Utility::Time::now();
-	cocos2d::log("generateLightMap() %s", Utility::Time::toMicroSecondString(start, end).c_str());
+	//auto end = Utility::Time::now();
+	//cocos2d::log("generateLightMap() %s", Utility::Time::toMicroSecondString(start, end).c_str());
 
 	// Update uniforms
 	if (this->needToUpdateUniform)
 	{
-		auto start1 = Utility::Time::now();
 		this->updateUniformData();
-		auto end1 = Utility::Time::now();
-		cocos2d::log("updateUnifroms() %s", Utility::Time::toMicroSecondString(start1, end1).c_str());
-		auto start2 = Utility::Time::now();
 		this->setLightUniforms();
-		auto end2 = Utility::Time::now();
-		cocos2d::log("setUniforms() %s", Utility::Time::toMicroSecondString(start2, end2).c_str());
 
 		this->needToUpdateUniform = false;
 	}
@@ -1550,8 +1482,6 @@ void VisibilityScene::update(float delta)
 							// If it's not debug mode, cursor is light
 							auto lightComp = this->cursorLightEntity->getComponent<ECS::LightData>();
 							lightComp->position = this->mousePos;
-							auto spriteComp = this->cursorLightEntity->getComponent<ECS::Sprite>();
-							spriteComp->sprite->setPosition(this->mousePos);
 
 							this->updateCursorLight();
 
@@ -1604,6 +1534,7 @@ void VisibilityScene::onMouseMove(cocos2d::Event* event)
 	{
 		if (this->currentMode == MODE::IDLE)
 		{
+			/*
 			int index = 0;
 			bool hovered = false;
 			for (auto wall : this->walls)
@@ -1652,24 +1583,25 @@ void VisibilityScene::onMouseMove(cocos2d::Event* event)
 					this->drawWalls();
 				}
 			}
+			*/
 		}
 		else if (this->currentMode == MODE::DRAW_WALL_READY)
 		{
 			// Trying to make wall with dragging
-			auto m = ECS::Manager::getInstance();
-			auto boxCount = m->getAliveEntityCountInEntityPool("WALL_POINT");
-			if (boxCount < maxWallPoints)
+			if (this->walls.size() < maxWallCount)
 			{
 				// still can make another box
-				this->currentMode = MODE::DRAW_WALL_DRAG;		
+				this->currentMode = MODE::DRAW_WALL_DRAG;
 				this->newBoxDest = point;
 				this->drawDragBox();
-
+				this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Draw rectangle wall");
+				this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::DRAW_RECT_WALL), cocos2d::Color3B::GREEN);
 			}
 			else
 			{
-				// Can't make more boxes. return
+				// Can't make more wall. return
 				this->currentMode = MODE::IDLE;
+				this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Idle");
 				return;
 			}
 		}
@@ -1737,24 +1669,10 @@ void VisibilityScene::onMouseDown(cocos2d::Event* event)
 				// So just put it in a ready state
 				this->currentMode = MODE::DRAW_WALL_READY;
 				this->newBoxOrigin = point;
-
+				this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Draw wall");
 			}
 			else if(mouseButton == 1)
 			{
-				std::vector<ECS::Entity*> lightEntities;
-				ECS::Manager::getInstance()->getAllEntitiesInPool(lightEntities, "LIGHT");
-				for (auto light : lightEntities)
-				{
-					auto spriteComp = light->getComponent<ECS::Sprite>();
-					if (spriteComp->sprite->getBoundingBox().containsPoint(point))
-					{
-						// remove light
-						if (light->getId() == this->cursorLightEntity->getId()) continue;
-						light->kill();
-						return;
-					}
-				}
-
 				// Add light
 				auto newLight = this->createNewLight(point);
 				if (newLight != nullptr)
@@ -1763,16 +1681,25 @@ void VisibilityScene::onMouseDown(cocos2d::Event* event)
 					this->needToUpdateUniform = true;
 					// Draw light
 					this->drawLights(false);
+					int lightCount = ECS::Manager::getInstance()->getAliveEntityCountInEntityPool("LIGHT") - 1;
+					this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::LIGHT_COUNT), "Lights: " + std::to_string(lightCount) + " / 15");
+					this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::ADD_LIGHT), cocos2d::Color3B::WHITE);
 				}
 			}
 		}
 		else if (this->currentMode == MODE::DRAW_WALL_POINT)
 		{
 			// And add point as first point.
-			if (!this->isPointInWall(point))
+			if (this->freeformWallPoints.size() < this->maxWallPointsPerWall)
 			{
-				this->freeformWallPoints.push_back(point);
-				this->drawFreeformWall();
+				if (!this->isPointInWall(point))
+				{
+					if (this->freeformWallPoints.back().distance(point) < maxWallSegmentSize)
+					{
+						this->freeformWallPoints.push_back(point);
+						this->drawFreeformWall();
+					}
+				}
 			}
 		}
 	}
@@ -1798,12 +1725,24 @@ void VisibilityScene::onMouseUp(cocos2d::Event* event)
 		}
 		else if (this->currentMode == MODE::DRAW_WALL_READY)
 		{
-			// Draw Freeform wall 
-			this->currentMode = MODE::DRAW_WALL_POINT;
-			// And add point as first point.
-			this->freeformWallPoints.clear();
-			this->freeformWallPoints.push_back(point);
-			this->drawFreeformWall();
+			// try to Draw Freeform wall 
+			if (this->walls.size() < this->maxWallCount)
+			{
+				this->currentMode = MODE::DRAW_WALL_POINT;
+				// And add point as first point.
+				this->freeformWallPoints.clear();
+				this->freeformWallPoints.push_back(point);
+				this->drawFreeformWall();
+				this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Draw freeform wall");
+				this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::DRAW_FREEFORM_WALL), cocos2d::Color3B::GREEN);
+			}
+			else
+			{
+				// Can't make more walls. return
+				this->currentMode = MODE::IDLE;
+				this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Idle");
+				return;
+			}
 		}
 		else if (this->currentMode == MODE::DRAW_WALL_DRAG)
 		{
@@ -1812,12 +1751,14 @@ void VisibilityScene::onMouseUp(cocos2d::Event* event)
 			{
 				// Make new box
 				bool success = this->createNewRectWall();
-				cocos2d::log("Creating new box origin (%f, %f), size (%f, %f)", this->newBoxOrigin.x, this->newBoxOrigin.y, this->newBoxDest.x, this->newBoxDest.y);
 
 				if (success)
 				{
 					this->addWall(this->walls.back());
+					this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::WALL_COUNT), "Walls: " + std::to_string(this->walls.size()) + " / 20");
 				}
+
+				this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::DRAW_RECT_WALL), cocos2d::Color3B::WHITE);
 
 				this->clearDrag();
 
@@ -1881,6 +1822,8 @@ void VisibilityScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coco
 				if (success)
 				{
 					this->addWall(this->walls.back());
+					this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::WALL_COUNT), "Walls: " + std::to_string(this->walls.size()) + " / 20");
+					this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::DRAW_FREEFORM_WALL), cocos2d::Color3B::WHITE);
 				}
 				this->clearFreeform();
 
@@ -1902,16 +1845,13 @@ void VisibilityScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coco
 		lightComp->position = this->mousePos;
 		lightComp->active = this->cursorLight;
 
-		auto spriteComp = this->cursorLightEntity->getComponent<ECS::Sprite>();
-		spriteComp->sprite->setPosition(this->mousePos);
-		spriteComp->sprite->setVisible(this->cursorLight);
-
 		this->needToUpdateUniform = true;
 		if (this->cursorLight)
 		{
 			this->updateCursorLight();
 		}
 		this->drawLights(false);
+		this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::CURSOR_LIGHT), this->cursorLight ? cocos2d::Color3B::GREEN : cocos2d::Color3B::WHITE);
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_T)
 	{
@@ -1920,6 +1860,9 @@ void VisibilityScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coco
 		{
 			this->triangleDrawNode->clear();
 		}
+		this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::TOGGLE_TRIANGLE), this->viewVisibleArea ? cocos2d::Color3B::GREEN : cocos2d::Color3B::WHITE);
+		this->mousePosDirty = true;
+		this->needToUpdateUniform = true;
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_Y)
 	{
@@ -1928,6 +1871,9 @@ void VisibilityScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coco
 		{
 			this->raycastDrawNode->clear();
 		}
+		this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::TOGGLE_RAYCAST), this->viewRaycast ? cocos2d::Color3B::GREEN : cocos2d::Color3B::WHITE);
+		this->mousePosDirty = true;
+		this->needToUpdateUniform = true;
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_D)
 	{
@@ -1938,6 +1884,9 @@ void VisibilityScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coco
 			this->triangleDrawNode->clear();
 			this->raycastDrawNode->clear();
 		}
+		this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::DEBUG_MODE), this->debugMode ? cocos2d::Color3B::GREEN : cocos2d::Color3B::WHITE);
+		this->mousePosDirty = true;
+		this->needToUpdateUniform = true;
 	}
 	else if(keyCode == cocos2d::EventKeyboard::KeyCode::KEY_M)
 	{
@@ -1987,4 +1936,6 @@ void VisibilityScene::onExit()
 	}
 
 	this->earClipping->release();
+
+	this->lightMapRenderTexture->release();
 }
