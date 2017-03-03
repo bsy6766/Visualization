@@ -1673,6 +1673,21 @@ void VisibilityScene::onMouseDown(cocos2d::Event* event)
 			}
 			else if(mouseButton == 1)
 			{
+				std::vector<ECS::Entity*> lights;
+				ECS::Manager::getInstance()->getAllEntitiesInPool(lights, "LIGHT");
+				for (auto light : lights)
+				{
+					auto comp = light->getComponent<ECS::LightData>();
+					if (comp->position.distance(point) < 10.0f)
+					{
+						light->kill();
+						this->needToUpdateUniform = true;
+						this->drawLights(false);
+						this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::LIGHT_COUNT), "Lights: " + std::to_string(lights.size() - 2) + " / 15");
+						return;
+					}
+				}
+				
 				// Add light
 				auto newLight = this->createNewLight(point);
 				if (newLight != nullptr)
