@@ -1245,6 +1245,7 @@ void VisibilityScene::clearDrag()
 	this->newBoxOrigin = cocos2d::Vec2::ZERO;
 	this->dragBoxDrawNode->clear();
 	this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Idle");
+	this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::DRAW_RECT_WALL), cocos2d::Color3B::WHITE, false);
 }
 
 void VisibilityScene::drawFreeformWall()
@@ -1276,6 +1277,7 @@ void VisibilityScene::clearFreeform()
 	this->freeformWallDrawNode->clear();
 	this->currentMode = MODE::IDLE;
 	this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Idle");
+	this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::DRAW_FREEFORM_WALL), cocos2d::Color3B::WHITE, false);
 }
 
 void VisibilityScene::drawWalls()
