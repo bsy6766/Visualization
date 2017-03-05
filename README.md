@@ -250,6 +250,51 @@ Press B to randomize block on grid. This doesn't guarantee the viable path from 
 
 </details>
 
+
+<details>
+<summary><b>Visibility</b></summary>
+
+#### Note
+Visualizes and simulate 2d visibility.<br>
+Check out this [game] for an example
+
+#### Preview (Expand/Collapse)
+<details> 
+  <summary>Visibility preview gif</summary>
+   ![Visibility Preview](https://github.com/bsy6766/Visualization/blob/master/gifs/Visibility.gif)
+</details>
+
+#### Reference
+I used these 2 articles for a reference but I implemented my own method to visualize 2d visibility.
+[Reference 1](http://www.redblobgames.com/articles/visibility/)<br>
+[Reference 2](http://ncase.me/sight-and-light/)<br>
+I followed the main idea where it uses unique point and raycast to find visible point, but used my own implementation to reduce all the possible redundents and unnecessary computation.<br>
+
+#### Know issue
+For now, it can't handle concave walls because of my algorithm, but I have idea to solve that. To do so, I have to let visibility scene to use some functiosn from ear clipping scene to triangluate the concave wall. <br>
+Also I'm really new to glsl, so color blending between lights are somewhat unnatural.<br>
+
+#### Different approach...
+There is a branch 'visibility_no_rtt' where it uses cocos2d-x's sprite instead of glsl to make lights look light blending, but still I really don't like how it looks and it's on my plan to keep work on.
+
+#### Exception handling
+Since the main purpose of this project was to implement 2d visibility, there are lots of excetpions that I assumed to not happen. For example, you can create wall by adding unique points, but it doesn't check if it's valid polygon (freeform) wall, which means all segments doens't overlap existing segments and etc.<br>
+This feature is actually implemented in ear clipping project, so once I refactor useful functions from there, I will going to add more exception handlings and whatnot.
+
+#### Creating wall
+Drag with LEFT MOUSE button in the orange box(boundary) to create rectangle wall.<br>
+Click LEFT MOUSE button in the orange box(boundary) to add unique points to make freeform (polygon) wall.<br>
+All segments can't be greather than length of 100px.<br>
+
+#### Adding light
+Click RIGHT MOUSE button in ornage box (boundary) to add light with random color.<br>
+Click Right Mouse button on the light to remove.<br>
+Lights can't be placed in the wall.<Br>
+
+#### Cursor light
+Press L toggle cursor light. Move cursor to test out.<br>
+</details>
+
 ----
 ## Planned
 ### Optimization
