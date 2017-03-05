@@ -274,7 +274,7 @@ ECS::LightData::LightData()
 , lightMapSprite(nullptr)
 , renderTexture(nullptr)
 , position(cocos2d::Vec2::ZERO)
-, intensity(300.0f)
+, intensity(400.0f)
 , color(cocos2d::Vec3::ZERO)
 , active(true)
 {
@@ -284,7 +284,8 @@ ECS::LightData::~LightData()
 {
 	if (this->lightMapSprite)
 	{
-		this->lightMapSprite->release();
+		//this->lightMapSprite->release();
+		this->lightMapSprite->removeFromParent();
 	}
 
 	if (this->renderTexture)

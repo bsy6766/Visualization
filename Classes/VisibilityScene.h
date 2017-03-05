@@ -172,8 +172,6 @@ private:
 	cocos2d::Vec2 mousePos;
 	bool mousePosDirty;
 
-	cocos2d::RenderTexture* lightMapRenderTexture;
-
 	std::vector<Vertex> intersects;
 	std::vector<cocos2d::Vec2> triangles;
 
@@ -183,21 +181,10 @@ private:
 	std::vector<Segment*> boundarySegments;
 	std::vector<Wall> walls;
 
-	cocos2d::GLProgram* floorShader;
-	cocos2d::GLProgramState* floorShaderState;
-	cocos2d::Sprite* floorSprite;
-	cocos2d::Texture2D* lightMapTexture;
-
-	std::vector<cocos2d::Vec2> lightPositions;
-	std::vector<cocos2d::Vec3> lightColors;
-	std::vector<float> lightIntensities;
-	// pos(vec2), color(vec3), intensity(float), repeat...
-	std::vector<float> uniformData;
-	int activeLightSize;
+	cocos2d::GLProgram* lightShader;
 
 	int hoveringWallIndex;
 
-	bool needToUpdateUniform;
 	bool viewRaycast;
 	bool viewVisibleArea;
 	bool debugMode;
@@ -239,8 +226,6 @@ private:
 	bool isPointInWall(const cocos2d::Vec2& point);
 	// generateLightTexture
 	void generateLightTexture(ECS::Entity& light);
-	// generate light map texture
-	void generateLightMap();
 	// Update cursor light
 	void updateCursorLight();
 	// Draw new wall preview
@@ -261,10 +246,6 @@ private:
 	bool isOnLeft(const cocos2d::Vec2& p1, const cocos2d::Vec2& p2, const cocos2d::Vec2& target);
 	// Check if ray hit other wall
 	bool didRayHitOtherWall(const std::unordered_set<int>& wallIDSet, const int uniquePointWallID);
-	// update uniform data
-	void updateUniformData();
-	// set light uniforms
-	void setLightUniforms();
 	// Draw lights
 	void drawLights(bool updateLightTexture);
 	

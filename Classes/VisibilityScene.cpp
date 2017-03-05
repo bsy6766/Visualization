@@ -21,7 +21,8 @@ bool VisibilityScene::init()
 
 	// create shader
 	cocos2d::ShaderCache::getInstance()->purgeSharedShaderCache();
-	this->floorShader = cocos2d::GLProgram::createWithFilenames("shaders/light_vert.glsl", "shaders/light_frag.glsl");
+	this->lightShader = cocos2d::GLProgram::createWithFilenames("shaders/light_vert.glsl", "shaders/light_frag.glsl");
+	this->lightShader->retain();
 
 	this->scheduleUpdate();
 
@@ -40,23 +41,6 @@ bool VisibilityScene::init()
 	this->displayBoundaryBoxNode->retain();
 	this->displayBoundaryBoxNode->drawNode->setLocalZOrder(static_cast<int>(Z_ORDER::BOX));
 	this->addChild(this->displayBoundaryBoxNode, Z_ORDER::WALL);
-
-	// Instead of creating 650 x 650 sprite (waste of spritesheet), create black square texture sized 650.
-	auto rt = cocos2d::RenderTexture::create(650, 650);
-	rt->beginWithClear(0, 0, 0, 0);
-	rt->end();
-
-	// Create sprite with above texture and attach shader.
-	this->floorSprite = cocos2d::Sprite::createWithTexture(rt->getSprite()->getTexture());
-	this->floorSprite->setPosition(cocos2d::Vec2(this->displayBoundary.getMidX(), this->displayBoundary.getMidY()));
-	this->addChild(this->floorSprite, Z_ORDER::FLOOR);
-
-	this->floorShaderState = cocos2d::GLProgramState::getOrCreateWithGLProgram(this->floorShader);
-	this->floorShaderState->setUniformInt("lightSize", 0);
-
-	//this->floorSprite->setGLProgram(this->floorShader);
-
-	this->floorSprite->setGLProgramState(this->floorShaderState);
 
 	// Init labels node
 	this->labelsNode = LabelsNode::createNode();
@@ -135,28 +119,10 @@ bool VisibilityScene::init()
 	this->cursorLight = false;
 	this->debugMode = false;
 	this->viewLightMap = false;
-	this->needToUpdateUniform = false;
 
 	this->mousePosDirty = false;
 
 	VisibilityScene::wallIDCounter = 0;
-
-	this->lightMapTexture = nullptr;
-
-	for (int i = 0; i < maxLightCount; i++)
-	{
-		lightPositions.push_back(cocos2d::Vec2::ZERO);
-		lightColors.push_back(cocos2d::Vec3::ONE);
-		lightIntensities.push_back(0);
-	}
-
-	this->uniformData = std::vector<float>(16 * 6, 0);
-	this->activeLightSize = 0;
-
-	int w = static_cast<int>(this->displayBoundary.size.width);
-	int h = static_cast<int>(this->displayBoundary.size.height);
-	this->lightMapRenderTexture = cocos2d::RenderTexture::create(w, h);
-	this->lightMapRenderTexture->retain();
 
 	return true;
 }
@@ -180,7 +146,7 @@ void VisibilityScene::initECS()
 	this->cursorLightEntity = createNewLight(this->mousePos);
 	auto comp = this->cursorLightEntity->getComponent<ECS::LightData>();
 	comp->active = false;
-	comp->intensity = 200.0f;
+	comp->intensity = 600.0f;
 	comp->color = cocos2d::Vec3(1, 1, 1);
 }
 
@@ -1161,66 +1127,33 @@ void VisibilityScene::generateLightTexture(ECS::Entity& light)
 	if (lightComp->lightMapSprite != nullptr)
 	{
 		// Release if already had one
-		lightComp->lightMapSprite->release();
+		//lightComp->lightMapSprite->release();
+		lightComp->lightMapSprite->removeFromParent();
 	}
 
 	// Create new sprite.
 	lightComp->lightMapSprite = cocos2d::Sprite::createWithTexture(lightComp->renderTexture->getSprite()->getTexture());
 	auto pos = cocos2d::Vec2(this->displayBoundary.getMidX(), this->displayBoundary.getMidY());
-	lightComp->lightMapSprite->setPosition(pos - this->displayBoundary.origin);
+	//lightComp->lightMapSprite->setPosition(pos - this->displayBoundary.origin);
+	lightComp->lightMapSprite->setPosition(pos);
 	lightComp->lightMapSprite->setOpacity(70);
-	lightComp->lightMapSprite->retain();
-}
+	lightComp->lightMapSprite->setScaleY(-1.0f);
+	//lightComp->lightMapSprite->retain();
+	lightComp->lightMapSprite->setColor(cocos2d::Color3B(lightComp->color.x * 255.0f, lightComp->color.y * 255.0f, lightComp->color.z * 255.0f));
 
-void VisibilityScene::generateLightMap()
-{
-	//auto start = Utility::Time::now();
-	std::vector<ECS::Entity*> lights;
-	ECS::Manager::getInstance()->getAllEntitiesInPool(lights, "LIGHT");
-	//auto end = Utility::Time::now();
-	//cocos2d::log("query lights %s", Utility::Time::toMicroSecondString(start, end).c_str());
+	auto shaderState = cocos2d::GLProgramState::create(this->lightShader);
+	shaderState->setUniformVec2("lightPosition", lightComp->position);
+	shaderState->setUniformFloat("lightIntensity", lightComp->intensity);
+	shaderState->setUniformVec3("lightColor", lightComp->color);
+	lightComp->lightMapSprite->setGLProgram(this->lightShader);
+	lightComp->lightMapSprite->setGLProgramState(shaderState);
 
-	//auto start1 = Utility::Time::now();
-	//int w = this->displayBoundary.size.width;
-	//int h = this->displayBoundary.size.height;
-	//auto rt = cocos2d::RenderTexture::create(w, h, cocos2d::Texture2D::PixelFormat::RGB565);
-	//auto rt = cocos2d::RenderTexture::create(w, h);
-	//auto end1 = Utility::Time::now();
-	//cocos2d::log("create rt %s", Utility::Time::toMicroSecondString(start1, end1).c_str());
+	auto blendFunc = cocos2d::BlendFunc();
+	blendFunc.src = GL_SRC_ALPHA;
+	blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+	lightComp->lightMapSprite->setBlendFunc(blendFunc);
 
-	//auto start2 = Utility::Time::now();
-	this->lightMapRenderTexture->beginWithClear(0, 0, 0, 0);
-
-	for (auto light : lights)
-	{
-		auto comp = light->getComponent<ECS::LightData>();
-		if (comp->active)
-		{
-			if (comp->lightMapSprite != nullptr)
-			{
-				comp->lightMapSprite->visit();
-			}
-			else
-			{
-				cocos2d::log("Light map sprite is invalid. Possible bug?");
-			}
-		}
-	}
-
-	this->lightMapRenderTexture->end();
-	//auto end2 = Utility::Time::now();
-	//cocos2d::log("render texture %s", Utility::Time::toMicroSecondString(start2, end2).c_str());
-
-	//auto start3 = Utility::Time::now();
-	if (this->lightMapTexture != nullptr)
-	{
-		this->lightMapTexture->release();
-	}
-
-	this->lightMapTexture = this->lightMapRenderTexture->getSprite()->getTexture();
-	this->lightMapTexture->retain();
-	//auto end3 = Utility::Time::now();
-	//cocos2d::log("create sprite with texture %s", Utility::Time::toMicroSecondString(start3, end3).c_str());
+	this->addChild(lightComp->lightMapSprite, 1000);
 }
 
 void VisibilityScene::updateCursorLight()
@@ -1245,6 +1178,7 @@ void VisibilityScene::clearDrag()
 	this->newBoxOrigin = cocos2d::Vec2::ZERO;
 	this->dragBoxDrawNode->clear();
 	this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Idle");
+	this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::DRAW_RECT_WALL), cocos2d::Color3B::WHITE, false);
 }
 
 void VisibilityScene::drawFreeformWall()
@@ -1276,6 +1210,7 @@ void VisibilityScene::clearFreeform()
 	this->freeformWallDrawNode->clear();
 	this->currentMode = MODE::IDLE;
 	this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Idle");
+	this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::DRAW_FREEFORM_WALL), cocos2d::Color3B::WHITE, false);
 }
 
 void VisibilityScene::drawWalls()
@@ -1365,48 +1300,10 @@ bool VisibilityScene::didRayHitOtherWall(const std::unordered_set<int>& wallIDSe
 	return false;
 }
 
-void VisibilityScene::updateUniformData()
-{
-	std::vector<ECS::Entity*> lights;
-	ECS::Manager::getInstance()->getAllEntitiesInPool(lights, "LIGHT");
-
-	int index = 0;
-	int activeLightsCount = 0;
-	for (auto light : lights)
-	{
-		auto lightComp = light->getComponent<ECS::LightData>();
-
-		if (lightComp->active)
-		{
-			this->uniformData.at(index * 6) = lightComp->position.x;
-			this->uniformData.at(index * 6 + 1) = lightComp->position.y;
-			this->uniformData.at(index * 6 + 2) = lightComp->color.x;
-			this->uniformData.at(index * 6 + 3) = lightComp->color.y;
-			this->uniformData.at(index * 6 + 4) = lightComp->color.z;
-			this->uniformData.at(index * 6 + 5) = lightComp->intensity;
-
-			activeLightsCount++;
-			index++;
-		}
-	}
-
-	this->activeLightSize = activeLightsCount;
-}
-
-void VisibilityScene::setLightUniforms()
-{
-	this->floorShaderState->setUniformInt("lightSize", this->activeLightSize);
-
-	this->floorShaderState->setUniformFloatv("lightSources", maxLightCount * 6, &this->uniformData.at(0));
-
-	this->floorShaderState->setUniformTexture("lightMap", this->lightMapTexture);
-}
-
 void VisibilityScene::drawLights(bool updateLightTexture)
 {
 	if (updateLightTexture)
 	{
-		//auto start1 = Utility::Time::now();
 		std::vector<ECS::Entity*> lights;
 		ECS::Manager::getInstance()->getAllEntitiesInPool(lights, "LIGHT");
 
@@ -1415,23 +1312,6 @@ void VisibilityScene::drawLights(bool updateLightTexture)
 			// Generate light texture for each light
 			this->generateLightTexture(*light);
 		}
-		//auto end1 = Utility::Time::now();
-		//cocos2d::log("generateLightTexture() update light Texture %s", Utility::Time::toMicroSecondString(start1, end1).c_str());
-	}
-
-	// Generate light map by overlaying all light textures.
-	//auto start = Utility::Time::now();
-	this->generateLightMap();
-	//auto end = Utility::Time::now();
-	//cocos2d::log("generateLightMap() %s", Utility::Time::toMicroSecondString(start, end).c_str());
-
-	// Update uniforms
-	if (this->needToUpdateUniform)
-	{
-		this->updateUniformData();
-		this->setLightUniforms();
-
-		this->needToUpdateUniform = false;
 	}
 }
 
@@ -1643,7 +1523,6 @@ void VisibilityScene::onMouseMove(cocos2d::Event* event)
 			{
 				this->mousePosDirty = true;
 			}
-			this->needToUpdateUniform = true;
 		}
 	}
 	this->mousePos = point;
@@ -1677,14 +1556,16 @@ void VisibilityScene::onMouseDown(cocos2d::Event* event)
 				ECS::Manager::getInstance()->getAllEntitiesInPool(lights, "LIGHT");
 				for (auto light : lights)
 				{
-					auto comp = light->getComponent<ECS::LightData>();
-					if (comp->position.distance(point) < 10.0f)
+					if (light->getId() != this->cursorLightEntity->getId())
 					{
-						light->kill();
-						this->needToUpdateUniform = true;
-						this->drawLights(false);
-						this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::LIGHT_COUNT), "Lights: " + std::to_string(lights.size() - 2) + " / 15");
-						return;
+						auto comp = light->getComponent<ECS::LightData>();
+						if (comp->position.distance(point) < 5.0f)
+						{
+							light->kill();
+							this->drawLights(false);
+							this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::LIGHT_COUNT), "Lights: " + std::to_string(lights.size() - 2) + " / 15");
+							return;
+						}
 					}
 				}
 				
@@ -1693,7 +1574,6 @@ void VisibilityScene::onMouseDown(cocos2d::Event* event)
 				if (newLight != nullptr)
 				{
 					this->generateLightTexture(*newLight);
-					this->needToUpdateUniform = true;
 					// Draw light
 					this->drawLights(false);
 					int lightCount = ECS::Manager::getInstance()->getAliveEntityCountInEntityPool("LIGHT") - 1;
@@ -1777,11 +1657,7 @@ void VisibilityScene::onMouseUp(cocos2d::Event* event)
 
 				this->clearDrag();
 
-				if (this->activeLightSize > 0)
-				{
-					this->needToUpdateUniform = true;
-					this->drawLights(true);
-				}
+				this->drawLights(true);
 			}
 		}
 	}
@@ -1842,11 +1718,7 @@ void VisibilityScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coco
 				}
 				this->clearFreeform();
 
-				if (this->activeLightSize > 0)
-				{
-					this->needToUpdateUniform = true;
-					this->drawLights(true);
-				}
+				this->drawLights(true);
 			}
 		}
 	}
@@ -1854,13 +1726,10 @@ void VisibilityScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coco
 	{
 		this->cursorLight = !this->cursorLight;
 
-		this->needToUpdateUniform = true;
-
 		auto lightComp = this->cursorLightEntity->getComponent<ECS::LightData>();
 		lightComp->position = this->mousePos;
 		lightComp->active = this->cursorLight;
 
-		this->needToUpdateUniform = true;
 		if (this->cursorLight)
 		{
 			this->updateCursorLight();
@@ -1877,7 +1746,6 @@ void VisibilityScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coco
 		}
 		this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::TOGGLE_TRIANGLE), this->viewVisibleArea ? cocos2d::Color3B::GREEN : cocos2d::Color3B::WHITE);
 		this->mousePosDirty = true;
-		this->needToUpdateUniform = true;
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_Y)
 	{
@@ -1888,12 +1756,11 @@ void VisibilityScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coco
 		}
 		this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::TOGGLE_RAYCAST), this->viewRaycast ? cocos2d::Color3B::GREEN : cocos2d::Color3B::WHITE);
 		this->mousePosDirty = true;
-		this->needToUpdateUniform = true;
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_D)
 	{
 		this->debugMode = !this->debugMode;
-		this->floorSprite->setVisible(!this->debugMode);
+		//this->floorSprite->setVisible(!this->debugMode);
 		if (!this->debugMode)
 		{
 			this->triangleDrawNode->clear();
@@ -1901,24 +1768,23 @@ void VisibilityScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coco
 		}
 		this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::DEBUG_MODE), this->debugMode ? cocos2d::Color3B::GREEN : cocos2d::Color3B::WHITE);
 		this->mousePosDirty = true;
-		this->needToUpdateUniform = true;
 	}
 	else if(keyCode == cocos2d::EventKeyboard::KeyCode::KEY_M)
 	{
-		this->viewLightMap = !this->viewLightMap;
-		this->removeChildByName("lightMapSprite");
-		if (this->viewLightMap)
-		{
-			auto temp = cocos2d::Sprite::createWithTexture(this->lightMapTexture);
-			temp->setPosition(cocos2d::Vec2(this->displayBoundary.getMidX(), this->displayBoundary.getMidY()));
-			temp->setName("lightMapSprite");
-			this->addChild(temp, 10000);
-			this->floorSprite->setVisible(false);
-		}
-		else
-		{
-			this->floorSprite->setVisible(true);
-		}
+		//this->viewLightMap = !this->viewLightMap;
+		//this->removeChildByName("lightMapSprite");
+		//if (this->viewLightMap)
+		//{
+		//	auto temp = cocos2d::Sprite::createWithTexture(this->lightMapTexture);
+		//	temp->setPosition(cocos2d::Vec2(this->displayBoundary.getMidX(), this->displayBoundary.getMidY()));
+		//	temp->setName("lightMapSprite");
+		//	this->addChild(temp, 10000);
+		//	this->floorSprite->setVisible(false);
+		//}
+		//else
+		//{
+		//	this->floorSprite->setVisible(true);
+		//}
 	}
 }
 
@@ -1952,5 +1818,5 @@ void VisibilityScene::onExit()
 
 	this->earClipping->release();
 
-	this->lightMapRenderTexture->release();
+	this->lightShader->release();
 }

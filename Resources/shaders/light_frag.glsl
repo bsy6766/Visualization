@@ -1,144 +1,67 @@
 in vec2 v_texCoord;   
 in vec4 v_color;
 
-const int MAX_LIGHT_COUNT = 16;				// 16 lights + cursor light
-const float GAP1 = 4.0;
-const float GAP2 = 8.0;
+uniform vec2 lightPosition;
+uniform float lightIntensity;
+uniform vec3 lightColor;
 
-uniform int lightSize;					// The actualy light used
-// uniform vec2 lightPositions[MAX_LIGHT_COUNT];
-// uniform vec3 lightColors[MAX_LIGHT_COUNT];
-// uniform float lightIntensities[MAX_LIGHT_COUNT];
-uniform float lightSources[MAX_LIGHT_COUNT * 6];
-uniform sampler2D lightMap;
-
-// vec4 blur(vec2 p)
-// {
-// 	float sampleNum = 2.0;
-// 	float blurRadius = 5.0;
-// 	float resolution = 650.0;
-//     if (blurRadius > 0.0 && sampleNum > 1.0)
-//     {
-//         vec4 col = vec4(0);
-//         vec2 unit = vec2(1.0 / resolution, 1.0 / resolution);
+vec4 blur(vec2 p)
+{
+	float sampleNum = 2.0;
+	float blurRadius = 5.0;
+	float resolution = 650.0;
+    if (blurRadius > 0.0 && sampleNum > 1.0)
+    {
+        vec4 col = vec4(0);
+        vec2 unit = vec2(1.0 / resolution, 1.0 / resolution);
         
-//         float r = blurRadius;
-//         float sampleStep = r / sampleNum;
+        float r = blurRadius;
+        float sampleStep = r / sampleNum;
         
-//         float count = 0.0;
+        float count = 0.0;
         
-//         for(float x = -r; x < r; x += sampleStep)
-//         {
-//             for(float y = -r; y < r; y += sampleStep)
-//             {
-//                 float weight = (r - abs(x)) * (r - abs(y));
-//                 col += texture2D(lightMap, p + vec2(x * unit.x, y * unit.y)) * weight;
-//                 count += weight;
-//             }
-//         }
+        for(float x = -r; x < r; x += sampleStep)
+        {
+            for(float y = -r; y < r; y += sampleStep)
+            {
+                float weight = (r - abs(x)) * (r - abs(y));
+                col += texture2D(CC_Texture0, p + vec2(x * unit.x, y * unit.y)) * weight;
+                count += weight;
+            }
+        }
         
-//         return col / count;
-//     }
+        return col / count;
+    }
     
-//     return texture2D(lightMap, p);
-// }
-
-vec2 getLightPosition(const int index)
-{
-	return vec2(lightSources[index * 6], lightSources[index * 6 + 1]);
-}
-
-vec3 getLightColor(const int index)
-{
-	return vec3(lightSources[index * 6 + 2], lightSources[index * 6 + 3], lightSources[index * 6 + 4]);
-}
-
-float getLightIntensity(const int index)
-{
-	return lightSources[index * 6 + 5];
+    return texture2D(CC_Texture0, p);
 }
 
 void main()         
 {
-	int size = lightSize;
-	if(size > MAX_LIGHT_COUNT)
+	// teture color must be white
+	vec4 textureColor = texture2D(CC_Texture0, v_texCoord);
+	//vec4 textureColor = blur(v_texCoord);
+
+	if(textureColor.r == 0.0 && textureColor.g == 0.0 && textureColor.b == 0.0)
 	{
-		size = MAX_LIGHT_COUNT;
-	}
-	
-	vec4 lightMapColor = texture2D(lightMap, v_texCoord);
-	//vec4 lightMapColor = blur(v_texCoord);
-
-	if(size > 0)
-	{
-		vec3 colorSum = vec3(0.0, 0.0, 0.0);
-		vec4 finalColor = vec4(0, 0, 0, 0);
-
-		bool whiteRange = false;
-		bool mixRange = false;
-		float mixRangeRatio = 0.0;
-
-		float finalAlpha = lightMapColor.r;
-
-		float sizeF = float(size);
-		float mixRatio = 1.0 / sizeF;
-
-		for (int i = 0; i < size; i++)
-		{
-			vec2 lightPos = getLightPosition(i);
-
-			vec3 lightColor = getLightColor(i);
-
-			float lightIntensity = getLightIntensity(i);
-
-		    float dist = abs(distance(gl_FragCoord.xy, lightPos));
-
-		    if(0.0 <= dist && dist <= GAP1)
-		    {
-		    	lightColor = vec3(1, 1, 1);
-		    	finalColor = vec4(lightColor, 1.0);
-		    	whiteRange = true;
-		    	break;
-		    }
-		    else if(GAP1 < dist && dist <= GAP2)
-		    {
-		    	float ratio = 1.0 - ((dist - GAP1) / (GAP2 - GAP1));
-		    	//colorSum += (lightColor * mixRatio);
-		    	colorSum += lightColor;
-		    	mixRange = true;
-		    	mixRangeRatio = ratio;
-		    }
-		    else if(GAP2 < dist && dist <= lightIntensity)
-		    {
-		    	float ratio = ((dist - GAP2) / (lightIntensity - GAP2));
-		    	lightColor = mix(lightColor, vec3(0, 0, 0), ratio);
-		    	//colorSum += (lightColor * mixRatio);
-		    	colorSum += lightColor;
-		    }
-		    else
-		    {
-		    	continue;
-		    }
-		}
-
-		if(!whiteRange)
-		{
-			if(mixRange)
-			{
-			    colorSum = mix(colorSum, vec3(1, 1, 1), mixRangeRatio);
-			 	finalColor = vec4(colorSum, mix(finalAlpha, 1.0, mixRangeRatio));
-			}
-			else
-			{
-				//colorSum /= sizeF;
-				finalColor = vec4(colorSum, finalAlpha);
-			}
-		}
-
-		gl_FragColor = finalColor;
+		gl_FragColor = vec4(0, 0, 0, 0);
 	}
 	else
 	{
-   		gl_FragColor = vec4(0, 0, 0, 1);
-	}
+		float dist = abs(distance(gl_FragCoord.xy, lightPosition));
+		float ratio = 1.0 - (dist / lightIntensity);
+
+		if(ratio > 1.0) ratio = 1.0;
+
+		if(ratio <= 0.0)
+		{
+			gl_FragColor = vec4(0, 0, 0, 0);
+		}
+		else
+		{
+			// vec3 color = vec3(v_color.r, v_color.g, v_color.b);
+			//vec4 color = textureColor * v_color;
+		   	gl_FragColor = vec4(lightColor, ratio * 0.3);
+		}
+   }
 }
