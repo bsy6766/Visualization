@@ -1,10 +1,11 @@
 # Visualization
 Visualizes simple game techniques for 2D or anything I found interesting.<br>
-Although these are made for 2D, some techniques can be expanded to 3D (i.e. QuadTree to OcTree or 3D flocking with additional axis)<br>
-This project uses my own implementation of ECS (Entity Component System).<br>
-There aren't details about each algorithm on this page since they are all well known and have lots of documents, articles and tutorials out there on the internet. I recommend you to search on google if you are interested. Else, see reference that I linked on each project description to see what did I use as reference.<br>
-<br>
-**There are preview GIF for each algorithm below on Algorithm section**
+**There are preview GIFs for each visualization below on Algorithm section below**
+
+## Notes
+- These visualizations are made for 2D, but some can be expanded to 3D (i.e. QuadTree to OcTree or 3D flocking with additional axis).<br>
+- All visualizations are coded within about 3 days while my spare time, so I don't expect to work flawlessly and keep up 60 fps for all enviornments. There are definetly some points where I can polish.<br>
+- Since all visualizations I made are well known and have tons of articles out there on the internet, I didn't provide any explanation for each algorithm. Search on Google if you need more info.<br>
 
 ## Engine & Language
 Cocos2d-X 3.13 ~ 3.14.1<br>
