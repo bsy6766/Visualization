@@ -145,7 +145,8 @@ private:
 	const int maxWallCount = 20;
 	const int maxWallPointsPerWall = 8;
 	const int maxLightCount = 16; // 16 lights
-	const float maxWallSegmentSize = 100.0f;
+	const float maxRectWallSegmentSize = 100.0f;
+	const float maxFreeformWallSegmentSize = 150.0f;
 	const float minRectSize = 10.0f;
 	const int BOUNDARY_WALL_ID = -1;
 	const float defaultLightIntensity = 100.0f;
@@ -267,6 +268,8 @@ private:
 	void setLightUniforms();
 	// Draw lights
 	void drawLights(bool updateLightTexture);
+	// Check if can finish drawing freeform wall
+	bool canFinishFreeformWallDrawing();
 	
 public:
 	//simple creator func

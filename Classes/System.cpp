@@ -56,7 +56,7 @@ void ECS::QuadTreeSystem::updateEntityPosition(const float delta, std::vector<EC
 
 		// Check if entity is still in boundary
 
-		bool inBoundary = Utility::containsRect(this->displayBoundary, spriteComp->sprite->getBoundingBox());
+		bool inBoundary = Utility::Rect::containsRect(this->displayBoundary, spriteComp->sprite->getBoundingBox());
 		if (!inBoundary)
 		{
 			// out of boundary
@@ -273,7 +273,7 @@ void ECS::QuadTreeSystem::resolveCollisions(ECS::Sprite & entitySpriteComp, ECS:
 	auto eBB = entitySpriteComp.sprite->getBoundingBox();
 	auto nBB = nearEntitySpriteComp.sprite->getBoundingBox();
 
-	auto bb = Utility::getIntersectingRect(eBB, nBB);
+	auto bb = Utility::Rect::getIntersectingRect(eBB, nBB);
 
 	auto ePos = entitySpriteComp.sprite->getPosition();
 	auto nPos = nearEntitySpriteComp.sprite->getPosition();
@@ -1331,7 +1331,7 @@ const bool ECS::ReckPackingSystem::insert(ECS::Entity* entity, const cocos2d::Si
 		const cocos2d::Vec2 origin = rectComp->area.origin;
 		cocos2d::Rect targetRect = cocos2d::Rect(origin, rectSize);
 
-		if (Utility::containsRect(rectComp->area, targetRect) == false)
+		if (Utility::Rect::containsRect(rectComp->area, targetRect) == false)
 		{
 			// Rectangle is too big. Failed to insert rect
 			return false;

@@ -89,25 +89,16 @@ private:
 	void releaseInputListeners();
     const bool isCounterClockWise(const std::list<cocos2d::Vec2>& verticies);
     void reverseVerticiesOrder(std::list<cocos2d::Vec2>& verticies, std::list<cocos2d::Label*>& labels);
-    // Returns positive if vec b is ccw from vec a, returns negative if cw from vec a. 0 if parrellel
-    const float ccw(const cocos2d::Vec2& a, const cocos2d::Vec2& b);
-    // From point p, if vec v is ccw from vec a, return positive. if cw, return negative. 0 if parrellel
-    const float ccw(const cocos2d::Vec2& p, const cocos2d::Vec2& a, const cocos2d::Vec2& b);
-    const bool doesPointIntersectLines(const std::list<cocos2d::Vec2>& verticies, const cocos2d::Vec2 start, const cocos2d::Vec2 end);
-    const bool doesSegmentIntersects(cocos2d::Vec2 a, cocos2d::Vec2 b, cocos2d::Vec2 c, cocos2d::Vec2 d);
     void reassignLabelNumber(std::list<cocos2d::Label*>& labels);
     
     void initECS();
     
     void changeState(SCENE_STATE state);
-    const float determinant(const cocos2d::Vec2& a, const cocos2d::Vec2& b);
     void drawLinesBetweenDots(std::list<cocos2d::Vec2>& verticies, cocos2d::DrawNode& drawNode, const bool drawEnd);
     void drawTriangles();
     void scaleDotSizeAndColor(const float scale, const cocos2d::Vec2& frontPoint, const cocos2d::Color3B& color, const std::string& entityPoolName);
     const bool addVertex(const cocos2d::Vec2& point, std::list<cocos2d::Vec2>& verticies, std::list<cocos2d::Label*>& verticiesLabels, const std::string& entityPoolName);
     const bool finishAddingVertex(std::list<cocos2d::Vec2>& verticies);
-    const bool isPointInPolygon(std::list<cocos2d::Vec2>& verticies, const cocos2d::Vec2& point);
-    const bool isPointInOrOnTriangle(const cocos2d::Vec2& a, const cocos2d::Vec2& b, const cocos2d::Vec2& c, const cocos2d::Vec2& p);
     const bool removeVertex(const std::string& entityPoolName, std::list<cocos2d::Vec2>& verticies, std::list<cocos2d::Label*>& verticiesLabels, const cocos2d::Vec2& point);
     void clearVerticies(std::list<cocos2d::Vec2>& verticies, std::list<cocos2d::Label*>& verticiesLabels, const std::string& entityPoolName);
     void finalizeVerticies();

@@ -661,6 +661,8 @@ void AStarScene::onMouseMove(cocos2d::Event* event)
 
 	cocos2d::Vec2 point = cocos2d::Vec2(x, y);
 
+	this->labelsNode->updateMouseHover(point);
+
 	//cocos2d::log("Moving cursor (%f, %f)", x, y);
 	this->hoveringCellSprite->setVisible(true);
 	this->hoveringCellSprite->setPosition(point);
@@ -700,6 +702,12 @@ void AStarScene::onMouseDown(cocos2d::Event* event)
 	float y = mouseEvent->getCursorY();
 
 	cocos2d::Vec2 point = cocos2d::Vec2(x, y);
+
+	bool ret = this->labelsNode->updateMouseDown(point);
+	if (ret)
+	{
+		return;
+	}
 
 	if (this->displayBoundaryBoxNode->displayBoundary.containsPoint(point))
 	{

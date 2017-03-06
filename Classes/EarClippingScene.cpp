@@ -187,11 +187,6 @@ void EarClippingScene::update(float delta)
 	}
 }
 
-const float EarClippingScene::determinant(const cocos2d::Vec2 &a, const cocos2d::Vec2 &b)
-{
-    return (a.x * b.y) - (a.y * b.x);
-}
-
 void EarClippingScene::drawLinesBetweenDots(std::list<cocos2d::Vec2>& verticies, cocos2d::DrawNode& drawNode, const bool drawEnd)
 {
 	if (verticies.empty())
@@ -315,81 +310,6 @@ void EarClippingScene::reassignLabelNumber(std::list<cocos2d::Label *> &labels)
     }
 }
 
-const bool EarClippingScene::doesPointIntersectLines(const std::list<cocos2d::Vec2> &verticies, const cocos2d::Vec2 start, const cocos2d::Vec2 end)
-{
-    if(verticies.size() < 3)
-    {
-        return false;
-    }
-    
-    auto p1 = verticies.begin();
-    auto p2 = verticies.begin();
-    std::advance(p2, 1);
-    auto end_it = verticies.end();
-    std::advance(end_it, -1);
-    for (; p2 != end_it; )
-    {
-        cocos2d::Vec2 a = *p1;
-        cocos2d::Vec2 b = *p2;
-
-        bool intersect = doesSegmentIntersects(a, b, start, end);
-        if(intersect)
-        {
-            return true;
-        }
-        
-        p1++;
-        p2++;
-    }
-    
-    return false;
-}
-
-const float EarClippingScene::ccw(const cocos2d::Vec2& a, const cocos2d::Vec2 &b)
-{
-    return a.cross(b);
-}
-
-const float EarClippingScene::ccw(const cocos2d::Vec2 &p, const cocos2d::Vec2 &a, const cocos2d::Vec2 &b)
-{
-    return ccw(a - p, b - p);
-}
-
-const bool EarClippingScene::doesSegmentIntersects(cocos2d::Vec2 a, cocos2d::Vec2 b, cocos2d::Vec2 c, cocos2d::Vec2 d)
-{
-    float ab = ccw(a, b, c) * ccw(a, b, d);
-    float cd = ccw(c, d, a) * ccw(c, d, b);
-    
-    // In case where two lines are aligned in one segment or end point touches
-    /*
-    if(ab == 0 && cd == 0)
-    {
-        if (b < a)
-        {
-            auto t = a;
-            a = b;
-            b = t;
-        }
-        
-        if(d < c)
-        {
-            auto t = c;
-            c = d;
-            d = c;
-        }
-        
-        return !(b < c || d < a);
-    }
-    else
-    {
-        return ab <= 0 && cd <= 0;
-    }
-     */
-    
-    // if ab, cd is 0, it means end point touches each other.
-    return ab < 0 && cd < 0;
-}
-
 void EarClippingScene::changeState(SCENE_STATE state)
 {
     if(this->currentSceneState == SCENE_STATE::IDLE)
@@ -439,7 +359,8 @@ const bool EarClippingScene::addVertex(const cocos2d::Vec2& point, std::list<coc
 	bool intersect = false;
 	if (!verticies.empty())
 	{
-		intersect = this->doesPointIntersectLines(verticies, verticies.back(), point);
+		//intersect = this->doesPointIntersectLines(verticies, verticies.back(), point);
+		intersect = Utility::Polygon::doesPointIntersectPolygonSegments(verticies, point);
 		if (intersect)
 		{
 			return false;
@@ -498,7 +419,8 @@ const bool EarClippingScene::finishAddingVertex(std::list<cocos2d::Vec2> &vertic
     points.pop_front();
     points.pop_back();
     // Check intersect
-    bool intersect = this->doesPointIntersectLines(points, verticies.back(), verticies.front());
+    //bool intersect = this->doesPointIntersectLines(points, verticies.back(), verticies.front());
+	bool intersect = Utility::Polygon::doesPointIntersectPolygonSegments(verticies, verticies.front());
     if(intersect)
     {
         return false;
@@ -508,59 +430,6 @@ const bool EarClippingScene::finishAddingVertex(std::list<cocos2d::Vec2> &vertic
         return true;
     }
 }
-
-const bool EarClippingScene::isPointInPolygon(std::list<cocos2d::Vec2>& verticies, const cocos2d::Vec2& point)
-{
-    auto c = point;
-    auto d = point;
-    d.x += 2000.0f;  // Create a long line, think as raycasting to right. 2000 pixels are enough for this example.
-    
-    auto p1 = verticies.begin();
-    auto p2 = verticies.begin();
-    std::advance(p2, 1);
-    
-    int count = 0;
-    for (; p2 != verticies.end(); )
-    {
-        bool intersect = this->doesSegmentIntersects(*p1, *p2, c, d);
-        if(intersect)
-        {
-            count++;
-        }
-        
-        p1++;
-        p2++;
-        
-        if(p2 == verticies.end())
-        {
-            p2 = verticies.begin();
-            bool intersect = this->doesSegmentIntersects(*p2, *p1, c, d);
-            if(intersect)
-            {
-                count++;
-            }
-			break;
-        }
-    }
-    
-    if(count % 2 == 0)
-    {
-        return false;
-    }
-    else
-    {
-        return true;
-    }
-}
-
-
-const bool EarClippingScene::isPointInOrOnTriangle(const cocos2d::Vec2& a, const cocos2d::Vec2& b, const cocos2d::Vec2& c, const cocos2d::Vec2& p)
-{
-    return this->determinant(p - a, b - a) >= 0 &&
-            this->determinant(p - b, c - b) >= 0 &&
-            this->determinant(p - c, a - c) >= 0;
-}
-
 
 const bool EarClippingScene::removeVertex(const std::string& entityPoolName, std::list<cocos2d::Vec2>& verticies, std::list<cocos2d::Label*>& verticiesLabels, const cocos2d::Vec2& point)
 {
@@ -662,8 +531,9 @@ void EarClippingScene::finalizeVerticies()
             auto d = point;
             
             // Check if segment cd doesn't intersect any lines.
-            bool intersects = this->doesPointIntersectLines(this->outerVerticies, c, d);
-            if(intersects)
+            //bool intersects = this->doesPointIntersectLines(this->outerVerticies, c, d);
+			bool intersect = Utility::Polygon::doesPointIntersectPolygonSegments(this->outerVerticies, d);
+            if(intersect)
             {
                 continue;
             }
@@ -676,17 +546,10 @@ void EarClippingScene::finalizeVerticies()
                     cuttingInnerPoint = innerPoint;
                     shortestDist = dist;
                     cuttingPointFound = true;
-//                    cocos2d::log("Found new cutting points");
-//                    cocos2d::log("cutting outer point (%f, %f)", cuttingOuterPoint.x, cuttingOuterPoint.y);
-//                    cocos2d::log("cutting inner point (%f, %f)", cuttingInnerPoint.x, cuttingInnerPoint.y);
-//                    cocos2d::log("Distance = %f", shortestDist);
                 }
             }
         }
     }
-    
-//    cocos2d::log("cutting outer point (%f, %f)", cuttingOuterPoint.x, cuttingOuterPoint.y);
-//    cocos2d::log("cutting inner point (%f, %f)", cuttingInnerPoint.x, cuttingInnerPoint.y);
     
     // Create new entity pool
     ECS::Manager::getInstance()->deleteEntityPool("FINAL");
@@ -694,9 +557,7 @@ void EarClippingScene::finalizeVerticies()
     
     if(cuttingPointFound == false)
     {
-        // No possible cut.
-//        cocos2d::log("NO POSSIBLE CUT");
-        
+        // No possible cut.        
         for(auto p : this->outerVerticies)
         {
             this->addVertex(p, this->finalVerticies, this->finalVerticiesLabels, "FINAL");
@@ -845,7 +706,7 @@ const bool EarClippingScene::isEar(const cocos2d::Vec2 prevP, const cocos2d::Vec
 //                return false;
 //            }
             
-            if(this->isPointInOrOnTriangle(nextP, p, prevP, point))
+            if(Utility::Polygon::isPointInOrOnTriangle(nextP, p, prevP, point))
             {
                 return false;
             }
@@ -1013,7 +874,7 @@ void EarClippingScene::onMouseDown(cocos2d::Event* event)
             {
                 // Draw inner points
                 // Check if point is in polygon
-                bool inPolygon = this->isPointInPolygon(this->outerVerticies, point);
+                bool inPolygon = Utility::Polygon::isPointInPolygon(this->outerVerticies, point);
                 if(inPolygon)
                 {
 					bool success = this->addVertex(point, this->innerVerticies, this->innerVerticiesLabels, "INNER");

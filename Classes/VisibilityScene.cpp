@@ -1095,7 +1095,7 @@ bool VisibilityScene::isPointInWall(const cocos2d::Vec2 & point)
 			{
 				std::list<cocos2d::Vec2> pointList(wall.points.begin(), wall.points.end());
 
-				bool inPolygon = earClipping->isPointInPolygon(pointList, point);
+				bool inPolygon = Utility::Polygon::isPointInPolygon(pointList, point);
 
 				if (inPolygon)
 				{
@@ -1437,6 +1437,31 @@ void VisibilityScene::drawLights(bool updateLightTexture)
 	}
 }
 
+bool VisibilityScene::canFinishFreeformWallDrawing()
+{
+	if (this->freeformWallPoints.size() < 3)
+	{
+		return false;
+	}
+	// Check if last point and starting point segment intersects any line
+	// copy points
+	std::list<cocos2d::Vec2> verticies(std::begin(this->freeformWallPoints), std::end(this->freeformWallPoints));
+	// remove the first and last point (touching points)
+	verticies.pop_front();
+	verticies.pop_back();
+	// Check intersect
+	//bool intersect = this->doesPointIntersectLines(points, verticies.back(), verticies.front());
+	bool intersect = Utility::Polygon::doesPointIntersectPolygonSegments(verticies, verticies.front());
+	if (intersect)
+	{
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
 void VisibilityScene::update(float delta)
 {
 	this->labelsNode->updateFPSLabel(delta);
@@ -1532,6 +1557,9 @@ void VisibilityScene::onMouseMove(cocos2d::Event* event)
 	float y = mouseEvent->getCursorY();
 
 	cocos2d::Vec2 point = cocos2d::Vec2(x, y);
+
+	this->labelsNode->updateMouseHover(point);
+
 	if (this->displayBoundary.containsPoint(point))
 	{
 		if (this->currentMode == MODE::IDLE)
@@ -1612,22 +1640,22 @@ void VisibilityScene::onMouseMove(cocos2d::Event* event)
 			if (!this->isPointInWall(point))
 			{
 				cocos2d::Vec2 size = point - this->newBoxOrigin;
-				if (size.x > maxWallSegmentSize)
+				if (size.x > maxRectWallSegmentSize)
 				{
-					point.x = this->newBoxOrigin.x + maxWallSegmentSize;
+					point.x = this->newBoxOrigin.x + maxRectWallSegmentSize;
 				}
-				else if (size.x < -maxWallSegmentSize)
+				else if (size.x < -maxRectWallSegmentSize)
 				{
-					point.x = this->newBoxOrigin.x - maxWallSegmentSize;
+					point.x = this->newBoxOrigin.x - maxRectWallSegmentSize;
 				}
 
-				if (size.y > maxWallSegmentSize)
+				if (size.y > maxRectWallSegmentSize)
 				{
-					point.y = this->newBoxOrigin.y + maxWallSegmentSize;
+					point.y = this->newBoxOrigin.y + maxRectWallSegmentSize;
 				}
-				else if (size.y < -maxWallSegmentSize)
+				else if (size.y < -maxRectWallSegmentSize)
 				{
-					point.y = this->newBoxOrigin.y - maxWallSegmentSize;
+					point.y = this->newBoxOrigin.y - maxRectWallSegmentSize;
 				}
 
 				this->newBoxDest = point;
@@ -1660,6 +1688,12 @@ void VisibilityScene::onMouseDown(cocos2d::Event* event)
 	float y = mouseEvent->getCursorY();
 
 	cocos2d::Vec2 point = cocos2d::Vec2(x, y);
+
+	bool ret = this->labelsNode->updateMouseDown(point);
+	if (ret)
+	{
+		return;
+	}
 
 	if (this->displayBoundary.containsPoint(point))
 	{	
@@ -1714,10 +1748,15 @@ void VisibilityScene::onMouseDown(cocos2d::Event* event)
 			{
 				if (!this->isPointInWall(point))
 				{
-					if (this->freeformWallPoints.back().distance(point) < maxWallSegmentSize)
+					std::list<cocos2d::Vec2> verticies(std::begin(this->freeformWallPoints), std::end(this->freeformWallPoints));
+					bool intersect = Utility::Polygon::doesPointIntersectPolygonSegments(verticies, point);
+					if (!intersect)
 					{
-						this->freeformWallPoints.push_back(point);
-						this->drawFreeformWall();
+						if (this->freeformWallPoints.back().distance(point) < maxFreeformWallSegmentSize)
+						{
+							this->freeformWallPoints.push_back(point);
+							this->drawFreeformWall();
+						}
 					}
 				}
 			}
@@ -1838,19 +1877,22 @@ void VisibilityScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, coco
 			}
 			else
 			{
-				bool success = this->createNewFreeformWall();
-				if (success)
+				if (this->canFinishFreeformWallDrawing())
 				{
-					this->addWall(this->walls.back());
-					this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::WALL_COUNT), "Walls: " + std::to_string(this->walls.size()) + " / 20");
-					this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::DRAW_FREEFORM_WALL), cocos2d::Color3B::WHITE);
-				}
-				this->clearFreeform();
+					bool success = this->createNewFreeformWall();
+					if (success)
+					{
+						this->addWall(this->walls.back());
+						this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::WALL_COUNT), "Walls: " + std::to_string(this->walls.size()) + " / 20");
+						this->labelsNode->setColor(LabelsNode::TYPE::MOUSE, static_cast<int>(USAGE_MOUSE::DRAW_FREEFORM_WALL), cocos2d::Color3B::WHITE);
+					}
+					this->clearFreeform();
 
-				if (this->activeLightSize > 0)
-				{
-					this->needToUpdateUniform = true;
-					this->drawLights(true);
+					if (this->activeLightSize > 0)
+					{
+						this->needToUpdateUniform = true;
+						this->drawLights(true);
+					}
 				}
 			}
 		}
