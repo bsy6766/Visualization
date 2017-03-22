@@ -2,6 +2,9 @@
 Visualizes simple game techniques for 2D or anything I found interesting.<br>
 **There are preview GIFs for each visualization below on Algorithm section below**
 
+## [Wiki](https://github.com/bsy6766/Visualization/wiki)
+Checkout wiki page for download link, algorithm details, etc.
+
 ## Notes
 - These visualizations are made for 2D, but some can be expanded to 3D (i.e. QuadTree to OcTree or 3D flocking with additional axis).<br>
 - All visualizations are coded within about 3 days while my spare time, so I don't expect to work flawlessly and keep up 60 fps for all enviornments. There are definetly some points where I can polish.<br>
@@ -21,9 +24,6 @@ Performance of each algorithm are different. Some algorithm, Quad Tree for examp
 Windows 10<br>
 Mac OS X Sierra<br>
 Ubuntu 16.04<br>
-
-## [Wiki](https://github.com/bsy6766/Visualization/wiki)
-Checkout wiki page for download link, algorithm details, etc.
 
 ----
 ## Planned
