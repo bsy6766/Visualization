@@ -87,7 +87,6 @@ private:
 
 	void initInputListeners();
 	void releaseInputListeners();
-    const bool isCounterClockWise(const std::list<cocos2d::Vec2>& verticies);
     void reverseVerticiesOrder(std::list<cocos2d::Vec2>& verticies, std::list<cocos2d::Label*>& labels);
     void reassignLabelNumber(std::list<cocos2d::Label*>& labels);
     

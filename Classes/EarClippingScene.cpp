@@ -253,41 +253,6 @@ void EarClippingScene::scaleDotSizeAndColor(const float scale, const cocos2d::Ve
     }
 }
 
-const bool EarClippingScene::isCounterClockWise(const std::list<cocos2d::Vec2>& verticies)
-{
-    int total = 0;
-    int index = 0;
-    auto it = verticies.begin();
-    auto next = verticies.begin();
-    std::advance(next, 1);
-    
-    for (; next != verticies.end(); )
-    {
-        total += ((next->x - it->x) * (next->y + it->y));
-        index++;
-        it++;
-        next++;
-        
-        if(next == verticies.end())
-        {
-            next = verticies.begin();
-            total += ((next->x - it->x) * (next->y + it->y));
-			break;
-        }
-    }
-    
-    if(total >= 0)
-    {
-        cocos2d::log("It's clockwise");
-        return false;
-    }
-    else
-    {
-        cocos2d::log("It's counter clock wise");
-        return true;
-    }
-}
-
 void EarClippingScene::reverseVerticiesOrder(std::list<cocos2d::Vec2>& verticies, std::list<cocos2d::Label*>& labels)
 {
     auto vert_it = std::begin(verticies);
@@ -324,7 +289,7 @@ void EarClippingScene::changeState(SCENE_STATE state)
 			this->scaleDotSizeAndColor(0.6f, this->outerVerticies.front(), cocos2d::Color3B::BLUE, "OUTER");
 
 			// Outer verticies must be counter clock wise
-			bool cc = this->isCounterClockWise(this->outerVerticies);
+			bool cc = Utility::Polygon::isCounterClockWise(this->outerVerticies);
 			if (!cc)
 			{
 				this->reverseVerticiesOrder(this->outerVerticies, this->outerVerticiesLabels);
@@ -339,7 +304,7 @@ void EarClippingScene::changeState(SCENE_STATE state)
 			this->scaleDotSizeAndColor(0.6f, this->innerVerticies.front(), cocos2d::Color3B::BLUE, "INNER");
 
 			// Inner verticies must be clock wise
-			bool cc = this->isCounterClockWise(this->innerVerticies);
+			bool cc = Utility::Polygon::isCounterClockWise(this->innerVerticies);
 			if (cc)
 			{
 				this->reverseVerticiesOrder(this->innerVerticies, this->innerVerticiesLabels);
