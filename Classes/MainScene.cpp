@@ -48,7 +48,7 @@ bool MainScene::init()
 	this->labels.push_back(cocos2d::Label::createWithTTF("Visibility", fontPath, fontSize));
 	this->labels.push_back(cocos2d::Label::createWithTTF("EXIT(ESC)", fontPath, fontSize));
 
-	this->versionLabel = cocos2d::Label::createWithTTF("v0.6", fontPath, 20);
+	this->versionLabel = cocos2d::Label::createWithTTF("v0.11", fontPath, 20);
 	this->versionLabel->setPosition(winSize.width * 0.5f, 12.0f);
 	this->addChild(this->versionLabel);
 
