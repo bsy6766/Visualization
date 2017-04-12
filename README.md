@@ -45,6 +45,7 @@ Used [Rubik](https://www.fontsquirrel.com/fonts/rubik) by Hubert & Fischer.
 
 
 ## ChangeLog
+v0.11 Added 2D visibility visualization. <br>
 v0.10 Added A Star Pathfinding visualization. Memory leak checked with OS X Instrument.<br>
 v0.9 Added Ear Clipping visualization.<br>
 v0.8 Using new ECS implementation of mine [link](https://github.com/bsy6766/ECS)<br>
