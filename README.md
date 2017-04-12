@@ -1,6 +1,5 @@
 # Visualization
 Visualizes simple game techniques for 2D or anything I found interesting.<br>
-**There are preview GIFs for each visualization below on Algorithm section below**
 
 ## [Wiki](https://github.com/bsy6766/Visualization/wiki)
 Checkout wiki page for download link, algorithm details, etc.
