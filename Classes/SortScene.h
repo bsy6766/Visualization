@@ -69,9 +69,29 @@ private:
 		NONE,
 		SEARCHING_MIN_VALUE,
 		SWAP,
+		CHECK,
 		FINISHED,
 	};
 	SELECTION_SORT_STATE selectionSortState;
+
+	// Insertion sort
+	enum class INSERTION_SORT_STATE
+	{
+		NONE,
+		SELECTING_NEXT,
+		SWAP,
+		SWAPPING,
+		CHECK,
+		FINISHED
+	};
+	INSERTION_SORT_STATE insertionSortState;
+	int curIndex;
+	int swappingIndex;
+	float animSpeed;
+
+	int checkIndex;
+	float checkSpeed;
+	float checkElapsedTime;
 
 	// total 65
 	std::vector<int> values;
@@ -106,7 +126,8 @@ private:
 	void resetValues();
 	void randomizeValues();
 	void reset();
-	void resetBarColor();
+	void resetBar();
+	void clearPrevSortModeLabelColor();
 
 	void initSelectionSort();
 	void updateSelectionSort(const float delta);
@@ -114,6 +135,9 @@ private:
 
 	void initInsertionSort();
 	void updateInsertionSort(const float delta);
+	void stepInsertionSort();
+
+	void checkSort(const float delta);
 public:
 	//simple creator func
 	static SortScene* createScene();

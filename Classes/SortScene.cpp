@@ -45,6 +45,9 @@ bool SortScene::init()
 
 	sortMode = SORT_MODE::NONE;
 
+	checkSpeed = 0.07f;
+	checkIndex = 0;
+
 	auto winSize = cocos2d::Director::getInstance()->getVisibleSize();
 
 	// Init labels node
@@ -119,6 +122,9 @@ void SortScene::update(float delta)
 	}
 		break;
 	case SortScene::SORT_MODE::INSERTION:
+	{
+		updateInsertionSort(delta);
+	}
 		break;
 	case SortScene::SORT_MODE::MERGE:
 		break;
@@ -205,6 +211,10 @@ void SortScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::E
 				}
 				break;
 			case SortScene::SORT_MODE::INSERTION:
+				if (insertionSortState == INSERTION_SORT_STATE::SELECTING_NEXT)
+				{
+					stepInsertionSort();
+				}
 				break;
 			case SortScene::SORT_MODE::MERGE:
 				break;
@@ -221,18 +231,21 @@ void SortScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::E
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_R)
 	{
+		clearPrevSortModeLabelColor();
 		reset();
 		this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::RESET), cocos2d::Color3B::WHITE);
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_1)
 	{
 		// selection sort
+		clearPrevSortModeLabelColor();
 		initSelectionSort();
 		this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::KEY_1),cocos2d::Color3B::GREEN);
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_2)
 	{
 		// selection sort
+		clearPrevSortModeLabelColor();
 		initInsertionSort();
 		this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::KEY_2), cocos2d::Color3B::GREEN);
 	}
@@ -280,6 +293,7 @@ void SortScene::randomizeValues()
 	
 	for (int i = 0; i < 65; i++)
 	{
+		bars.at(i)->stopAllActions();
 		float percentage = static_cast<float>(values.at(i)) / 65.0f * 100.0f;
 		bars.at(i)->setScaleY(percentage * 6.5f);
 	}
@@ -293,21 +307,47 @@ void SortScene::reset()
 	this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Idle");
 	this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::CURRENT_SORT), "Current sort: None");
 
-	resetBarColor();
+	resetBar();
 }
 
-void SortScene::resetBarColor()
+void SortScene::resetBar()
 {
 	for (auto bar : bars)
 	{
 		bar->setColor(cocos2d::Color3B::WHITE);
+		bar->stopAllActions();
+	}
+}
+
+void SortScene::clearPrevSortModeLabelColor()
+{
+	switch (sortMode)
+	{
+	case SortScene::SORT_MODE::SELECTION:
+		this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::KEY_1), cocos2d::Color3B::WHITE, false);
+		break;
+	case SortScene::SORT_MODE::INSERTION:
+		this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::KEY_2), cocos2d::Color3B::WHITE, false);
+		break;
+	case SortScene::SORT_MODE::MERGE:
+		this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::KEY_3), cocos2d::Color3B::WHITE, false);
+		break;
+	case SortScene::SORT_MODE::BUBBLE:
+		this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::KEY_4), cocos2d::Color3B::WHITE, false);
+		break;
+	case SortScene::SORT_MODE::QUICK:
+		this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::KEY_5), cocos2d::Color3B::WHITE, false);
+		break;
+	case SortScene::SORT_MODE::NONE:
+	default:
+		break;
 	}
 }
 
 void SortScene::initSelectionSort()
 {
 	randomizeValues();
-	resetBarColor();
+	resetBar();
 	sortMode = SORT_MODE::SELECTION;
 
 	this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Sorting");
@@ -319,6 +359,9 @@ void SortScene::initSelectionSort()
 	searchSpeed = 0.04f;
 	searchElapsedTime = 0;
 	selectionSortState = SELECTION_SORT_STATE::NONE;
+
+	checkIndex = 0;
+	checkElapsedTime = 0.0f;
 }
 
 void SortScene::updateSelectionSort(const float delta)
@@ -371,6 +414,10 @@ void SortScene::updateSelectionSort(const float delta)
 			
 		}
 	}
+	else if (selectionSortState == SELECTION_SORT_STATE::CHECK)
+	{
+		checkSort(delta);
+	}
 }
 
 void SortScene::stepSelectionSort()
@@ -422,8 +469,8 @@ void SortScene::stepSelectionSort()
 		sortedIndex++;
 		if (sortedIndex == 65)
 		{
-			selectionSortState = SELECTION_SORT_STATE::FINISHED;
-			this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Finished");
+			selectionSortState = SELECTION_SORT_STATE::CHECK;
+			this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Checking");
 		}
 		else
 		{
@@ -446,10 +493,167 @@ void SortScene::stepSelectionSort()
 
 void SortScene::initInsertionSort()
 {
+	randomizeValues();
+	resetBar();
+	sortMode = SORT_MODE::INSERTION;
+
+	this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Sorting");
+	this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::CURRENT_SORT), "Current sort: Insertion Sort");
+
+	curIndex = -1;
+	swappingIndex = 0;
+	animSpeed = 0.06f;
+	insertionSortState = INSERTION_SORT_STATE::NONE;
+
+	checkIndex = 0;
+	checkElapsedTime = 0.0f;
 }
 
 void SortScene::updateInsertionSort(const float delta)
 {
+	if (insertionSortState == INSERTION_SORT_STATE::NONE)
+	{
+		if (curIndex == -1)
+		{
+			curIndex = 0;
+			float ssmFlip = (2.0f - simulationSpeedModifier) * 2.0f;
+			bars.at(curIndex)->runAction(cocos2d::TintTo::create(animSpeed * ssmFlip, cocos2d::Color3B::BLUE));
+		}
+
+		if (bars.at(curIndex)->getNumberOfRunningActions() == 0)
+		{
+			insertionSortState = INSERTION_SORT_STATE::SWAP;
+		}
+	}
+	else if (insertionSortState == INSERTION_SORT_STATE::SELECTING_NEXT)
+	{
+		if (paused) return;
+
+		stepInsertionSort();
+	}
+	else if (insertionSortState == INSERTION_SORT_STATE::SWAP)
+	{
+		if (curIndex == 0)
+		{
+			float ssmFlip = (2.0f - simulationSpeedModifier) * 2.0f;
+			bars.at(curIndex)->runAction(cocos2d::TintTo::create(animSpeed * ssmFlip, cocos2d::Color3B::YELLOW));
+		}
+		else
+		{
+			float ssmFlip = (2.0f - simulationSpeedModifier) * 2.0f;
+
+			if (swappingIndex >= 0)
+			{
+				int curVal = values.at(curIndex);
+				for (int i = curIndex; i >= swappingIndex; i--)
+				{
+					if (i == swappingIndex)
+					{
+						bars.at(i)->runAction(cocos2d::ScaleTo::create(animSpeed * ssmFlip, 10.0f, (static_cast<float>(curVal) / 65.0f * 100.0f * 6.5f), 1.0f));
+						//bars.at(i)->runAction(cocos2d::TintTo::create(animSpeed * ssmFlip, cocos2d::Color3B::YELLOW));
+						values.at(i) = curVal;
+					}
+					else
+					{
+						bars.at(i)->runAction(cocos2d::ScaleTo::create(animSpeed * ssmFlip, 10.0f, (static_cast<float>(values.at(i - 1)) / 65.0f * 100.0f * 6.5f), 1.0f));
+						bars.at(i)->runAction(cocos2d::TintTo::create(animSpeed * ssmFlip, cocos2d::Color3B::YELLOW));
+						values.at(i) = values.at(i - 1);
+					}
+				}
+			}
+			else
+			{
+				float ssmFlip = (2.0f - simulationSpeedModifier) * 2.0f;
+				bars.at(curIndex)->runAction(cocos2d::TintTo::create(animSpeed * ssmFlip, cocos2d::Color3B::YELLOW));
+			}
+		}
+
+		insertionSortState = INSERTION_SORT_STATE::SWAPPING;
+	}
+	else if (insertionSortState == INSERTION_SORT_STATE::SWAPPING)
+	{
+		if (bars.at(curIndex)->getNumberOfRunningActions() == 0)
+		{
+			insertionSortState = INSERTION_SORT_STATE::SELECTING_NEXT;
+			float ssmFlip = (2.0f - simulationSpeedModifier) * 2.0f;
+			if (swappingIndex != -1 && (curIndex != swappingIndex || curIndex > 0))
+			{
+				//bars.at(curIndex)->runAction(cocos2d::TintTo::create(animSpeed * ssmFlip, cocos2d::Color3B::WHITE));
+			}
+			curIndex++;
+
+			if (curIndex >= MAX_VALUE_SIZE)
+			{
+				insertionSortState = INSERTION_SORT_STATE::CHECK;
+				
+				return;
+			}
+
+			bars.at(curIndex)->runAction(cocos2d::TintTo::create(animSpeed * ssmFlip, cocos2d::Color3B::BLUE));
+		}
+	}
+	else if (insertionSortState == INSERTION_SORT_STATE::CHECK)
+	{
+		checkSort(delta);
+	}
+}
+
+void SortScene::stepInsertionSort()
+{
+	if (bars.at(curIndex)->getNumberOfRunningActions() == 0)
+	{
+		insertionSortState = INSERTION_SORT_STATE::SWAP;
+
+		swappingIndex = -1;
+		int curVal = values.at(curIndex);
+		for (int i = curIndex - 1; i >= 0; i--)
+		{
+			if (curVal < values.at(i))
+			{
+				swappingIndex = i;
+			}
+			else
+			{
+				break;
+			}
+		}
+	}
+}
+
+void SortScene::checkSort(const float delta)
+{
+	checkElapsedTime += (delta * simulationSpeedModifier);
+
+	if (checkElapsedTime <= checkSpeed)
+	{
+		checkElapsedTime -= checkSpeed;
+
+		bars.at(checkIndex)->runAction(cocos2d::Sequence::createWithTwoActions(cocos2d::TintTo::create(checkSpeed, cocos2d::Color3B::GREEN), cocos2d::TintTo::create(checkSpeed, cocos2d::Color3B::YELLOW)));
+
+		checkIndex++;
+
+		if (checkIndex == MAX_VALUE_SIZE)
+		{
+			switch (sortMode)
+			{
+			case SortScene::SORT_MODE::SELECTION:
+				selectionSortState = SELECTION_SORT_STATE::FINISHED;
+				break;
+			case SortScene::SORT_MODE::INSERTION:
+				insertionSortState = INSERTION_SORT_STATE::FINISHED;
+				break;
+			case SortScene::SORT_MODE::MERGE:
+				break;
+			case SortScene::SORT_MODE::BUBBLE:
+				break;
+			case SortScene::SORT_MODE::QUICK:
+				break;
+			case SortScene::SORT_MODE::NONE:
+			default:
+				break;
+			}
+		}
+	}
 }
 
 void SortScene::onSliderClick(cocos2d::Ref* sender)
