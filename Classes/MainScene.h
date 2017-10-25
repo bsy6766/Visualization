@@ -27,7 +27,6 @@ private:
 
 	std::vector<cocos2d::Label*> labels;
 	int hoveringLableIndex;
-	cocos2d::Size winSize;
 	cocos2d::Label* versionLabel;
 	cocos2d::Label* descriptionLabel;
 
@@ -45,6 +44,7 @@ private:
         EAR_CLIPPING,
 		A_STAR_PATHFINDING,
 		VISIBILITY,
+		SORT,
 		EXIT,
 	};
 

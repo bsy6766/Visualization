@@ -6,6 +6,7 @@
 #include "EarClippingScene.h"
 #include "AStarScene.h"
 #include "VisibilityScene.h"
+#include "SortMenuScene.h"
 #include "Utility.h"
 
 USING_NS_CC;
@@ -33,7 +34,8 @@ bool MainScene::init()
 	std::string fontPath = "fonts/Rubik-Medium.ttf";
 
 	auto titleLabel = cocos2d::Label::createWithTTF("Visualizations", fontPath, 50);
-	winSize = cocos2d::Director::getInstance()->getVisibleSize();
+
+	cocos2d::Size winSize = cocos2d::Director::getInstance()->getVisibleSize();
 	titleLabel->setPosition(cocos2d::Vec2(winSize.width * 0.5f, winSize.height - 50.0f));
 	this->addChild(titleLabel);
 	
@@ -46,6 +48,7 @@ bool MainScene::init()
     this->labels.push_back(cocos2d::Label::createWithTTF("Ear Clipping", fontPath, fontSize));
     this->labels.push_back(cocos2d::Label::createWithTTF("A Star Pathfinding", fontPath, fontSize));
 	this->labels.push_back(cocos2d::Label::createWithTTF("Visibility", fontPath, fontSize));
+	this->labels.push_back(cocos2d::Label::createWithTTF("Sort", fontPath, fontSize));
 	this->labels.push_back(cocos2d::Label::createWithTTF("EXIT(ESC)", fontPath, fontSize));
 
 	this->versionLabel = cocos2d::Label::createWithTTF("v0.11", fontPath, 20);
@@ -97,6 +100,9 @@ void MainScene::setDescriptionLabel()
 			break;
 		case MainScene::MENU_INDEX::VISIBILITY:
 			this->descriptionLabel->setString("Visualizes visibility");
+			break;
+		case MainScene::MENU_INDEX::SORT:
+			this->descriptionLabel->setString("Visualizes various sorting algorithms");
 			break;
 		case MainScene::MENU_INDEX::EXIT:
 			this->descriptionLabel->setString("Exit");
@@ -249,6 +255,11 @@ void MainScene::onMouseDown(cocos2d::Event* event)
 			case MENU_INDEX::VISIBILITY:
 			{
 				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, VisibilityScene::create(), cocos2d::Color3B::BLACK));
+			}
+				break;
+			case MENU_INDEX::SORT:
+			{
+				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, SortMenuScene::create(), cocos2d::Color3B::BLACK));
 			}
 				break;
 			case MENU_INDEX::EXIT:

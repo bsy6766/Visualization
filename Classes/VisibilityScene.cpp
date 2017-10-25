@@ -20,7 +20,7 @@ bool VisibilityScene::init()
 	}
 
 	// create shader
-	cocos2d::ShaderCache::getInstance()->purgeSharedShaderCache();
+	//cocos2d::ShaderCache::getInstance()->purgeSharedShaderCache();
 	this->floorShader = cocos2d::GLProgram::createWithFilenames("shaders/light_vert.glsl", "shaders/light_frag.glsl");
 
 	this->scheduleUpdate();
@@ -1618,7 +1618,7 @@ void VisibilityScene::onMouseMove(cocos2d::Event* event)
 		else if (this->currentMode == MODE::DRAW_WALL_READY)
 		{
 			// Trying to make wall with dragging
-			if (this->walls.size() < maxWallCount)
+			if (static_cast<int>(this->walls.size())  < maxWallCount)
 			{
 				// still can make another box
 				this->currentMode = MODE::DRAW_WALL_DRAG;
@@ -1744,7 +1744,7 @@ void VisibilityScene::onMouseDown(cocos2d::Event* event)
 		else if (this->currentMode == MODE::DRAW_WALL_POINT)
 		{
 			// And add point as first point.
-			if (this->freeformWallPoints.size() < this->maxWallPointsPerWall)
+			if (static_cast<int>(this->freeformWallPoints.size()) < this->maxWallPointsPerWall)
 			{
 				if (!this->isPointInWall(point))
 				{
@@ -1785,7 +1785,7 @@ void VisibilityScene::onMouseUp(cocos2d::Event* event)
 		else if (this->currentMode == MODE::DRAW_WALL_READY)
 		{
 			// try to Draw Freeform wall 
-			if (this->walls.size() < this->maxWallCount)
+			if (static_cast<int>(this->walls.size()) < this->maxWallCount)
 			{
 				this->currentMode = MODE::DRAW_WALL_POINT;
 				// And add point as first point.

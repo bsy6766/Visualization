@@ -555,16 +555,17 @@ void CirclePackingScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, c
 
 			std::string workingDirectoryStr;
 
-			char workingDirectory[FILENAME_MAX];
-			size_t wdSize = sizeof(workingDirectory);
-			if (!getcwd(workingDirectory, wdSize))
+			char cCurrentPath[FILENAME_MAX];
+
+			if (!_getcwd(cCurrentPath, sizeof(cCurrentPath)))
 			{
 				workingDirectoryStr = std::string();
 			}
 			else
 			{
-				// There is working directory.
-				workingDirectoryStr = std::string(workingDirectory);
+				cCurrentPath[sizeof(cCurrentPath) - 1] = '\0'; /* not really required */
+
+				workingDirectoryStr = std::string(cCurrentPath);
 			}
 
 			std::replace(workingDirectoryStr.begin(), workingDirectoryStr.end(), '\\', '/');

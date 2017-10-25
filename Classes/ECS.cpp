@@ -470,7 +470,7 @@ const C_ID ECS::Manager::getComponentUniqueId(const std::type_info& t)
 	{
 		return this->C_UNIQUE_IDMap.at(typeIndex);
 	}
-	catch (const std::out_of_range& oor)
+	catch(...)// (const std::out_of_range& oor)
 	{
 		return ECS::INVALID_C_UNIQUE_ID;
 	}
@@ -1151,7 +1151,7 @@ void ECS::Entity::getComponentIndiicesByUniqueId(const C_UNIQUE_ID cUniqueId, st
 		//}
 		cIndicies = this->componentIndicies.at(cUniqueId);
 	}
-	catch (const std::out_of_range& oor)
+	catch(...) //(const std::out_of_range& oor)
 	{
 		// Doesn't exist. return.
 		return;
@@ -1253,7 +1253,7 @@ ECS::System::System(const int priority, std::initializer_list<C_UNIQUE_ID> compo
 			signature.test(cId);
 			signature[cId] = 1;
 		}
-		catch (const std::out_of_range& oor)
+		catch(...)// (const std::out_of_range& oor)
 		{
 			continue;
 		}
