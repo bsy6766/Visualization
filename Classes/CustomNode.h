@@ -53,7 +53,8 @@ private:
     friend class EarClippingScene;
     friend class AStarScene;
 	friend class VisibilityScene;
-    
+	friend class SortScene;
+
     //Default contructor
     DisplayBoundaryBoxNode() = default;
     
@@ -97,6 +98,7 @@ private:
     friend class EarClippingScene;
     friend class AStarScene;
 	friend class VisibilityScene;
+	friend class SortScene;
 
 	enum class TYPE
 	{
@@ -260,6 +262,7 @@ private:
 	friend class RectPackingScene;
 	friend class EarClippingScene;
 	friend class AStarScene;
+	friend class SortScene;
 
 	//Default contructor
 	SliderLabelNode() = default;

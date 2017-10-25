@@ -6,7 +6,7 @@
 #include "EarClippingScene.h"
 #include "AStarScene.h"
 #include "VisibilityScene.h"
-#include "SortMenuScene.h"
+#include "SortScene.h"
 #include "Utility.h"
 
 USING_NS_CC;
@@ -259,7 +259,7 @@ void MainScene::onMouseDown(cocos2d::Event* event)
 				break;
 			case MENU_INDEX::SORT:
 			{
-				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, SortMenuScene::create(), cocos2d::Color3B::BLACK));
+				cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, SortScene::create(), cocos2d::Color3B::BLACK));
 			}
 				break;
 			case MENU_INDEX::EXIT:
