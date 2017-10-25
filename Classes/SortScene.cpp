@@ -20,6 +20,8 @@ bool SortScene::init()
 	// Uncomment this to activate update(float) function
 	this->scheduleUpdate();
 
+	paused = false;
+
 	// init display boundary box node which draws outer line of simulation display box
 	this->displayBoundaryBoxNode = DisplayBoundaryBoxNode::createNode();
 	this->displayBoundaryBoxNode->setPosition(cocos2d::Vec2::ZERO);
@@ -79,6 +81,7 @@ bool SortScene::init()
 
 	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Keys (Green = enabled)", headerSize);
 	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Space: Toggle update", labelSize);
+	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "Enter: Step", labelSize);
 	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "R: Reset", labelSize);
 	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "1: Selection sort", labelSize);
 	this->labelsNode->addLabel(LabelsNode::TYPE::KEYBOARD, "2: Insertion sort", labelSize);
@@ -183,15 +186,55 @@ void SortScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::E
 		cocos2d::Director::getInstance()->replaceScene(cocos2d::TransitionFade::create(0.5f, MainScene::create(), cocos2d::Color3B::BLACK));
 
 	}
+	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_SPACE)
+	{
+		paused = !paused;
+		this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::PAUSE), paused ? cocos2d::Color3B::GREEN : cocos2d::Color3B::WHITE);
+	}
+	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_ENTER)
+	{
+		if (paused)
+		{
+			switch (sortMode)
+			{
+			case SortScene::SORT_MODE::SELECTION:
+				searchElapsedTime = 0;
+				if (selectionSortState == SELECTION_SORT_STATE::SEARCHING_MIN_VALUE)
+				{
+					stepSelectionSort();
+				}
+				break;
+			case SortScene::SORT_MODE::INSERTION:
+				break;
+			case SortScene::SORT_MODE::MERGE:
+				break;
+			case SortScene::SORT_MODE::BUBBLE:
+				break;
+			case SortScene::SORT_MODE::QUICK:
+				break;
+			default:
+			case SortScene::SORT_MODE::NONE:
+				break;
+			}
+			this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::STEP), cocos2d::Color3B::WHITE);
+		}
+	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_R)
 	{
 		reset();
+		this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::RESET), cocos2d::Color3B::WHITE);
 	}
 	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_1)
 	{
 		// selection sort
 		initSelectionSort();
 		this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::KEY_1),cocos2d::Color3B::GREEN);
+	}
+	else if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_2)
+	{
+		// selection sort
+		initInsertionSort();
+		this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::KEY_2), cocos2d::Color3B::GREEN);
 	}
 }
 
@@ -287,78 +330,14 @@ void SortScene::updateSelectionSort(const float delta)
 	}
 	else if (selectionSortState == SELECTION_SORT_STATE::SEARCHING_MIN_VALUE)
 	{
+		if (paused) return;
+
 		searchElapsedTime += (delta * simulationSpeedModifier);
 		if (searchElapsedTime >= searchSpeed)
 		{
 			//bars.at(minSearchIndex)
 			searchElapsedTime -= searchSpeed;
-			if (minSearchIndex < MAX_VALUE_SIZE)
-			{
-				// change previous searching bar to white. if it was min bar, mark red
-				if (minSearchIndex > (sortedIndex + 1))
-				{
-					if ((minSearchIndex - 1) != minSelectedIndex)
-					{
-						bars.at(minSearchIndex - 1)->setColor(cocos2d::Color3B::WHITE);
-					}
-					else
-					{
-						bars.at(minSearchIndex - 1)->setColor(cocos2d::Color3B::RED);
-					}
-				}
-
-				// set current bar to blue
-				bars.at(minSearchIndex)->setColor(cocos2d::Color3B::BLUE);
-
-				// check if minimum value was found this iteration
-				if (minSelectedIndex == -1)
-				{
-					// not found. set as after sorted Index
-					minSelectedIndex = sortedIndex + 1;
-					// mark as red only if it's not blue
-					if (minSelectedIndex != minSearchIndex)
-					{
-						bars.at(minSelectedIndex)->setColor(cocos2d::Color3B::RED);
-					}
-				}
-				else
-				{
-					// there is min value. check with new value
-					if (values.at(minSelectedIndex) > values.at(minSearchIndex))
-					{
-						bars.at(minSelectedIndex)->setColor(cocos2d::Color3B::WHITE);
-						minSelectedIndex = minSearchIndex;
-						bars.at(minSelectedIndex)->setColor(cocos2d::Color3B::RED);
-					}
-				}
-
-				minSearchIndex++;
-			}
-			else
-			{
-				sortedIndex++;
-				if (sortedIndex == 65)
-				{
-					selectionSortState = SELECTION_SORT_STATE::FINISHED;
-					this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Finished");
-				}
-				else
-				{
-					int siValue = values.at(sortedIndex);
-					int minValue = values.at(minSelectedIndex);
-
-					float ssmFlip = (2.0f - simulationSpeedModifier) * 2.0f;
-					bars.at(sortedIndex)->runAction(cocos2d::ScaleTo::create(searchSpeed * ssmFlip, 10.0f, (static_cast<float>(minValue) / 65.0f * 100.0f * 6.5f), 1.0f));
-					bars.at(sortedIndex)->runAction(cocos2d::TintTo::create(searchSpeed * ssmFlip, cocos2d::Color3B::RED));
-					bars.at(minSelectedIndex)->runAction(cocos2d::ScaleTo::create(searchSpeed * ssmFlip, 10.0f, (static_cast<float>(siValue) / 65.0f * 100.0f * 6.5f), 1.0f));
-					bars.at(minSelectedIndex)->runAction(cocos2d::TintTo::create(searchSpeed * ssmFlip, cocos2d::Color3B::WHITE));
-
-					bars.at(minSearchIndex - 1)->setColor(cocos2d::Color3B::WHITE);
-					selectionSortState = SELECTION_SORT_STATE::SWAP;
-
-					searchElapsedTime = 0;
-				}
-			}
+			stepSelectionSort();
 		}
 	}
 	else if (selectionSortState == SELECTION_SORT_STATE::SWAP)
@@ -392,6 +371,85 @@ void SortScene::updateSelectionSort(const float delta)
 			
 		}
 	}
+}
+
+void SortScene::stepSelectionSort()
+{
+	if (minSearchIndex < MAX_VALUE_SIZE)
+	{
+		// change previous searching bar to white. if it was min bar, mark red
+		if (minSearchIndex >(sortedIndex + 1))
+		{
+			if ((minSearchIndex - 1) != minSelectedIndex)
+			{
+				bars.at(minSearchIndex - 1)->setColor(cocos2d::Color3B::WHITE);
+			}
+			else
+			{
+				bars.at(minSearchIndex - 1)->setColor(cocos2d::Color3B::RED);
+			}
+		}
+
+		// set current bar to blue
+		bars.at(minSearchIndex)->setColor(cocos2d::Color3B::BLUE);
+
+		// check if minimum value was found this iteration
+		if (minSelectedIndex == -1)
+		{
+			// not found. set as after sorted Index
+			minSelectedIndex = sortedIndex + 1;
+			// mark as red only if it's not blue
+			if (minSelectedIndex != minSearchIndex)
+			{
+				bars.at(minSelectedIndex)->setColor(cocos2d::Color3B::RED);
+			}
+		}
+		else
+		{
+			// there is min value. check with new value
+			if (values.at(minSelectedIndex) > values.at(minSearchIndex))
+			{
+				bars.at(minSelectedIndex)->setColor(cocos2d::Color3B::WHITE);
+				minSelectedIndex = minSearchIndex;
+				bars.at(minSelectedIndex)->setColor(cocos2d::Color3B::RED);
+			}
+		}
+
+		minSearchIndex++;
+	}
+	else
+	{
+		sortedIndex++;
+		if (sortedIndex == 65)
+		{
+			selectionSortState = SELECTION_SORT_STATE::FINISHED;
+			this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Finished");
+		}
+		else
+		{
+			int siValue = values.at(sortedIndex);
+			int minValue = values.at(minSelectedIndex);
+
+			float ssmFlip = (2.0f - simulationSpeedModifier) * 2.0f;
+			bars.at(sortedIndex)->runAction(cocos2d::ScaleTo::create(searchSpeed * ssmFlip, 10.0f, (static_cast<float>(minValue) / 65.0f * 100.0f * 6.5f), 1.0f));
+			bars.at(sortedIndex)->runAction(cocos2d::TintTo::create(searchSpeed * ssmFlip, cocos2d::Color3B::RED));
+			bars.at(minSelectedIndex)->runAction(cocos2d::ScaleTo::create(searchSpeed * ssmFlip, 10.0f, (static_cast<float>(siValue) / 65.0f * 100.0f * 6.5f), 1.0f));
+			bars.at(minSelectedIndex)->runAction(cocos2d::TintTo::create(searchSpeed * ssmFlip, cocos2d::Color3B::WHITE));
+
+			bars.at(minSearchIndex - 1)->setColor(cocos2d::Color3B::WHITE);
+			selectionSortState = SELECTION_SORT_STATE::SWAP;
+
+			searchElapsedTime = 0;
+		}
+	}
+}
+
+void SortScene::initInsertionSort()
+{
+}
+
+void SortScene::updateInsertionSort(const float delta)
+{
 }
 
 void SortScene::onSliderClick(cocos2d::Ref* sender)

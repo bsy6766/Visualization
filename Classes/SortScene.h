@@ -38,6 +38,7 @@ private:
 	{
 		NONE,
 		PAUSE,
+		STEP,
 		RESET,
 		KEY_1,
 		KEY_2,
@@ -54,6 +55,8 @@ private:
 	DisplayBoundaryBoxNode* displayBoundaryBoxNode;
 	SliderLabelNode* sliderLabelNode;
 	float simulationSpeedModifier;
+
+	bool paused;
 
 	// Selection sort
 	int minSearchIndex;
@@ -107,6 +110,10 @@ private:
 
 	void initSelectionSort();
 	void updateSelectionSort(const float delta);
+	void stepSelectionSort();
+
+	void initInsertionSort();
+	void updateInsertionSort(const float delta);
 public:
 	//simple creator func
 	static SortScene* createScene();
