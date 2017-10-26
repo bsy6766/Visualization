@@ -123,6 +123,7 @@ private:
 		NONE,
 		SEARCH,
 		SORT,
+		WAIT_ANIM,
 		CHECK,
 		FINISHED
 	};
@@ -131,6 +132,16 @@ private:
 	int checkIndex;
 	float checkSpeed;
 	float checkElapsedTime;
+
+	// Bubble sort
+	int curBubbleIndex;
+	enum class BUBBLE_SORT_STATE
+	{
+		NONE,
+		NEXT,
+		SWAP,
+	};
+	BUBBLE_SORT_STATE bubbleSortState;
 
 	// total 65
 	std::vector<int> values;
@@ -182,6 +193,10 @@ private:
 	void buildMergeElemTree(MergeElem* me, const int start, const int end, const int size);
 	MergeElem* searchUnsortedElem(MergeElem* elem);
 	void sortCurElem();
+	void stepMergeSort();
+
+	void initBubbleSort();
+	void updateBubbleSort(const float delta);
 
 	void checkSort(const float delta);
 
