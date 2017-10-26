@@ -17,7 +17,7 @@ C++
 
 ## Performance
 Performance of each algorithm are different. Some algorithm, Quad Tree for example, limits the size of total entities, but some algorithm can have more than 10000 entities like Circle Packing.<br> 
-**I am trying to make the program to run at 60fps, which it does on my machine, but I am more focusing on implementing algorithm than optimization at this moment.<br>**
+**My goal for the performance is to make everything to run in 60 fps in most case.<br>**
 
 ## Working/Tested Platforms
 Windows 10<br>
@@ -32,8 +32,6 @@ Optimize all visualization.
 Visualizes dot and cross product (i.e. Patrol detects player if player is in his sight range with angle)
 ### Audio spectrum
 Visualizes music in to several different form of graphs
-### Simplex Noise
-Ken Perlin's Simplex Noise. Generates noise image and shake.
 
 ----
 ## Font
@@ -41,10 +39,10 @@ Used [Rubik](https://www.fontsquirrel.com/fonts/rubik) by Hubert & Fischer.
 
 ##Todo List
 - Test build on linux
-- Replace current ECS (composite) with new ECS (data oriented)
 
 
 ## ChangeLog
+v0.12 Added Sort (Selection, Insertion, Merge, Bubble, Quick) visualization
 v0.11 Added 2D visibility visualization. <br>
 v0.10 Added A Star Pathfinding visualization. Memory leak checked with OS X Instrument.<br>
 v0.9 Added Ear Clipping visualization.<br>
