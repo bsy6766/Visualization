@@ -143,6 +143,8 @@ void SortScene::onEnter()
 
 void SortScene::update(float delta)
 {
+	this->labelsNode->updateFPSLabel(delta);
+
 	float dt = delta * simulationSpeedModifier;
 
 	switch (sortMode)
@@ -420,18 +422,18 @@ void SortScene::updateSelectionSort(const float delta)
 	{
 		if (paused) return;
 
-		searchElapsedTime += (delta * simulationSpeedModifier);
-		if (searchElapsedTime >= searchSpeed)
+		searchElapsedTime += (delta * simulationSpeedModifier * 2.0f);
+		if (searchElapsedTime >= searchSpeed * 0.5f)
 		{
 			//bars.at(minSearchIndex)
-			searchElapsedTime -= searchSpeed;
+			searchElapsedTime -= (searchSpeed * 0.5f);
 			stepSelectionSort();
 		}
 	}
 	else if (selectionSortState == SELECTION_SORT_STATE::SWAP)
 	{
-		searchElapsedTime += delta;
-		if (searchElapsedTime >= searchSpeed * (2.0f - simulationSpeedModifier) * 2.0f)
+		searchElapsedTime += (delta * simulationSpeedModifier * 2.0f);
+		if (searchElapsedTime >= searchSpeed * 0.5f)
 		{
 			searchElapsedTime = 0;
 			selectionSortState = SELECTION_SORT_STATE::SEARCHING_MIN_VALUE;
@@ -604,7 +606,6 @@ void SortScene::updateInsertionSort(const float delta)
 					if (i == swappingIndex)
 					{
 						bars.at(i)->runAction(cocos2d::ScaleTo::create(animSpeed * ssmFlip, barScaleX, (static_cast<float>(curVal) * 650.0f / barScaleYMul), 1.0f));
-						//bars.at(i)->runAction(cocos2d::TintTo::create(animSpeed * ssmFlip, cocos2d::Color3B::YELLOW));
 						values.at(i) = curVal;
 					}
 					else
@@ -646,10 +647,6 @@ void SortScene::updateInsertionSort(const float delta)
 		{
 			insertionSortState = INSERTION_SORT_STATE::SELECTING_NEXT;
 			float ssmFlip = (2.0f - simulationSpeedModifier) * 2.0f;
-			if (swappingIndex != -1 && (curInsertionSortIndex != swappingIndex || curInsertionSortIndex > 0))
-			{
-				//bars.at(curIndex)->runAction(cocos2d::TintTo::create(animSpeed * ssmFlip, cocos2d::Color3B::WHITE));
-			}
 			curInsertionSortIndex++;
 
 			if (curInsertionSortIndex >= MAX_VALUE_SIZE)
@@ -705,6 +702,10 @@ void SortScene::initMergeSort()
 	root->startIndex = 0;
 	root->endIndex = MAX_VALUE_SIZE - 1;
 
+	mergeSortDelay = 0.1f;
+	mergeSortElapsedTime = 0;
+	animSpeed = 0.06f;
+
 	buildMergeElemTree(root, 0, MAX_VALUE_SIZE - 1, MAX_VALUE_SIZE);
 
 	mergeSortState = MERGE_SORT_STATE::NONE;
@@ -715,34 +716,56 @@ void SortScene::updateMergeSort(const float delta)
 	if (mergeSortState == MERGE_SORT_STATE::NONE)
 	{
 		mergeSortState = MERGE_SORT_STATE::SEARCH;
+		mergeSortElapsedTime = mergeSortDelay;
 	}
 	else if(mergeSortState == MERGE_SORT_STATE::SEARCH)
 	{
-		curElem = searchUnsortedElem(root);
-
-		if (curElem)
+		mergeSortElapsedTime += (delta * simulationSpeedModifier);
+		if (mergeSortElapsedTime >= mergeSortDelay)
 		{
-			for (int i = curElem->left->startIndex; i < curElem->left->endIndex; i++)
-			{
-				bars.at(i)->runAction(cocos2d::TintTo::create(animSpeed, cocos2d::Color3B::BLUE));
-			}
-		}
+			curElem = searchUnsortedElem(root);
 
-		mergeSortState = MERGE_SORT_STATE::SORT;
+			if (curElem)
+			{
+				float ssmFlip = (2.0f - simulationSpeedModifier) * 2.0f;
+				for (int i = curElem->left->startIndex; i <= curElem->left->endIndex; i++)
+				{
+					bars.at(i)->runAction(cocos2d::TintTo::create(animSpeed * ssmFlip, cocos2d::Color3B::BLUE));
+				}
+				for (int i = curElem->right->startIndex; i <= curElem->right->endIndex; i++)
+				{
+					bars.at(i)->runAction(cocos2d::TintTo::create(animSpeed * ssmFlip, cocos2d::Color3B::BLUE));
+				}
+			}
+
+			mergeSortState = MERGE_SORT_STATE::SORT;
+
+			mergeSortElapsedTime = 0;
+		}
 	}
 	else if (mergeSortState == MERGE_SORT_STATE::SORT)
 	{
-		sortCurElem();
+		mergeSortElapsedTime += (delta * simulationSpeedModifier);
+		if (mergeSortElapsedTime >= mergeSortDelay)
+		{
+			mergeSortElapsedTime = 0;
 
-		if (curElem->values.size() == MAX_VALUE_SIZE)
-		{
-			mergeSortState = MERGE_SORT_STATE::FINISHED;
+			sortCurElem();
+
+			if (curElem->values.size() == MAX_VALUE_SIZE)
+			{
+				mergeSortState = MERGE_SORT_STATE::CHECK;
+			}
+			else
+			{
+				mergeSortState = MERGE_SORT_STATE::SEARCH;
+			}
+			curElem = nullptr;
 		}
-		else
-		{
-			mergeSortState = MERGE_SORT_STATE::SEARCH;
-		}
-		curElem = nullptr;
+	}
+	else if (mergeSortState == MERGE_SORT_STATE::CHECK)
+	{
+		checkSort(delta);
 	}
 }
 
@@ -868,9 +891,10 @@ void SortScene::sortCurElem()
 			values.at(i) = curElem->values.at(eIndex);
 
 			float ssmFlip = (2.0f - simulationSpeedModifier) * 2.0f;
-			bars.at(sortedIndex)->runAction(cocos2d::ScaleTo::create(animSpeed * ssmFlip, barScaleX, (static_cast<float>(values.at(i)) * 650.0f / barScaleYMul)));
-			bars.at(sortedIndex)->runAction(cocos2d::TintTo::create(animSpeed * ssmFlip, cocos2d::Color3B::YELLOW));
+			bars.at(i)->runAction(cocos2d::ScaleTo::create(animSpeed * ssmFlip, barScaleX, (static_cast<float>(values.at(i)) * 650.0f / barScaleYMul)));
+			bars.at(i)->runAction(cocos2d::TintTo::create(animSpeed * ssmFlip, cocos2d::Color3B::YELLOW));
 
+			eIndex++;
 		}
 	}
 }
@@ -898,6 +922,7 @@ void SortScene::checkSort(const float delta)
 				insertionSortState = INSERTION_SORT_STATE::FINISHED;
 				break;
 			case SortScene::SORT_MODE::MERGE:
+				mergeSortState = MERGE_SORT_STATE::FINISHED;
 				break;
 			case SortScene::SORT_MODE::BUBBLE:
 				break;

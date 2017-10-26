@@ -116,6 +116,8 @@ private:
 	// Merge sort
 	MergeElem* root;
 	MergeElem* curElem;
+	float mergeSortDelay;
+	float mergeSortElapsedTime;
 	enum class MERGE_SORT_STATE
 	{
 		NONE,
