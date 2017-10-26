@@ -24,6 +24,27 @@ struct MergeElem
 	}
 };
 
+struct QuickElem
+{
+	std::vector<int> values;
+	QuickElem* parent;
+	QuickElem* left;
+	QuickElem* right;
+	bool leaf;
+	int pivot;
+	int pivotIndex;
+	bool sorted;
+
+
+	QuickElem() : left(nullptr), right(nullptr), parent(nullptr), leaf(false), pivot(-1), pivotIndex(-1), sorted(false)
+	{}
+	~QuickElem()
+	{
+		if (left) delete left;
+		if (right) delete right;
+	}
+};
+
 class SortScene : public cocos2d::Scene
 {
 private:
@@ -114,8 +135,8 @@ private:
 	INSERTION_SORT_STATE insertionSortState;
 
 	// Merge sort
-	MergeElem* root;
-	MergeElem* curElem;
+	MergeElem* mergeSortRoot;
+	MergeElem* curMergeElem;
 	float mergeSortDelay;
 	float mergeSortElapsedTime;
 	enum class MERGE_SORT_STATE
@@ -147,6 +168,20 @@ private:
 		FINISHED
 	};
 	BUBBLE_SORT_STATE bubbleSortState;
+
+	// quick sort
+	QuickElem* quickSortRoot;
+	QuickElem* curQuickElem;
+	enum class QUICK_SORT_STATE
+	{
+		NONE,
+		PICK_PIVOT,
+		PARTITION,
+		MERGE,
+		CHECK,
+		FINISHED,
+	};
+	QUICK_SORT_STATE quickSortState;
 
 	// total 65
 	std::vector<int> values;
@@ -202,6 +237,10 @@ private:
 
 	void initBubbleSort();
 	void updateBubbleSort(const float delta);
+	void stepBubbleSort();
+
+	void initQuickSort();
+	void updateQuickSort(const float delta);
 
 	void checkSort(const float delta);
 
