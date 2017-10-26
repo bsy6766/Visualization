@@ -278,6 +278,12 @@ void SortScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::E
 			}
 				break;
 			case SortScene::SORT_MODE::QUICK:
+			{
+				if (quickSortState == QUICK_SORT_STATE::PARTITION)
+				{
+					stepQuickSort();
+				}
+			}
 				break;
 			default:
 			case SortScene::SORT_MODE::NONE:
@@ -1079,6 +1085,8 @@ void SortScene::initQuickSort()
 	quickSortRoot = new QuickElem();
 	quickSortRoot->values = values;
 
+	animSpeed = 0.06f;
+
 	checkIndex = 0;
 
 	this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Sorting");
@@ -1091,11 +1099,36 @@ void SortScene::updateQuickSort(const float delta)
 	{
 		quickSortState = QUICK_SORT_STATE::PICK_PIVOT;
 		curQuickElem = quickSortRoot;
+		curQuickElem->startIndex = 0;
+		curQuickElem->endIndex = values.size() - 1;
 	}
 	else if (quickSortState == QUICK_SORT_STATE::PICK_PIVOT)
 	{
+		float ssmFlip = (2.0f - simulationSpeedModifier) * 2.0f;
+
+		if (curQuickElem->parent)
+		{
+			if (bars.at(curQuickElem->parent->pivotIndex)->getNumberOfRunningActions())
+			{
+				return;
+			}
+
+
+			/*
+			if (curQuickElem->parent->parent == nullptr)
+			{
+				bars.at(values.size() - 1)->runAction(cocos2d::TintTo::create(animSpeed * ssmFlip, cocos2d::Color3B::WHITE));
+			}
+			else
+			{
+				bars.at(curQuickElem->parent->pivotIndex)->runAction(cocos2d::TintTo::create(animSpeed * ssmFlip, cocos2d::Color3B::WHITE));
+			}
+			*/
+			bars.at(curQuickElem->parent->pivotIndex)->runAction(cocos2d::TintTo::create(animSpeed * ssmFlip, cocos2d::Color3B::WHITE));
+		}
+
 		int pivotIndex = curQuickElem->values.size() - 1;
-		bars.at(pivotIndex)->setColor(Color3B::RED);
+		bars.at(curQuickElem->endIndex)->runAction(cocos2d::TintTo::create(animSpeed * ssmFlip, cocos2d::Color3B::RED));
 
 		curQuickElem->pivot = curQuickElem->values.back();
 		curQuickElem->pivotIndex = pivotIndex;
@@ -1104,134 +1137,17 @@ void SortScene::updateQuickSort(const float delta)
 	}
 	else if (quickSortState == QUICK_SORT_STATE::PARTITION)
 	{
-		if (curQuickElem->sorted == false)//values.size() >= 2)// && curQuickElem->left == nullptr && curQuickElem->right == nullptr)
-		{
-			if (curQuickElem->pivot == -1)
-			{
-				quickSortState = QUICK_SORT_STATE::PICK_PIVOT;
-				return;
-			}
+		if (paused) return;
 
-			if (curQuickElem->left == nullptr && curQuickElem->right == nullptr)
-			{
-				curQuickElem->left = new QuickElem();
-				curQuickElem->left->parent = curQuickElem;
-				curQuickElem->right = new QuickElem();
-				curQuickElem->right->parent = curQuickElem;
-
-				int pivotVal = curQuickElem->values.back();
-
-				curQuickElem->pivot = pivotVal;
-				int index = 0;
-				for (auto v : curQuickElem->values)
-				{
-					if (v != pivotVal)
-					{
-						if (v < pivotVal)
-						{
-							curQuickElem->left->values.push_back(v);
-						}
-						else
-						{
-							curQuickElem->right->values.push_back(v);
-						}
-					}
-					else
-					{
-						curQuickElem->pivotIndex = index;
-					}
-
-					index++;
-				}
-
-				values.clear();
-				values.insert(values.end(), curQuickElem->left->values.begin(), curQuickElem->left->values.end());
-				values.push_back(curQuickElem->pivot);
-				values.insert(values.end(), curQuickElem->right->values.begin(), curQuickElem->right->values.end());
-
-				float ssmFlip = (2.0f - simulationSpeedModifier) * 2.0f;
-
-				for (unsigned int i = 0; i < values.size(); i++)
-				{
-					if (values.at(i) == curQuickElem->pivot)
-					{
-						bars.at(i)->setColor(cocos2d::Color3B::RED);
-					}
-
-					bars.at(i)->runAction(cocos2d::ScaleTo::create(searchSpeed * ssmFlip, barScaleX, (static_cast<float>(values.at(i)) * 650.0f / barScaleYMul), 1.0f));
-					bars.at(i)->setColor(cocos2d::Color3B::WHITE);
-				}
-
-				bool leftLeaf = false;
-				if (curQuickElem->left->values.size() <= 1)
-				{
-					curQuickElem->left->leaf = true;
-					curQuickElem->left->sorted = true;
-					leftLeaf = true;
-				}
-
-				bool rightLeaf = false;
-				if (curQuickElem->right->values.size() <= 1)
-				{
-					curQuickElem->right->leaf = true;
-					curQuickElem->right->sorted = true;
-					rightLeaf = true;
-				}
-
-				if (leftLeaf && rightLeaf)
-				{
-					quickSortState = QUICK_SORT_STATE::MERGE;
-				}
-				else if (leftLeaf)
-				{
-					curQuickElem = curQuickElem->right;
-				}
-				else if (rightLeaf)
-				{
-					curQuickElem = curQuickElem->left;
-				}
-				else
-				{
-					curQuickElem = curQuickElem->left;
-				}
-			}
-			else
-			{
-				bool l = curQuickElem->left->leaf;
-				bool r = curQuickElem->right->leaf;
-
-				if (l && r)
-				{
-					quickSortState = QUICK_SORT_STATE::MERGE;
-				}
-				else if (l)
-				{
-					curQuickElem = curQuickElem->right;
-				}
-				else if (r)
-				{
-					curQuickElem = curQuickElem->left;
-				}
-				else
-				{
-					curQuickElem = curQuickElem->left;
-				}
-			}
-		}
-		else
-		{
-			if (curQuickElem->parent->right)
-			{
-				curQuickElem = curQuickElem->parent->right;
-			}
-			else
-			{
-				curQuickElem = curQuickElem->parent;
-			}
-		}
+		stepQuickSort();
 	}
 	else if (quickSortState == QUICK_SORT_STATE::MERGE)
 	{
+		if (bars.at(curQuickElem->pivotIndex)->getNumberOfRunningActions())
+		{
+			return;
+		}
+
 		assert(curQuickElem->values.size() >= 2);
 
 		curQuickElem->values.clear();
@@ -1250,6 +1166,15 @@ void SortScene::updateQuickSort(const float delta)
 
 		curQuickElem->sorted = true;
 		curQuickElem->leaf = true;
+
+		float ssmFlip = (2.0f - simulationSpeedModifier) * 2.0f;
+
+		for (int i = curQuickElem->startIndex; i <= curQuickElem->endIndex; i++)
+		{
+			bars.at(i)->stopAllActions();
+			bars.at(i)->runAction(cocos2d::TintTo::create(animSpeed * ssmFlip, cocos2d::Color3B::YELLOW));
+		}
+
 		curQuickElem = curQuickElem->parent;
 
 		if (curQuickElem == nullptr)
@@ -1267,6 +1192,149 @@ void SortScene::updateQuickSort(const float delta)
 			{
 				quickSortState = QUICK_SORT_STATE::PARTITION;
 			}
+		}
+	}
+	else if (quickSortState == QUICK_SORT_STATE::CHECK)
+	{
+		checkSort(delta);
+	}
+}
+
+void SortScene::stepQuickSort()
+{
+	if (curQuickElem->sorted == false)//values.size() >= 2)// && curQuickElem->left == nullptr && curQuickElem->right == nullptr)
+	{
+		if (curQuickElem->pivot == -1)
+		{
+			quickSortState = QUICK_SORT_STATE::PICK_PIVOT;
+			return;
+		}
+
+		if (bars.at(curQuickElem->pivotIndex)->getNumberOfRunningActions())
+		{
+			return;
+		}
+
+		if (curQuickElem->left == nullptr && curQuickElem->right == nullptr)
+		{
+			curQuickElem->left = new QuickElem();
+			curQuickElem->left->parent = curQuickElem;
+			curQuickElem->right = new QuickElem();
+			curQuickElem->right->parent = curQuickElem;
+
+			int pivotVal = curQuickElem->values.back();
+
+			curQuickElem->pivot = pivotVal;
+
+			int index = 0;
+
+			for (auto v : curQuickElem->values)
+			{
+				if (v != pivotVal)
+				{
+					if (v < pivotVal)
+					{
+						curQuickElem->left->values.push_back(v);
+					}
+					else
+					{
+						curQuickElem->right->values.push_back(v);
+					}
+				}
+
+				index++;
+			}
+
+			int leftSize = curQuickElem->left->values.size();
+			int rightSize = curQuickElem->right->values.size();
+
+			curQuickElem->left->startIndex = curQuickElem->startIndex;
+			curQuickElem->left->endIndex = curQuickElem->startIndex + (leftSize - 1);
+			curQuickElem->pivotIndex = curQuickElem->startIndex + leftSize;
+			curQuickElem->right->startIndex = curQuickElem->pivotIndex + 1;
+			curQuickElem->right->endIndex = curQuickElem->endIndex;
+
+			std::vector<int> tempValues;
+			tempValues.insert(tempValues.end(), curQuickElem->left->values.begin(), curQuickElem->left->values.end());
+			tempValues.push_back(curQuickElem->pivot);
+			tempValues.insert(tempValues.end(), curQuickElem->right->values.begin(), curQuickElem->right->values.end());
+
+			float ssmFlip = (2.0f - simulationSpeedModifier) * 2.0f;
+
+			int barIndex = curQuickElem->left->startIndex;
+			for (unsigned int i = 0; i < tempValues.size(); i++)
+			{
+				bars.at(barIndex)->runAction(cocos2d::TintTo::create(animSpeed * ssmFlip, cocos2d::Color3B::WHITE));
+
+				bars.at(barIndex)->runAction(cocos2d::ScaleTo::create(animSpeed * ssmFlip, barScaleX, (static_cast<float>(tempValues.at(i)) * 650.0f / barScaleYMul), 1.0f));
+				barIndex++;
+			}
+
+			bool leftLeaf = false;
+			if (curQuickElem->left->values.size() <= 1)
+			{
+				curQuickElem->left->leaf = true;
+				curQuickElem->left->sorted = true;
+				leftLeaf = true;
+			}
+
+			bool rightLeaf = false;
+			if (curQuickElem->right->values.size() <= 1)
+			{
+				curQuickElem->right->leaf = true;
+				curQuickElem->right->sorted = true;
+				rightLeaf = true;
+			}
+
+			if (leftLeaf && rightLeaf)
+			{
+				quickSortState = QUICK_SORT_STATE::MERGE;
+			}
+			else if (leftLeaf)
+			{
+				curQuickElem = curQuickElem->right;
+			}
+			else if (rightLeaf)
+			{
+				curQuickElem = curQuickElem->left;
+			}
+			else
+			{
+				curQuickElem = curQuickElem->left;
+			}
+		}
+		else
+		{
+			bool l = curQuickElem->left->leaf;
+			bool r = curQuickElem->right->leaf;
+
+			if (l && r)
+			{
+				quickSortState = QUICK_SORT_STATE::MERGE;
+			}
+			else if (l)
+			{
+				curQuickElem = curQuickElem->right;
+			}
+			else if (r)
+			{
+				curQuickElem = curQuickElem->left;
+			}
+			else
+			{
+				curQuickElem = curQuickElem->left;
+			}
+		}
+	}
+	else
+	{
+		if (curQuickElem->parent->right)
+		{
+			curQuickElem = curQuickElem->parent->right;
+		}
+		else
+		{
+			curQuickElem = curQuickElem->parent;
 		}
 	}
 }

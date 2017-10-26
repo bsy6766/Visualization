@@ -35,8 +35,10 @@ struct QuickElem
 	int pivotIndex;
 	bool sorted;
 
+	int startIndex;
+	int endIndex;
 
-	QuickElem() : left(nullptr), right(nullptr), parent(nullptr), leaf(false), pivot(-1), pivotIndex(-1), sorted(false)
+	QuickElem() : left(nullptr), right(nullptr), parent(nullptr), leaf(false), pivot(-1), pivotIndex(-1), sorted(false), startIndex(-1), endIndex(-1)
 	{}
 	~QuickElem()
 	{
@@ -241,6 +243,7 @@ private:
 
 	void initQuickSort();
 	void updateQuickSort(const float delta);
+	void stepQuickSort();
 
 	void checkSort(const float delta);
 
