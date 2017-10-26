@@ -5,6 +5,25 @@
 #include "CustomNode.h"
 #include <vector>
 
+struct MergeElem
+{
+	std::vector<int> values;
+	MergeElem* parent;
+	MergeElem* left;
+	MergeElem* right;
+	bool leaf;
+
+	int startIndex;
+	int endIndex;
+
+	MergeElem() :left(nullptr), right(nullptr), parent(nullptr), leaf(false), startIndex(-1), endIndex(-1) {}
+	~MergeElem() 
+	{
+		if (left) delete left;
+		if (right) delete right;
+	}
+};
+
 class SortScene : public cocos2d::Scene
 {
 private:
@@ -47,14 +66,19 @@ private:
 		KEY_5
 	};
 
-	const int MAX_VALUE_SIZE = 65;
+	int MAX_VALUE_SIZE = 65;
+	float barScaleX;
+	float barScaleYMul;
 
 	SORT_MODE sortMode;
 
 	LabelsNode* labelsNode;
 	DisplayBoundaryBoxNode* displayBoundaryBoxNode;
+	SliderLabelNode* barCountSliderNode;
 	SliderLabelNode* sliderLabelNode;
 	float simulationSpeedModifier;
+	cocos2d::Label* barInfoLabel;
+	int hoveringBarIndex;
 
 	bool paused;
 
@@ -75,6 +99,9 @@ private:
 	SELECTION_SORT_STATE selectionSortState;
 
 	// Insertion sort
+	int curInsertionSortIndex;
+	int swappingIndex;
+	float animSpeed;
 	enum class INSERTION_SORT_STATE
 	{
 		NONE,
@@ -85,9 +112,19 @@ private:
 		FINISHED
 	};
 	INSERTION_SORT_STATE insertionSortState;
-	int curIndex;
-	int swappingIndex;
-	float animSpeed;
+
+	// Merge sort
+	MergeElem* root;
+	MergeElem* curElem;
+	enum class MERGE_SORT_STATE
+	{
+		NONE,
+		SEARCH,
+		SORT,
+		CHECK,
+		FINISHED
+	};
+	MERGE_SORT_STATE mergeSortState;
 
 	int checkIndex;
 	float checkSpeed;
@@ -121,6 +158,7 @@ private:
 	void releaseInputListeners();
 
 	// On slider finishes click on slider
+	void onArraySizeSliderClick(cocos2d::Ref* sender);
 	void onSliderClick(cocos2d::Ref* sender);
 
 	void resetValues();
@@ -137,7 +175,17 @@ private:
 	void updateInsertionSort(const float delta);
 	void stepInsertionSort();
 
+	void initMergeSort();
+	void updateMergeSort(const float delta);
+	void buildMergeElemTree(MergeElem* me, const int start, const int end, const int size);
+	MergeElem* searchUnsortedElem(MergeElem* elem);
+	void sortCurElem();
+
 	void checkSort(const float delta);
+
+	void checkMouseOver(const cocos2d::Vec2& mousePos);
+
+	void replaceBars();
 public:
 	//simple creator func
 	static SortScene* createScene();

@@ -535,7 +535,7 @@ void SliderLabelNode::addSlider(const std::string& labelStr, const std::string& 
 	}
 
 	//Slider Label
-	auto newLabel = cocos2d::Label::createWithTTF("Simulation Speed", "fonts/Rubik-Medium.ttf", 25);
+	auto newLabel = cocos2d::Label::createWithTTF(labelStr, "fonts/Rubik-Medium.ttf", 25);
 	newLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
 	pos.y -= yOffset;
 	newLabel->setPosition(pos);
