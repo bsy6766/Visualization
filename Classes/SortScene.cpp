@@ -312,7 +312,7 @@ void SortScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode keyCode, cocos2d::E
 		// merge sort
 		clearPrevSortModeLabelColor();
 		initBubbleSort();
-		this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::KEY_3), cocos2d::Color3B::GREEN);
+		this->labelsNode->setColor(LabelsNode::TYPE::KEYBOARD, static_cast<int>(USAGE_KEY::KEY_4), cocos2d::Color3B::GREEN);
 		this->barCountSliderNode->sliderLabels.back().slider->setEnabled(false);
 	}
 }
@@ -941,7 +941,18 @@ void SortScene::initBubbleSort()
 	resetBar();
 	sortMode = SORT_MODE::BUBBLE;
 
+	bubbleSortState = BUBBLE_SORT_STATE::NONE;
+
 	curBubbleIndex = -1;
+
+	animSpeed = 0.06f;
+
+	bubbleSortDelay = 0.02f;
+	bubbleSortElapsedTime = 0;
+
+	checkIndex = 0;
+
+	swapped = false;
 
 	this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::STATUS), "Status: Sorting");
 	this->labelsNode->updateLabel(static_cast<int>(CUSTOM_LABEL_INDEX::CURRENT_SORT), "Current sort: Bubble Sort");
@@ -955,31 +966,75 @@ void SortScene::updateBubbleSort(const float delta)
 	}
 	else if (bubbleSortState == BUBBLE_SORT_STATE::NEXT)
 	{
-		curBubbleIndex++;
-
-		if (curBubbleIndex == MAX_VALUE_SIZE)
+		bubbleSortElapsedTime += (delta * simulationSpeedModifier);
+		if (bubbleSortElapsedTime >= bubbleSortDelay)
 		{
-			curBubbleIndex = 0;
+			curBubbleIndex++;
+
+			float ssmFlip = (2.0f - simulationSpeedModifier) * 2.0f;
+
+			if (curBubbleIndex == MAX_VALUE_SIZE - 1)
+			{
+				bars.at(curBubbleIndex)->setColor(cocos2d::Color3B::WHITE);
+				bars.at(curBubbleIndex - 1)->setColor(cocos2d::Color3B::WHITE);
+				curBubbleIndex = -1;
+
+				if (swapped == false)
+				{
+					bubbleSortState = BUBBLE_SORT_STATE::CHECK;
+					return;
+				}
+				else
+				{
+					swapped = false;
+				}
+			}
+			else
+			{
+				if (curBubbleIndex > 0)
+				{
+					bars.at(curBubbleIndex - 1)->setColor(cocos2d::Color3B::WHITE);
+				}
+
+				bars.at(curBubbleIndex)->setColor(cocos2d::Color3B::BLUE);
+				bars.at(curBubbleIndex + 1)->setColor(cocos2d::Color3B::BLUE);
+
+				bubbleSortState = BUBBLE_SORT_STATE::SWAP;
+
+				bubbleSortElapsedTime = 0;
+			}
 		}
-
-		float ssmFlip = (2.0f - simulationSpeedModifier) * 2.0f;
-
-		if (curBubbleIndex > 0)
-		{
-			bars.at(curBubbleIndex - 1)->runAction(cocos2d::TintTo::create(searchSpeed * ssmFlip, cocos2d::Color3B::BLUE));
-		}
-
-		bars.at(curBubbleIndex)->runAction(cocos2d::TintTo::create(searchSpeed * ssmFlip, cocos2d::Color3B::BLUE));
-		bars.at(curBubbleIndex + 1)->runAction(cocos2d::TintTo::create(searchSpeed * ssmFlip, cocos2d::Color3B::BLUE));
-
-		bubbleSortState = BUBBLE_SORT_STATE::SWAP;
 	}
 	else if(bubbleSortState == BUBBLE_SORT_STATE::SWAP)
 	{ 
-		if (bars.at(curBubbleIndex)->getNumberOfRunningActions() == 0)
+		bubbleSortElapsedTime += (delta * simulationSpeedModifier);
+		if (bubbleSortElapsedTime >= bubbleSortDelay)
 		{
+			bubbleSortElapsedTime -= bubbleSortDelay;
+
+			int leftValue = values.at(curBubbleIndex);
+			int rightValue = values.at(curBubbleIndex + 1);
+
+			if (leftValue > rightValue)
+			{
+				values.at(curBubbleIndex) = rightValue;
+				values.at(curBubbleIndex + 1) = leftValue;
+
+				float ssmFlip = (2.0f - simulationSpeedModifier) * 2.0f;
+
+				bars.at(curBubbleIndex)->runAction(cocos2d::ScaleTo::create(animSpeed * ssmFlip, barScaleX, (static_cast<float>(rightValue) * 650.0f / barScaleYMul), 1.0f));
+				bars.at(curBubbleIndex + 1)->runAction(cocos2d::ScaleTo::create(animSpeed * ssmFlip, barScaleX, (static_cast<float>(leftValue) * 650.0f / barScaleYMul), 1.0f));
+
+				swapped = true;
+			}
+
 			bubbleSortState = BUBBLE_SORT_STATE::NEXT;
+			bubbleSortElapsedTime = 0;
 		}
+	}
+	else if (bubbleSortState == BUBBLE_SORT_STATE::CHECK)
+	{
+		checkSort(delta);
 	}
 }
 
@@ -1009,6 +1064,7 @@ void SortScene::checkSort(const float delta)
 				mergeSortState = MERGE_SORT_STATE::FINISHED;
 				break;
 			case SortScene::SORT_MODE::BUBBLE:
+				bubbleSortState = BUBBLE_SORT_STATE::FINISHED;
 				break;
 			case SortScene::SORT_MODE::QUICK:
 				break;

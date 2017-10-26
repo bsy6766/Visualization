@@ -135,11 +135,16 @@ private:
 
 	// Bubble sort
 	int curBubbleIndex;
+	float bubbleSortDelay;
+	float bubbleSortElapsedTime;
+	bool swapped;
 	enum class BUBBLE_SORT_STATE
 	{
 		NONE,
 		NEXT,
 		SWAP,
+		CHECK,
+		FINISHED
 	};
 	BUBBLE_SORT_STATE bubbleSortState;
 
